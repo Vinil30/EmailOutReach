@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Outreach Desk</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        :root {
+            /* ---- matching landing-page palette ---- */
+            --navy:            #0d1526;
+            --navy-soft:       #141d33;
+            --navy-panel:      #18223b;
+            --navy-raised:     #1e2a46;
+            --navy-line:       rgba(232, 224, 213, 0.12);
+            --navy-line-soft:  rgba(232, 224, 213, 0.06);
+
+            --cream:           #f7f3ec;
+            --cream-dim:       rgba(247, 243, 236, 0.62);
+            --cream-muted:     rgba(247, 243, 236, 0.42);
+
+            --terracotta:      #b8542f;
+            --terracotta-soft: #c96a44;
+            --terracotta-deep: #8f3d1f;
+
+            --sand:            #d4b483;
+            --sand-soft:       #e3cba2;
+
+            --sage:            #6b8e7f;
+            --sage-soft:       #8fb3a2;
+
+            --radius: 4px;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            background: var(--navy);
+            background-image:
+                radial-gradient(720px 500px at 88% -8%, rgba(184, 84, 47, 0.14), transparent 60%),
+                radial-gradient(600px 480px at 6% 108%, rgba(212, 180, 131, 0.06), transparent 65%);
+            background-attachment: fixed;
+            color: var(--cream);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            font-size: 15px;
+            line-height: 1.55;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .shell {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ---------- Sidebar ---------- */
+        .sidebar {
+            width: 256px;
+            flex-shrink: 0;
+            background: var(--navy-soft);
+            border-right: 1px solid var(--navy-line);
+            display: flex;
+            flex-direction: column;
+            padding: 32px 24px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            text-decoration: none;
+            color: inherit;
+            padding-bottom: 24px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--navy-line);
+        }
+
+        .mark {
+            width: 42px;
+            height: 42px;
+            border: 1px solid var(--sand);
+            color: var(--sand);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            border-radius: 2px;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .mark::after {
+            content: '';
+            position: absolute;
+            inset: -5px;
+            border-radius: 2px;
+            border: 1px solid var(--sand);
+            opacity: 0.25;
+            animation: pulse-ring 3s ease-out infinite;
+        }
+
+        @keyframes pulse-ring {
+            0%   { transform: scale(0.9); opacity: 0.3; }
+            80%  { transform: scale(1.15); opacity: 0; }
+            100% { transform: scale(1.15); opacity: 0; }
+        }
+
+        .brand h1 {
+            font-family: 'Fraunces', serif;
+            font-size: 19px;
+            font-weight: 500;
+            margin: 0;
+            line-height: 1.15;
+            letter-spacing: -0.01em;
+            color: var(--cream);
+        }
+
+        .brand p {
+            margin: 5px 0 0;
+            font-size: 11px;
+            color: var(--cream-muted);
+            font-family: 'IBM Plex Mono', monospace;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .nav {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+
+        .nav a {
+            position: relative;
+            color: var(--cream-muted);
+            text-decoration: none;
+            font-size: 13.5px;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            padding: 12px 4px 12px 30px;
+            border-bottom: 1px solid var(--navy-line);
+            transition: color 0.18s ease, padding-left 0.18s ease;
+            overflow: hidden;
+        }
+
+        .nav a::after {
+            content: '';
+            position: absolute;
+            left: 30px;
+            right: 100%;
+            bottom: 0;
+            height: 1px;
+            background: var(--terracotta);
+            transition: right 0.28s ease;
+        }
+
+        .nav a:hover::after,
+        .nav a.active::after {
+            right: 4px;
+        }
+
+        .nav a::before {
+            content: attr(data-idx);
+            position: absolute;
+            left: 0;
+            top: 12px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px;
+            color: rgba(247, 243, 236, 0.22);
+            letter-spacing: 0.05em;
+        }
+
+        .nav a:hover {
+            color: var(--cream);
+            padding-left: 34px;
+        }
+
+        .nav a.active {
+            color: var(--sand);
+        }
+
+        .nav a.active::before {
+            color: var(--terracotta-soft);
+        }
+
+        .sidebar-footer {
+            padding-top: 20px;
+            border-top: 1px solid var(--navy-line);
+        }
+
+        .sidebar-footer strong {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            word-break: break-word;
+            color: var(--cream);
+        }
+
+        .sidebar-footer .meta {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px;
+            color: var(--sage-soft);
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            letter-spacing: 0.02em;
+        }
+
+        .sidebar-footer .meta::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--sage);
+            box-shadow: 0 0 0 0 rgba(107, 142, 127, 0.5);
+            animation: dot-pulse 2.4s infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes dot-pulse {
+            0%   { box-shadow: 0 0 0 0 rgba(107, 142, 127, 0.45); }
+            70%  { box-shadow: 0 0 0 6px rgba(107, 142, 127, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(107, 142, 127, 0); }
+        }
+
+        .sidebar-footer .meta.clock {
+            margin-top: 5px;
+            color: var(--cream-muted);
+        }
+
+        .sidebar-footer .meta.clock::before {
+            content: none;
+        }
+
+        .sidebar-footer .meta.clock #clockValue {
+            color: var(--cream);
+            letter-spacing: 0.04em;
+        }
+
+        /* ---------- Main ---------- */
+        .main {
+            flex-grow: 1;
+            padding: 48px 56px;
+            max-width: 1040px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 40px;
+            gap: 24px;
+        }
+
+        .topbar h2 {
+            font-family: 'Fraunces', serif;
+            font-size: 32px;
+            font-weight: 400;
+            font-style: italic;
+            margin: 0 0 8px;
+            letter-spacing: -0.015em;
+            color: var(--cream);
+        }
+
+        .topbar p {
+            color: var(--cream-dim);
+            margin: 0;
+            font-size: 14.5px;
+            max-width: 48ch;
+        }
+
+        .btn {
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            padding: 12px 20px;
+            border-radius: 999px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            background: var(--terracotta);
+            color: var(--cream);
+            position: relative;
+            overflow: hidden;
+            isolation: isolate;
+            transition: background 0.2s ease, border-color 0.2s ease,
+                        transform 0.12s ease, box-shadow 0.2s ease;
+        }
+
+        .btn:hover {
+            background: var(--terracotta-soft);
+            border-color: var(--terracotta-soft);
+            box-shadow: 0 10px 22px -8px rgba(184, 84, 47, 0.45);
+            transform: translateY(-1px);
+        }
+        .btn:active { transform: translateY(0) scale(0.99); box-shadow: none; }
+
+        .btn .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.35);
+            transform: scale(0);
+            animation: ripple-out 0.55s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes ripple-out {
+            to { transform: scale(1); opacity: 0; }
+        }
+
+        .btn.blue {
+            background: transparent;
+            color: var(--sage-soft);
+            border-color: rgba(107, 142, 127, 0.5);
+            border-radius: 2px;
+        }
+        .btn.blue:hover {
+            background: rgba(107, 142, 127, 0.12);
+            border-color: var(--sage);
+            color: var(--sage-soft);
+            box-shadow: none;
+            transform: none;
+        }
+
+        .btn.secondary {
+            background: transparent;
+            color: var(--cream-dim);
+            border-color: rgba(247, 243, 236, 0.22);
+            border-radius: 2px;
+            padding: 12px 18px;
+        }
+        .btn.secondary:hover {
+            color: var(--sand);
+            border-color: var(--sand);
+            background: transparent;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .btn:focus-visible, .nav a:focus-visible, input:focus-visible {
+            outline: 2px solid var(--terracotta);
+            outline-offset: 2px;
+        }
+
+        .btn[disabled] {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        /* ---------- Grid & panels ---------- */
+        .grid {
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 860px) {
+            .grid { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+            .main { padding: 32px 24px; }
+        }
+
+        .panel {
+            background: var(--navy-panel);
+            border: 1px solid var(--navy-line);
+            border-radius: 8px;
+            padding: 28px;
+            transform-style: preserve-3d;
+            will-change: transform;
+            transition: transform 0.18s ease, border-color 0.25s ease;
+        }
+
+        .panel:hover {
+            border-color: rgba(212, 180, 131, 0.22);
+        }
+
+        .panel h3 {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--sand);
+            margin: 0 0 22px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--navy-line);
+        }
+
+        .form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form label {
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--cream-muted);
+        }
+
+        .form input[type="email"] {
+            background: var(--navy-raised);
+            border: 1px solid var(--navy-line);
+            border-radius: var(--radius);
+            color: var(--cream);
+            padding: 13px 14px;
+            font-size: 14px;
+            font-family: 'IBM Plex Mono', monospace;
+            letter-spacing: 0.01em;
+            transition: border-color 0.18s ease, background 0.18s ease;
+            width: 100%;
+        }
+
+        .form input[type="email"]::placeholder {
+            color: rgba(247, 243, 236, 0.28);
+        }
+
+        .form input[type="email"]:focus {
+            border-color: var(--terracotta);
+            background: rgba(184, 84, 47, 0.05);
+            outline: none;
+        }
+
+        /* drop zone */
+        .dropzone {
+            position: relative;
+            border: 1px dashed rgba(247, 243, 236, 0.18);
+            border-radius: var(--radius);
+            background: var(--navy-raised);
+            padding: 26px 16px;
+            text-align: center;
+            transition: border-color 0.2s ease, background 0.2s ease;
+            cursor: pointer;
+            text-transform: none;
+            letter-spacing: 0;
+            font-weight: 400;
+        }
+
+        .dropzone:hover, .dropzone.drag {
+            border-color: var(--terracotta);
+            background: rgba(184, 84, 47, 0.06);
+        }
+
+        .dropzone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .dropzone .dz-label {
+            font-size: 13px;
+            color: var(--cream-dim);
+            pointer-events: none;
+            letter-spacing: 0;
+        }
+
+        .dropzone .dz-filename {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12.5px;
+            color: var(--sand);
+            margin-top: 8px;
+            pointer-events: none;
+            min-height: 16px;
+            letter-spacing: 0.01em;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .panel-actions {
+            margin-top: 24px;
+            padding-top: 22px;
+            border-top: 1px solid var(--navy-line);
+        }
+
+        /* status readout */
+        .status {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12.5px;
+            line-height: 1.7;
+            letter-spacing: 0.01em;
+            color: var(--cream-dim);
+            background: var(--navy-raised);
+            border: 1px solid var(--navy-line);
+            border-left: 2px solid var(--terracotta);
+            border-radius: 0 var(--radius) var(--radius) 0;
+            padding: 15px 18px;
+            min-height: 22px;
+        }
+
+        .status::before {
+            content: '> ';
+            color: var(--terracotta-soft);
+        }
+
+        .status.typing::after {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 12px;
+            background: var(--terracotta-soft);
+            margin-left: 3px;
+            vertical-align: middle;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <aside class="sidebar">
+            <a class="brand" href="/dashboard">
+                <div class="mark">OD</div>
+                <div>
+                    <h1>Outreach Desk</h1>
+                    <p>Research · Write · Send</p>
+                </div>
+            </a>
+            <nav class="nav">
+                <a class="active" data-idx="01" href="/dashboard">Upload</a>
+                <a data-idx="02" href="/waiting-mails">Review</a>
+                <a data-idx="03" href="/sent-mails">Sent</a>
+            </nav>
+            <div class="sidebar-footer">
+                <strong id="userEmail"></strong>
+                <div class="meta">JWT session active</div>
+                <div class="meta clock" id="sessionClock">
+                    <span id="clockValue">00:00:00</span>&nbsp;uptime
+                </div>
+            </div>
+        </aside>
+
+        <main class="main">
+            <div class="topbar">
+                <div>
+                    <h2>Upload contacts</h2>
+                    <p>Run the full automation or generate drafts for approval.</p>
+                </div>
+                <button class="btn secondary" id="logoutBtn">Sign out</button>
+            </div>
+
+            <section class="grid">
+                <div class="panel">
+                    <h3>Campaign input</h3>
+                    <form id="uploadForm" class="form">
+                        <label>
+                            Sender email
+                            <input id="fromInput" type="email" required placeholder="you@yourdomain.com">
+                        </label>
+                        <label>
+                            CSV or Excel file
+                            <div class="dropzone" id="dropzone">
+                                <input id="fileInput" type="file" accept=".csv,.xlsx,.xls" required>
+                                <div class="dz-label">Drop a file here, or click to browse</div>
+                                <div class="dz-filename" id="dzFilename"></div>
+                            </div>
+                        </label>
+                        <div class="actions">
+                            <button class="btn" type="button" id="automateBtn">Automate</button>
+                            <button class="btn blue" type="button" id="reviewBtn">Human review</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="panel">
+                    <h3>Run status</h3>
+                    <div id="uploadStatus" class="status">Required columns: company_name, recipient_name, recipient_email. Optional column: details.</div>
+                    <div class="actions panel-actions">
+                        <button class="btn" type="button" id="connectGmailBtn">Connect Gmail</button>
+                        <a class="btn secondary" href="/static/demo/demo_input.csv" download>Download demo CSV</a>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/dashboard.js"></script>
+    <script>
+        // Additive UI polish only — does not alter app logic wired up in dashboard.js.
+        (function () {
+            var dropzone = document.getElementById('dropzone');
+            var fileInput = document.getElementById('fileInput');
+            var dzFilename = document.getElementById('dzFilename');
+
+            if (fileInput && dzFilename) {
+                fileInput.addEventListener('change', function () {
+                    dzFilename.textContent = fileInput.files && fileInput.files[0]
+                        ? fileInput.files[0].name
+                        : '';
+                });
+            }
+
+            if (dropzone) {
+                ['dragenter', 'dragover'].forEach(function (evt) {
+                    dropzone.addEventListener(evt, function (e) {
+                        e.preventDefault();
+                        dropzone.classList.add('drag');
+                    });
+                });
+                ['dragleave', 'drop'].forEach(function (evt) {
+                    dropzone.addEventListener(evt, function (e) {
+                        e.preventDefault();
+                        dropzone.classList.remove('drag');
+                    });
+                });
+                dropzone.addEventListener('drop', function (e) {
+                    var files = e.dataTransfer && e.dataTransfer.files;
+                    if (files && files.length && fileInput) {
+                        fileInput.files = files;
+                        fileInput.dispatchEvent(new Event('change'));
+                    }
+                });
+            }
+
+            // Ripple feedback on every button press.
+            document.querySelectorAll('.btn').forEach(function (btn) {
+                btn.addEventListener('click', function (e) {
+                    var rect = btn.getBoundingClientRect();
+                    var size = Math.max(rect.width, rect.height) * 1.4;
+                    var ripple = document.createElement('span');
+                    ripple.className = 'ripple';
+                    ripple.style.width = ripple.style.height = size + 'px';
+                    ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+                    ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+                    btn.appendChild(ripple);
+                    ripple.addEventListener('animationend', function () { ripple.remove(); });
+                });
+            });
+
+            // Gentle 3D tilt on panels, following the cursor.
+            document.querySelectorAll('.panel').forEach(function (panel) {
+                panel.addEventListener('mousemove', function (e) {
+                    var rect = panel.getBoundingClientRect();
+                    var x = (e.clientX - rect.left) / rect.width - 0.5;
+                    var y = (e.clientY - rect.top) / rect.height - 0.5;
+                    panel.style.transform =
+                        'perspective(700px) rotateX(' + (y * -1.8) + 'deg) rotateY(' + (x * 1.8) + 'deg)';
+                });
+                panel.addEventListener('mouseleave', function () {
+                    panel.style.transform = 'perspective(700px) rotateX(0) rotateY(0)';
+                });
+            });
+
+            // Live uptime readout — cosmetic, resets each page load.
+            var clockValue = document.getElementById('clockValue');
+            if (clockValue) {
+                var started = Date.now();
+                setInterval(function () {
+                    var secs = Math.floor((Date.now() - started) / 1000);
+                    var h = String(Math.floor(secs / 3600)).padStart(2, '0');
+                    var m = String(Math.floor((secs % 3600) / 60)).padStart(2, '0');
+                    var s = String(secs % 60).padStart(2, '0');
+                    clockValue.textContent = h + ':' + m + ':' + s;
+                }, 1000);
+            }
+        })();
+    </script>
+</body>
+</html>

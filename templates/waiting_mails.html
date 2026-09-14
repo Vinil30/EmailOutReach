@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waiting Mails | Email Outreach</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="shell">
+        <aside class="sidebar">
+            <a class="brand" href="/dashboard">
+                <div class="mark">EO</div>
+                <div>
+                    <h1>Outreach Desk</h1>
+                    <p>Research, write, send</p>
+                </div>
+            </a>
+            <nav class="nav">
+                <a href="/dashboard">Upload</a>
+                <a class="active" href="/waiting-mails">Review</a>
+                <a href="/sent-mails">Sent</a>
+            </nav>
+            <div class="sidebar-footer">
+                <strong id="userEmail"></strong>
+                <div class="meta">JWT session active</div>
+            </div>
+        </aside>
+
+        <main class="main">
+            <div class="topbar">
+                <div>
+                    <h2>Human Review</h2>
+                    <p>Edit generated drafts, then send approved emails.</p>
+                </div>
+                <button class="btn secondary" id="logoutBtn">Sign Out</button>
+            </div>
+            <div class="actions">
+                <button class="btn secondary" id="refreshReviewBtn">Refresh Drafts</button>
+                <button class="btn secondary" id="downloadRejectedBtn" type="button">Download Rejected CSV</button>
+            </div>
+            <div id="reviewStatus" class="status">Drafts generated in human-review mode will appear here.</div>
+            <div id="reviewList" class="list"></div>
+        </main>
+    </div>
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/mail_cards.js"></script>
+    <script src="/static/js/waiting_mails.js"></script>
+</body>
+</html>
