@@ -89,12 +89,11 @@ def email_writer(agent_state: AgentState) -> AgentState:
 
 
 def pre_send_risk_analyzer(agent_state: AgentState) -> AgentState:
-    from utils.DeliverabilityAnalyzer import RspamdAnalyzer
     from utils.EmailWriter import EmailWriter
+    from utils.spam_guard import analyze_email_risk
 
-    analyzer = RspamdAnalyzer()
     email_details = agent_state["written_email_details"]
-    risk = analyzer.analyze(
+    risk = analyze_email_risk(
         email_details.email_subject,
         email_details.email_body,
         agent_state["email_from"],
@@ -102,7 +101,7 @@ def pre_send_risk_analyzer(agent_state: AgentState) -> AgentState:
     )
     history = [risk.model_dump()]
 
-    if risk.level == "MEDIUM":
+    if risk.action == "REGENERATE":
         writer = EmailWriter()
         rewritten = writer.RewriteForDeliverability(
             email_details.email_subject,
@@ -110,7 +109,7 @@ def pre_send_risk_analyzer(agent_state: AgentState) -> AgentState:
             risk.reasons,
         )
         agent_state["written_email_details"] = rewritten
-        risk = analyzer.analyze(
+        risk = analyze_email_risk(
             rewritten.email_subject,
             rewritten.email_body,
             agent_state["email_from"],

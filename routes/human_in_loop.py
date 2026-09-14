@@ -19,8 +19,8 @@ from database.fxns import (
 )
 from Graph import EmailDetails, OutreachInput, run_outreach
 from utils.EmailerAgent import EmailerAgent
-from utils.DeliverabilityAnalyzer import RspamdAnalyzer
 from utils.GmailAuth import get_valid_gmail_tokens
+from utils.spam_guard import analyze_email_risk
 
 router = APIRouter(prefix="/human", tags=["human"])
 
@@ -137,8 +137,7 @@ async def send_mail(payload: SendMailIn, current_user=Depends(get_current_user))
         email_subject=payload.email_subject or stored_details["email_subject"],
         email_body=payload.email_body or stored_details["email_body"],
     )
-    analyzer = RspamdAnalyzer()
-    risk = analyzer.analyze(
+    risk = analyze_email_risk(
         email_details.email_subject,
         email_details.email_body,
         waiting_email["email_from"],

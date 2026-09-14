@@ -18,12 +18,6 @@ services:
         value: HS256
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
         value: 1440
-      - key: RSPAMD_TIMEOUT_SECONDS
-        value: 10
-      - key: SPAM_RISK_LOW_THRESHOLD
-        value: 4
-      - key: SPAM_RISK_HIGH_THRESHOLD
-        value: 7
       - key: GMAIL_SEND_TIMEOUT_SECONDS
         value: 20
       - key: GMAIL_MAX_SEND_ATTEMPTS
@@ -51,10 +45,6 @@ services:
       - key: GROQ_API_KEY
         sync: false
       - key: search_api_key
-        sync: false
-      - key: RSPAMD_URL
-        sync: false
-      - key: RSPAMD_PASSWORD
         sync: false
       - key: GOOGLE_CLIENT_ID
         sync: false

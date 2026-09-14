@@ -1,14 +1,12 @@
 from dataclasses import dataclass
 from unittest.mock import Mock
 
-import pytest
 from bson import ObjectId
-from fastapi import HTTPException
 
 import database.fxns as db_fxns
 from Graph import EmailDetails, pre_send_risk_analyzer
-from utils.DeliverabilityAnalyzer import RspamdAnalyzer
 from utils.EmailerAgent import EmailerAgent
+from utils.spam_guard import analyze_email_risk
 
 
 class FakeResponse:
@@ -25,14 +23,16 @@ class FakeResponse:
             raise Exception(f"HTTP {self.status_code}")
 
 
-def test_low_risk_email_analyzes_and_sends(monkeypatch):
-    monkeypatch.setattr(
-        "utils.DeliverabilityAnalyzer.requests.post",
-        lambda *args, **kwargs: FakeResponse(payload={"score": 2.1, "symbols": {}}),
+def test_low_risk_email_passes_and_sends(monkeypatch):
+    risk = analyze_email_risk(
+        "Following up on your data platform work",
+        "<p>Hello, I noticed your team's work and would appreciate a brief conversation.</p>",
+        "me@example.com",
+        "you@example.com",
     )
-    risk = RspamdAnalyzer().analyze("Hello", "<p>Hi</p>", "me@example.com", "you@example.com")
     assert risk.level == "LOW"
     assert risk.action == "SEND"
+    assert risk.decision == "PASS"
 
     monkeypatch.setattr(
         "utils.EmailerAgent.requests.post",
@@ -48,24 +48,17 @@ def test_low_risk_email_analyzes_and_sends(monkeypatch):
     assert result["response"]["id"] == "gmail-message-id"
 
 
-def test_medium_risk_email_rewrites_and_rechecks(monkeypatch):
-    calls = []
-
-    class FakeAnalyzer:
-        def analyze(self, *args):
-            calls.append(args)
-            if len(calls) == 1:
-                return Mock(level="MEDIUM", action="REWRITE_REQUIRED", reasons=["excessive promotional language"], model_dump=lambda: {"level": "MEDIUM", "action": "REWRITE_REQUIRED", "reasons": ["excessive promotional language"]})
-            return Mock(level="LOW", action="SEND", reasons=[], model_dump=lambda: {"level": "LOW", "action": "SEND", "reasons": [], "score": 1.0})
-
+def test_risky_email_regenerates_and_rechecks(monkeypatch):
     class FakeWriter:
         def RewriteForDeliverability(self, *args):
             return EmailDetails(email_subject="Rewritten", email_body="<p>Calmer email.</p>")
 
-    monkeypatch.setattr("utils.DeliverabilityAnalyzer.RspamdAnalyzer", FakeAnalyzer)
     monkeypatch.setattr("utils.EmailWriter.EmailWriter", FakeWriter)
     state = {
-        "written_email_details": EmailDetails(email_subject="Buy now", email_body="<p>Huge opportunity!!!</p>"),
+        "written_email_details": EmailDetails(
+            email_subject="URGENT FREE OFFER!!!",
+            email_body="<p>CLICK HERE now!!! Act now. Book a call. Sign up. Reach out. https://bit.ly/x</p>",
+        ),
         "email_from": "me@example.com",
         "recipient_email": "you@example.com",
     }
@@ -75,30 +68,16 @@ def test_medium_risk_email_rewrites_and_rechecks(monkeypatch):
     assert len(updated["deliverability_history"]) == 2
 
 
-def test_high_risk_email_blocks_for_review(monkeypatch):
-    class FakeAnalyzer:
-        def analyze(self, *args):
-            return Mock(level="HIGH", action="BLOCK_REVIEW", reasons=["suspicious URL"], model_dump=lambda: {"level": "HIGH", "action": "BLOCK_REVIEW", "reasons": ["suspicious URL"], "score": 7.4})
-
-    monkeypatch.setattr("utils.DeliverabilityAnalyzer.RspamdAnalyzer", FakeAnalyzer)
-    state = {
-        "written_email_details": EmailDetails(email_subject="Hello", email_body="<p>Click</p>"),
-        "email_from": "me@example.com",
-        "recipient_email": "you@example.com",
-    }
-    updated = pre_send_risk_analyzer(state)
-    assert updated["outreach_status"] == "BLOCK_REVIEW"
-    assert updated["deliverability_risk"]["score"] == 7.4
-
-
-def test_rspamd_unavailable_raises_service_unavailable(monkeypatch):
-    monkeypatch.setattr(
-        "utils.DeliverabilityAnalyzer.requests.post",
-        Mock(side_effect=__import__("requests").RequestException("offline")),
+def test_spam_guard_detects_multiple_risk_rules():
+    risk = analyze_email_risk(
+        "URGENT FREE OFFER!!!",
+        "<p>Act now!!! Click here. Book a call. Sign up. Reach out. https://bit.ly/x https://1.2.3.4/a https://example.com</p>",
     )
-    with pytest.raises(HTTPException) as exc:
-        RspamdAnalyzer().analyze("Hello", "<p>Hi</p>", "me@example.com", "you@example.com")
-    assert exc.value.status_code == 503
+    assert risk.action == "REGENERATE"
+    assert risk.decision == "REGENERATE"
+    assert "excessive punctuation" in risk.reasons
+    assert "suspicious URLs" in risk.reasons
+    assert "too many calls to action" in risk.reasons
 
 
 def test_gmail_429_retries(monkeypatch):

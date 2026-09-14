@@ -41,7 +41,7 @@ async function sendDraft(mailId, card, button) {
         if (data.blocked) {
             const replacement = renderEmailCard(data.email, false, sendDraft, rejectDraft);
             card.replaceWith(replacement);
-            const reasons = (data.deliverability_risk?.reasons || []).join(", ") || "Rspamd risk threshold exceeded";
+            const reasons = (data.deliverability_risk?.reasons || []).join(", ") || "Spam-risk guard threshold exceeded";
             OutreachApi.setStatus(reviewStatus, `Send blocked for spam/deliverability risk: ${reasons}`, "error");
             return;
         }

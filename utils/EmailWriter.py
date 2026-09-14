@@ -122,7 +122,7 @@ class EmailWriter:
         Current HTML body:
         {email_body}
 
-        Rspamd spam/deliverability risk reasons:
+        Local pre-send spam-risk guard reasons:
         {risk_reasons}
         """
 
@@ -131,9 +131,9 @@ class EmailWriter:
                 (
                     "system",
                     """
-                    You revise cold outreach emails after Rspamd spam/deliverability risk analysis.
+                    You revise cold outreach emails after local spam-risk analysis.
 
-                    Rewrite the message to reduce the specific risks provided by Rspamd.
+                    Rewrite the message to reduce the specific risks provided by the local guard.
                     Preserve the core intent, factual claims, recipient, and professional tone.
                     Do not add tracking links, exaggerated sales language, urgency tricks,
                     misleading claims, or attachments.

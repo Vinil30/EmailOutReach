@@ -2,47 +2,27 @@
 
 Generate personalized student outreach, analyze spam/deliverability risk before sending, correct or block risky messages, and send accepted mail through the user's own Gmail account.
 
-This product does not guarantee inbox placement. It performs spam/deliverability risk analysis using Rspamd signals before a send is attempted.
+This product does not guarantee inbox placement. It performs lightweight local spam-risk analysis before a send is attempted.
 
 ## Architecture
 
 ```text
 Generate personalized email
         |
-      Rspamd
+Local spam-risk guard
         |
-Spam score + signals + reasons
+Risk score + signals + reasons
         |
 Risk decision
    LOW -> SEND
-   MEDIUM -> LLM rewrite -> Rspamd again -> SEND or REVIEW
-   HIGH -> BLOCK/REVIEW
+   MEDIUM -> LLM rewrite -> local guard again -> SEND or REVIEW
         |
 Gmail API send
         |
 Retry transient failures, persist final state
 ```
 
-The LLM writes and rewrites email content. Rspamd determines pre-send risk. Gmail API responses and persisted application state determine whether an email was actually sent.
-
-## Rspamd Setup
-
-Run Rspamd locally or point the app at a reachable Rspamd normal worker.
-
-```bash
-docker run --rm -p 11333:11333 rspamd/rspamd
-```
-
-Set:
-
-```bash
-RSPAMD_URL=http://localhost:11333
-RSPAMD_PASSWORD=
-SPAM_RISK_LOW_THRESHOLD=4
-SPAM_RISK_HIGH_THRESHOLD=7
-```
-
-The app calls `POST /checkv2` with a generated RFC822 email and stores the score, level, action, reasons, and raw signals.
+The LLM writes and rewrites email content. The local deterministic guard determines pre-send risk from capitalization, punctuation, links, suspicious URLs, promotional phrases, urgent language, length, repeated phrases, and call-to-action density. Gmail API responses and persisted application state determine whether an email was actually sent.
 
 ## Gmail OAuth Setup
 
@@ -113,7 +93,7 @@ pip install -r requirements.txt
 ```
 
 3. Copy `.env.example` to `.env` and fill in credentials.
-4. Start MongoDB and Rspamd.
+4. Start MongoDB.
 5. Run the app.
 
 ```bash
@@ -151,8 +131,6 @@ JWT_ALGORITHM=HS256
 CORS_ALLOW_ORIGINS=*
 GROQ_API_KEY=...
 search_api_key=...
-RSPAMD_URL=...
-RSPAMD_PASSWORD=
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 GOOGLE_REDIRECT_URI=https://your-render-service.onrender.com/gmail/callback
@@ -170,4 +148,4 @@ The health check endpoint is:
 pytest
 ```
 
-Automated tests mock Rspamd and Gmail failures. The running application uses real Rspamd analysis for pre-send checks.
+Automated tests cover the local spam-risk guard and Gmail failure handling.
