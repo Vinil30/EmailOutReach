@@ -3,500 +3,399 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sent Mails | Outreach Desk</title>
+    <title>Login | Outreach Desk</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
     <style>
         :root {
-            --navy:            #0d1526;
-            --navy-soft:       #141d33;
-            --navy-panel:      #18223b;
-            --navy-raised:     #1e2a46;
-            --navy-line:       rgba(232, 224, 213, 0.12);
-            --navy-line-soft:  rgba(232, 224, 213, 0.06);
-
-            --cream:           #f7f3ec;
-            --cream-dim:       rgba(247, 243, 236, 0.62);
-            --cream-muted:     rgba(247, 243, 236, 0.42);
-
-            --terracotta:      #b8542f;
+            --navy: #0d1526;
+            --navy-soft: #141d33;
+            --navy-panel: #18223b;
+            --navy-raised: #1e2a46;
+            --navy-line: rgba(232, 224, 213, 0.12);
+            --cream: #f7f3ec;
+            --cream-dim: rgba(247, 243, 236, 0.66);
+            --cream-muted: rgba(247, 243, 236, 0.46);
+            --terracotta: #b8542f;
             --terracotta-soft: #c96a44;
-            --terracotta-deep: #8f3d1f;
-
-            --sand:            #d4b483;
-            --sand-soft:       #e3cba2;
-
-            --sage:            #6b8e7f;
-            --sage-soft:       #8fb3a2;
-
-            --radius: 4px;
+            --sand: #d4b483;
+            --sage: #6b8e7f;
         }
 
         * { box-sizing: border-box; }
 
         html, body {
-            background: var(--navy);
-            background-image:
-                radial-gradient(720px 500px at 88% -8%, rgba(184, 84, 47, 0.14), transparent 60%),
-                radial-gradient(600px 480px at 6% 108%, rgba(212, 180, 131, 0.06), transparent 65%);
-            background-attachment: fixed;
-            color: var(--cream);
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             margin: 0;
-            font-size: 15px;
-            line-height: 1.55;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        .shell {
-            display: flex;
             min-height: 100vh;
+            background: var(--navy);
+            color: var(--cream);
+            font-family: Inter, system-ui, sans-serif;
+            letter-spacing: 0;
         }
 
-        /* ---------- Sidebar ---------- */
-        .sidebar {
-            width: 256px;
-            flex-shrink: 0;
-            background: var(--navy-soft);
-            border-right: 1px solid var(--navy-line);
+        .auth-page {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(380px, 460px);
+        }
+
+        .auth-copy {
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            padding: 32px 24px;
+            justify-content: space-between;
+            padding: 34px 54px 46px;
+            background:
+                radial-gradient(720px 500px at 90% 4%, rgba(184, 84, 47, 0.18), transparent 64%),
+                radial-gradient(640px 460px at 5% 105%, rgba(212, 180, 131, 0.08), transparent 64%),
+                var(--navy);
         }
 
         .brand {
             display: flex;
             align-items: center;
             gap: 14px;
+            color: var(--cream);
             text-decoration: none;
-            color: inherit;
-            padding-bottom: 24px;
-            margin-bottom: 24px;
-            border-bottom: 1px solid var(--navy-line);
+            width: max-content;
         }
 
         .mark {
             width: 42px;
             height: 42px;
             border: 1px solid var(--sand);
+            border-radius: 2px;
+            display: grid;
+            place-items: center;
             color: var(--sand);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'IBM Plex Mono', monospace;
+            font-family: "IBM Plex Mono", monospace;
             font-size: 13px;
-            font-weight: 500;
             letter-spacing: 0.04em;
-            border-radius: 2px;
-            position: relative;
-            flex-shrink: 0;
-        }
-
-        .mark::after {
-            content: '';
-            position: absolute;
-            inset: -5px;
-            border-radius: 2px;
-            border: 1px solid var(--sand);
-            opacity: 0.25;
-            animation: pulse-ring 3s ease-out infinite;
-        }
-
-        @keyframes pulse-ring {
-            0%   { transform: scale(0.9); opacity: 0.3; }
-            80%  { transform: scale(1.15); opacity: 0; }
-            100% { transform: scale(1.15); opacity: 0; }
         }
 
         .brand h1 {
-            font-family: 'Fraunces', serif;
-            font-size: 19px;
-            font-weight: 500;
             margin: 0;
-            line-height: 1.15;
-            letter-spacing: -0.01em;
-            color: var(--cream);
+            font-family: Fraunces, Georgia, serif;
+            font-size: 20px;
+            font-weight: 500;
+            line-height: 1.1;
         }
 
         .brand p {
             margin: 5px 0 0;
-            font-size: 11px;
             color: var(--cream-muted);
-            font-family: 'IBM Plex Mono', monospace;
+            font-family: "IBM Plex Mono", monospace;
+            font-size: 11px;
             letter-spacing: 0.04em;
             text-transform: uppercase;
         }
 
-        .nav {
-            display: flex;
-            flex-direction: column;
-            flex-grow: 1;
+        .auth-hero {
+            max-width: 680px;
+            padding: 72px 0;
         }
 
-        .nav a {
-            position: relative;
-            color: var(--cream-muted);
-            text-decoration: none;
-            font-size: 13.5px;
-            font-weight: 500;
-            letter-spacing: 0.02em;
-            padding: 12px 4px 12px 30px;
-            border-bottom: 1px solid var(--navy-line);
-            transition: color 0.18s ease, padding-left 0.18s ease;
-            overflow: hidden;
-        }
-
-        .nav a::after {
-            content: '';
-            position: absolute;
-            left: 30px;
-            right: 100%;
-            bottom: 0;
-            height: 1px;
-            background: var(--terracotta);
-            transition: right 0.28s ease;
-        }
-
-        .nav a:hover::after,
-        .nav a.active::after {
-            right: 4px;
-        }
-
-        .nav a::before {
-            content: attr(data-idx);
-            position: absolute;
-            left: 0;
-            top: 12px;
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 11px;
-            color: rgba(247, 243, 236, 0.22);
-            letter-spacing: 0.05em;
-        }
-
-        .nav a:hover {
-            color: var(--cream);
-            padding-left: 34px;
-        }
-
-        .nav a.active {
+        .auth-hero span {
             color: var(--sand);
+            font-family: "IBM Plex Mono", monospace;
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
         }
 
-        .nav a.active::before {
-            color: var(--terracotta-soft);
-        }
-
-        .sidebar-footer {
-            padding-top: 20px;
-            border-top: 1px solid var(--navy-line);
-        }
-
-        .sidebar-footer strong {
-            display: block;
-            font-size: 13px;
-            font-weight: 500;
-            word-break: break-word;
-            color: var(--cream);
-        }
-
-        .sidebar-footer .meta {
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 11px;
-            color: var(--sage-soft);
-            margin-top: 6px;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            letter-spacing: 0.02em;
-        }
-
-        .sidebar-footer .meta::before {
-            content: '';
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--sage);
-            box-shadow: 0 0 0 0 rgba(107, 142, 127, 0.5);
-            animation: dot-pulse 2.4s infinite;
-            flex-shrink: 0;
-        }
-
-        @keyframes dot-pulse {
-            0%   { box-shadow: 0 0 0 0 rgba(107, 142, 127, 0.45); }
-            70%  { box-shadow: 0 0 0 6px rgba(107, 142, 127, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(107, 142, 127, 0); }
-        }
-
-        /* ---------- Main ---------- */
-        .main {
-            flex-grow: 1;
-            padding: 48px 56px;
-            max-width: 1040px;
-        }
-
-        .topbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 32px;
-            gap: 24px;
-        }
-
-        .topbar h2 {
-            font-family: 'Fraunces', serif;
-            font-size: 32px;
-            font-weight: 400;
+        .auth-hero h2 {
+            margin: 24px 0 20px;
+            max-width: 12ch;
+            font-family: Fraunces, Georgia, serif;
+            font-size: clamp(44px, 6vw, 74px);
             font-style: italic;
+            font-weight: 400;
+            line-height: 0.98;
+        }
+
+        .auth-hero p {
+            max-width: 58ch;
+            margin: 0;
+            color: var(--cream-dim);
+            font-size: 16px;
+            line-height: 1.75;
+        }
+
+        .auth-points {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            max-width: 780px;
+        }
+
+        .auth-point {
+            border-top: 1px solid var(--navy-line);
+            padding-top: 14px;
+        }
+
+        .auth-point strong {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--sand);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .auth-point p {
+            margin: 0;
+            color: var(--cream-muted);
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .auth-panel-wrap {
+            min-height: 100vh;
+            display: grid;
+            align-items: center;
+            padding: 34px;
+            background: var(--navy-soft);
+            border-left: 1px solid var(--navy-line);
+        }
+
+        .auth-box {
+            width: 100%;
+            background: var(--navy-panel);
+            border: 1px solid var(--navy-line);
+            border-radius: 8px;
+            box-shadow: 0 28px 70px rgba(0, 0, 0, 0.28);
+            padding: 28px;
+        }
+
+        .auth-box h1 {
             margin: 0 0 8px;
-            letter-spacing: -0.015em;
+            font-family: Fraunces, Georgia, serif;
+            font-size: 30px;
+            font-style: italic;
+            font-weight: 400;
             color: var(--cream);
         }
 
-        .topbar p {
+        .auth-box p {
+            margin: 0 0 24px;
             color: var(--cream-dim);
-            margin: 0;
-            font-size: 14.5px;
-            max-width: 48ch;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .mode-tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 24px;
+            padding: 5px;
+            background: var(--navy-raised);
+            border: 1px solid var(--navy-line);
+            border-radius: 8px;
+        }
+
+        .mode-tab {
+            min-height: 40px;
+            border: 0;
+            border-radius: 5px;
+            background: transparent;
+            color: var(--cream-muted);
+            cursor: pointer;
+            font: 600 13px Inter, system-ui, sans-serif;
+        }
+
+        .mode-tab.active {
+            background: var(--terracotta);
+            color: var(--cream);
+        }
+
+        .auth-form {
+            display: grid;
+            gap: 16px;
+        }
+
+        .auth-form label {
+            display: grid;
+            gap: 8px;
+            color: var(--cream-muted);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .auth-form input {
+            width: 100%;
+            min-height: 46px;
+            border: 1px solid var(--navy-line);
+            border-radius: 5px;
+            background: var(--navy-raised);
+            color: var(--cream);
+            padding: 0 14px;
+            outline: none;
+            font: 500 14px Inter, system-ui, sans-serif;
+        }
+
+        .auth-form input::placeholder { color: rgba(247, 243, 236, 0.28); }
+
+        .auth-form input:focus {
+            border-color: var(--terracotta-soft);
+            box-shadow: 0 0 0 3px rgba(184, 84, 47, 0.16);
+        }
+
+        .auth-actions {
+            display: grid;
+            gap: 12px;
+            margin-top: 8px;
         }
 
         .btn {
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            font-weight: 500;
-            letter-spacing: 0.02em;
-            padding: 12px 20px;
+            min-height: 46px;
             border-radius: 999px;
-            border: 1px solid transparent;
-            cursor: pointer;
+            border: 1px solid var(--terracotta);
             background: var(--terracotta);
             color: var(--cream);
-            position: relative;
-            overflow: hidden;
-            isolation: isolate;
-            transition: background 0.2s ease, border-color 0.2s ease,
-                        transform 0.12s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 20px;
+            font: 700 14px Inter, system-ui, sans-serif;
+            text-decoration: none;
         }
 
         .btn:hover {
             background: var(--terracotta-soft);
             border-color: var(--terracotta-soft);
-            box-shadow: 0 10px 22px -8px rgba(184, 84, 47, 0.45);
-            transform: translateY(-1px);
         }
-
-        .btn:active { transform: translateY(0) scale(0.99); box-shadow: none; }
 
         .btn.secondary {
+            border-color: rgba(247, 243, 236, 0.22);
             background: transparent;
             color: var(--cream-dim);
-            border-color: rgba(247, 243, 236, 0.22);
-            border-radius: 2px;
-            padding: 12px 18px;
+            border-radius: 5px;
         }
+
         .btn.secondary:hover {
             color: var(--sand);
             border-color: var(--sand);
             background: transparent;
-            box-shadow: none;
-            transform: none;
         }
 
-        .btn:focus-visible,
-        .nav a:focus-visible {
-            outline: 2px solid var(--terracotta);
-            outline-offset: 2px;
-        }
-
-        .btn[disabled] {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none !important;
-            box-shadow: none !important;
-        }
-
-        /* ---------- Actions row ---------- */
-        .actions {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-        }
-
-        /* ---------- Status readout ---------- */
         .status {
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 12.5px;
-            line-height: 1.7;
-            letter-spacing: 0.01em;
-            color: var(--cream-dim);
-            background: var(--navy-raised);
+            min-height: 44px;
+            margin-top: 18px;
+            padding: 12px 14px;
             border: 1px solid var(--navy-line);
             border-left: 2px solid var(--terracotta);
-            border-radius: 0 var(--radius) var(--radius) 0;
-            padding: 15px 18px;
-            min-height: 22px;
-            margin-bottom: 24px;
-        }
-
-        .status::before {
-            content: '> ';
-            color: var(--terracotta-soft);
-        }
-
-        .status.typing::after {
-            content: '';
-            display: inline-block;
-            width: 6px;
-            height: 12px;
-            background: var(--terracotta-soft);
-            margin-left: 3px;
-            vertical-align: middle;
-            animation: blink 1s step-end infinite;
-        }
-
-        @keyframes blink {
-            50% { opacity: 0; }
-        }
-
-        /* ---------- Sent list ---------- */
-        .list {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        /* Fallback styling for mail_cards.js generated cards —
-           scoped loosely so it doesn't fight the JS-generated classes */
-        .list > * {
-            background: var(--navy-panel);
-            border: 1px solid var(--navy-line);
-            border-radius: 8px;
-            padding: 22px 24px;
-            transition: border-color 0.2s ease;
-        }
-
-        .list > *:hover {
-            border-color: rgba(212, 180, 131, 0.22);
-        }
-
-        .list h3,
-        .list h4 {
-            font-family: 'Fraunces', serif;
-            font-weight: 500;
-            font-style: italic;
-            font-size: 19px;
-            letter-spacing: -0.01em;
-            margin: 0 0 10px;
-            color: var(--cream);
-        }
-
-        .list p {
-            color: var(--cream-dim);
-            font-size: 14.5px;
-            margin: 0 0 6px;
-            line-height: 1.6;
-        }
-
-        .list strong {
-            color: var(--sand);
-            font-weight: 500;
-        }
-
-        .list a {
-            color: var(--terracotta-soft);
-            text-decoration: none;
-            border-bottom: 1px solid rgba(201, 106, 68, 0.35);
-            transition: color 0.15s ease, border-color 0.15s ease;
-        }
-        .list a:hover {
-            color: var(--sand);
-            border-bottom-color: var(--sand);
-        }
-
-        .list code,
-        .list .meta,
-        .list time,
-        .list .badge {
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 11.5px;
-            letter-spacing: 0.02em;
-            color: var(--cream-muted);
-        }
-
-        .list .badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border: 1px solid var(--navy-line);
-            border-radius: 999px;
-            color: var(--sage-soft);
-        }
-
-        /* Empty state */
-        .list:empty::before {
-            content: 'No sent mail yet.';
-            display: block;
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 12.5px;
-            color: var(--cream-muted);
-            padding: 40px 24px;
-            text-align: center;
-            border: 1px dashed var(--navy-line);
-            border-radius: 8px;
+            border-radius: 0 5px 5px 0;
             background: var(--navy-raised);
+            color: var(--cream-dim);
+            font: 12.5px/1.6 "IBM Plex Mono", monospace;
         }
 
-        /* ---------- Responsive ---------- */
-        @media (max-width: 860px) {
-            .sidebar { display: none; }
-            .main { padding: 32px 24px; }
-            .topbar {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            .topbar h2 { font-size: 26px; }
+        .status.error {
+            color: #ffb4a3;
+            border-left-color: #ff8a70;
+        }
+
+        .status.ok {
+            color: #9fd0ba;
+            border-left-color: var(--sage);
+        }
+
+        .auth-foot {
+            margin-top: 20px;
+            color: var(--cream-muted);
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        @media (max-width: 900px) {
+            .auth-page { grid-template-columns: 1fr; }
+            .auth-copy { min-height: auto; padding: 28px 24px 34px; }
+            .auth-hero { padding: 48px 0 34px; }
+            .auth-hero h2 { font-size: 42px; }
+            .auth-points { grid-template-columns: 1fr; }
+            .auth-panel-wrap { min-height: auto; padding: 24px; border-left: 0; }
         }
     </style>
 </head>
 <body>
-    <div class="shell">
-        <aside class="sidebar">
-            <a class="brand" href="/dashboard">
+    <main class="auth-page">
+        <section class="auth-copy">
+            <a class="brand" href="/">
                 <div class="mark">OD</div>
                 <div>
                     <h1>Outreach Desk</h1>
-                    <p>Research · Write · Send</p>
+                    <p>failure-aware outreach</p>
                 </div>
             </a>
-            <nav class="nav">
-                <a data-idx="01" href="/dashboard">Upload</a>
-                <a data-idx="02" href="/waiting-mails">Review</a>
-                <a class="active" data-idx="03" href="/sent-mails">Sent</a>
-            </nav>
-            <div class="sidebar-footer">
-                <strong id="userEmail"></strong>
-                <div class="meta">JWT session active</div>
-            </div>
-        </aside>
 
-        <main class="main">
-            <div class="topbar">
-                <div>
-                    <h2>Sent Mail</h2>
-                    <p>Inspect sent outreach stored per user.</p>
+            <div class="auth-hero">
+                <span>Account required</span>
+                <h2>Send from a real workspace.</h2>
+                <p>
+                    Create an account, connect Gmail, upload contacts, and review generated
+                    drafts before they move into the sent-mail record.
+                </p>
+            </div>
+
+            <div class="auth-points" aria-label="Workflow summary">
+                <div class="auth-point">
+                    <strong>1. Sign in</strong>
+                    <p>Keep contacts, drafts, and send history tied to your account.</p>
                 </div>
-                <button class="btn secondary" id="logoutBtn">Sign Out</button>
+                <div class="auth-point">
+                    <strong>2. Connect Gmail</strong>
+                    <p>Authorize sending with OAuth from the dashboard.</p>
+                </div>
+                <div class="auth-point">
+                    <strong>3. Review or automate</strong>
+                    <p>Run safe sending with deliverability checks before dispatch.</p>
+                </div>
             </div>
-            <div class="actions">
-                <button class="btn secondary" id="refreshSentBtn">Refresh Sent</button>
+        </section>
+
+        <section class="auth-panel-wrap" aria-label="Authentication">
+            <div class="auth-box">
+                <div class="mode-tabs" role="tablist" aria-label="Authentication mode">
+                    <button class="mode-tab active" type="button" id="loginTab" data-mode="login">Log in</button>
+                    <button class="mode-tab" type="button" id="signupTab" data-mode="register">Sign up</button>
+                </div>
+
+                <h1 id="authTitle">Log in</h1>
+                <p id="authIntro">Sign in to run campaigns, review generated drafts, and inspect delivery status.</p>
+
+                <form id="authForm" class="auth-form">
+                    <label id="nameLabel">
+                        Name
+                        <input id="nameInput" type="text" autocomplete="name" placeholder="Your name">
+                    </label>
+                    <label>
+                        Email
+                        <input id="emailInput" type="email" autocomplete="email" required placeholder="you@example.com">
+                    </label>
+                    <label>
+                        Password
+                        <input id="passwordInput" type="password" autocomplete="current-password" minlength="8" required placeholder="At least 8 characters">
+                    </label>
+                    <div class="auth-actions">
+                        <button class="btn" type="submit" id="loginBtn">Log in</button>
+                        <button class="btn secondary" type="button" id="registerBtn">Create a new account</button>
+                    </div>
+                </form>
+
+                <div id="authStatus" class="status">Choose log in or sign up to continue.</div>
+                <div class="auth-foot">
+                    New accounts can connect Gmail after signing in. Gmail credentials are handled by Google OAuth.
+                </div>
             </div>
-            <div id="sentStatus" class="status">Automated and approved emails appear here after sending.</div>
-            <div id="sentList" class="list"></div>
-        </main>
-    </div>
+        </section>
+    </main>
+
     <script src="/static/js/api.js"></script>
-    <script src="/static/js/mail_cards.js"></script>
-    <script src="/static/js/sent_mails.js"></script>
+    <script src="/static/js/login.js"></script>
 </body>
 </html>

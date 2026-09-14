@@ -20,8 +20,9 @@ const OutreachApi = (() => {
     function requireAuth() {
         const token = getToken();
         if (!token) {
-            window.location.replace("/login");
-            return null;
+            const next = `${window.location.pathname}${window.location.search}`;
+            window.location.replace(`/login?next=${encodeURIComponent(next)}`);
+            return "";
         }
         const user = getUser();
         const userEmail = document.getElementById("userEmail");
@@ -66,6 +67,8 @@ const OutreachApi = (() => {
         if (!response.ok) {
             if (response.status === 401) {
                 clearSession();
+                const next = `${window.location.pathname}${window.location.search}`;
+                window.location.replace(`/login?next=${encodeURIComponent(next)}`);
             }
             throw new Error(data.detail || "Request failed");
         }

@@ -1,4 +1,6 @@
-OutreachApi.requireAuth();
+if (!OutreachApi.requireAuth()) {
+    throw new Error("Authentication required");
+}
 OutreachApi.bindLogout();
 
 const reviewStatus = document.getElementById("reviewStatus");

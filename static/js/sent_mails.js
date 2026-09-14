@@ -1,4 +1,6 @@
-OutreachApi.requireAuth();
+if (!OutreachApi.requireAuth()) {
+    throw new Error("Authentication required");
+}
 OutreachApi.bindLogout();
 
 const sentStatus = document.getElementById("sentStatus");
