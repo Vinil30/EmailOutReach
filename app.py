@@ -3,7 +3,7 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from database.fxns import ensure_indexes
@@ -52,6 +52,11 @@ def home():
 @app.get("/login")
 def login_page():
     return FileResponse("templates/login.html")
+
+
+@app.get("/privacy", response_class=HTMLResponse)
+def privacy_page():
+    return "<h1>Privacy</h1><p>We use your data only to provide email outreach features and do not sell it.</p>"
 
 
 @app.get("/dashboard")
