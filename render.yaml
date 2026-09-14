@@ -36,6 +36,14 @@ services:
         value: 30
       - key: REJECTED_EMAILS_DIR
         value: database/rejected
+      - key: MONGO_SERVER_SELECTION_TIMEOUT_MS
+        value: 5000
+      - key: MONGO_CONNECT_TIMEOUT_MS
+        value: 20000
+      - key: MONGO_SOCKET_TIMEOUT_MS
+        value: 20000
+      - key: REQUIRE_MONGO_ON_STARTUP
+        value: false
       - key: MONGO_URI
         sync: false
       - key: JWT_SECRET_KEY

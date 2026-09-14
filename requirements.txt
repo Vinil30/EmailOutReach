@@ -10,7 +10,8 @@ pydantic
 pandas
 langchain_core
 langgraph
-pymongo
+pymongo[srv]
+dnspython
 python-jose[cryptography]
 python-multipart
 email-validator

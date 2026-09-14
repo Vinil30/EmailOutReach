@@ -13,6 +13,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from pymongo import MongoClient
+from pymongo.errors import PyMongoError
 from pymongo.collection import Collection
 from pymongo import ReturnDocument
 
@@ -29,7 +30,12 @@ if os.environ.get("APP_ENV") == "production" and JWT_SECRET_KEY == "change-this-
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
-db_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+db_client = MongoClient(
+    MONGO_URI,
+    serverSelectionTimeoutMS=int(os.environ.get("MONGO_SERVER_SELECTION_TIMEOUT_MS", "5000")),
+    connectTimeoutMS=int(os.environ.get("MONGO_CONNECT_TIMEOUT_MS", "20000")),
+    socketTimeoutMS=int(os.environ.get("MONGO_SOCKET_TIMEOUT_MS", "20000")),
+)
 db = db_client[DB_NAME]
 users: Collection = db["users"]
 emailsSent: Collection = db["emailsSent"]
@@ -50,11 +56,16 @@ REJECTED_COLUMNS = [
 
 
 def ensure_indexes() -> None:
-    users.create_index("email", unique=True)
-    emailsSent.create_index([("user_id", 1), ("created_at", -1)])
-    emailsSent.create_index("send_fingerprint", unique=True, sparse=True)
-    emailsGenerated.create_index([("user_id", 1), ("email_status", 1), ("created_at", -1)])
-    emailsGenerated.create_index([("user_id", 1), ("outreach_status", 1), ("updated_at", -1)])
+    try:
+        users.create_index("email", unique=True)
+        emailsSent.create_index([("user_id", 1), ("created_at", -1)])
+        emailsSent.create_index("send_fingerprint", unique=True, sparse=True)
+        emailsGenerated.create_index([("user_id", 1), ("email_status", 1), ("created_at", -1)])
+        emailsGenerated.create_index([("user_id", 1), ("outreach_status", 1), ("updated_at", -1)])
+    except PyMongoError as exc:
+        if os.environ.get("REQUIRE_MONGO_ON_STARTUP", "false").lower() == "true":
+            raise
+        print(f"MongoDB index creation skipped during startup: {exc}", flush=True)
 
 
 def _now() -> datetime:
