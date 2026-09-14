@@ -1,0 +1,56 @@
+services:
+  - type: web
+    name: email-outreach
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: MONGO_DB_NAME
+        value: OutReach
+      - key: APP_ENV
+        value: production
+      - key: CORS_ALLOW_ORIGINS
+        value: "*"
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 1440
+      - key: RSPAMD_TIMEOUT_SECONDS
+        value: 10
+      - key: SPAM_RISK_LOW_THRESHOLD
+        value: 4
+      - key: SPAM_RISK_HIGH_THRESHOLD
+        value: 7
+      - key: GMAIL_SEND_TIMEOUT_SECONDS
+        value: 20
+      - key: GMAIL_MAX_SEND_ATTEMPTS
+        value: 3
+      - key: GMAIL_RETRY_BASE_SECONDS
+        value: 1
+      - key: AUTOMATED_EMAIL_DELAY_SECONDS
+        value: 60
+      - key: BATCH_PROCESS_START_DELAY_SECONDS
+        value: 30
+      - key: REJECTED_EMAILS_DIR
+        value: database/rejected
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: GROQ_API_KEY
+        sync: false
+      - key: search_api_key
+        sync: false
+      - key: RSPAMD_URL
+        sync: false
+      - key: RSPAMD_PASSWORD
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
