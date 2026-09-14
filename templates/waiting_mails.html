@@ -3,23 +3,331 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Waiting Mails | Email Outreach</title>
+    <title>Waiting Mails | Outreach Desk</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        :root {
+            --navy:            #0d1526;
+            --navy-soft:       #141d33;
+            --navy-panel:      #18223b;
+            --navy-raised:     #1e2a46;
+            --navy-line:       rgba(232, 224, 213, 0.12);
+            --navy-line-soft:  rgba(232, 224, 213, 0.06);
+
+            --cream:           #f7f3ec;
+            --cream-dim:       rgba(247, 243, 236, 0.62);
+            --cream-muted:     rgba(247, 243, 236, 0.42);
+
+            --terracotta:      #b8542f;
+            --terracotta-soft: #c96a44;
+
+            --sand:            #d4b483;
+            --sand-soft:       #e3cba2;
+
+            --sage:            #6b8e7f;
+            --sage-soft:       #8fb3a2;
+
+            --radius: 4px;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            background: var(--navy);
+            background-image:
+                radial-gradient(720px 500px at 88% -8%, rgba(184, 84, 47, 0.14), transparent 60%),
+                radial-gradient(600px 480px at 6% 108%, rgba(212, 180, 131, 0.06), transparent 65%);
+            background-attachment: fixed;
+            color: var(--cream);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            font-size: 15px;
+            line-height: 1.55;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .shell { display: flex; min-height: 100vh; }
+
+        /* ---------- Sidebar ---------- */
+        .sidebar {
+            width: 256px;
+            flex-shrink: 0;
+            background: var(--navy-soft);
+            border-right: 1px solid var(--navy-line);
+            display: flex;
+            flex-direction: column;
+            padding: 32px 24px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            text-decoration: none;
+            color: inherit;
+            padding-bottom: 24px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--navy-line);
+        }
+
+        .mark {
+            width: 42px;
+            height: 42px;
+            border: 1px solid var(--sand);
+            color: var(--sand);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            border-radius: 2px;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .mark::after {
+            content: '';
+            position: absolute;
+            inset: -5px;
+            border-radius: 2px;
+            border: 1px solid var(--sand);
+            opacity: 0.25;
+            animation: pulse-ring 3s ease-out infinite;
+        }
+
+        @keyframes pulse-ring {
+            0%   { transform: scale(0.9); opacity: 0.3; }
+            80%  { transform: scale(1.15); opacity: 0; }
+            100% { transform: scale(1.15); opacity: 0; }
+        }
+
+        .brand h1 {
+            font-family: 'Fraunces', serif;
+            font-size: 19px;
+            font-weight: 500;
+            margin: 0;
+            line-height: 1.15;
+            letter-spacing: -0.01em;
+            color: var(--cream);
+        }
+
+        .brand p {
+            margin: 5px 0 0;
+            font-size: 11px;
+            color: var(--cream-muted);
+            font-family: 'IBM Plex Mono', monospace;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .nav { display: flex; flex-direction: column; flex-grow: 1; }
+
+        .nav a {
+            position: relative;
+            color: var(--cream-muted);
+            text-decoration: none;
+            font-size: 13.5px;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            padding: 12px 4px 12px 30px;
+            border-bottom: 1px solid var(--navy-line);
+            transition: color 0.18s ease, padding-left 0.18s ease;
+            overflow: hidden;
+        }
+
+        .nav a::after {
+            content: '';
+            position: absolute;
+            left: 30px;
+            right: 100%;
+            bottom: 0;
+            height: 1px;
+            background: var(--terracotta);
+            transition: right 0.28s ease;
+        }
+
+        .nav a:hover::after,
+        .nav a.active::after { right: 4px; }
+
+        .nav a::before {
+            content: attr(data-idx);
+            position: absolute;
+            left: 0;
+            top: 12px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px;
+            color: rgba(247, 243, 236, 0.22);
+            letter-spacing: 0.05em;
+        }
+
+        .nav a:hover { color: var(--cream); padding-left: 34px; }
+        .nav a.active { color: var(--sand); }
+        .nav a.active::before { color: var(--terracotta-soft); }
+
+        .sidebar-footer {
+            padding-top: 20px;
+            border-top: 1px solid var(--navy-line);
+        }
+
+        .sidebar-footer strong {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            word-break: break-word;
+            color: var(--cream);
+        }
+
+        .sidebar-footer .meta {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px;
+            color: var(--sage-soft);
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            letter-spacing: 0.02em;
+        }
+
+        .sidebar-footer .meta::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--sage);
+            animation: dot-pulse 2.4s infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes dot-pulse {
+            0%   { box-shadow: 0 0 0 0 rgba(107, 142, 127, 0.45); }
+            70%  { box-shadow: 0 0 0 6px rgba(107, 142, 127, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(107, 142, 127, 0); }
+        }
+
+        /* ---------- Main ---------- */
+        .main {
+            flex-grow: 1;
+            padding: 48px 56px;
+            max-width: 1040px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 32px;
+            gap: 24px;
+        }
+
+        .topbar h2 {
+            font-family: 'Fraunces', serif;
+            font-size: 32px;
+            font-weight: 400;
+            font-style: italic;
+            margin: 0 0 8px;
+            letter-spacing: -0.015em;
+            color: var(--cream);
+        }
+
+        .topbar p {
+            color: var(--cream-dim);
+            margin: 0;
+            font-size: 14.5px;
+            max-width: 48ch;
+        }
+
+        .btn {
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            padding: 12px 20px;
+            border-radius: 999px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            background: var(--terracotta);
+            color: var(--cream);
+            transition: background 0.2s ease, border-color 0.2s ease,
+                        transform 0.12s ease, box-shadow 0.2s ease;
+        }
+
+        .btn:hover {
+            background: var(--terracotta-soft);
+            border-color: var(--terracotta-soft);
+            box-shadow: 0 10px 22px -8px rgba(184, 84, 47, 0.45);
+            transform: translateY(-1px);
+        }
+
+        .btn:active { transform: translateY(0) scale(0.99); box-shadow: none; }
+
+        .btn.secondary {
+            background: transparent;
+            color: var(--cream-dim);
+            border-color: rgba(247, 243, 236, 0.22);
+            border-radius: 2px;
+            padding: 12px 18px;
+        }
+
+        .btn.secondary:hover {
+            color: var(--sand);
+            border-color: var(--sand);
+            background: transparent;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .btn:focus-visible, .nav a:focus-visible { outline: 2px solid var(--terracotta); outline-offset: 2px; }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .status {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12.5px;
+            line-height: 1.7;
+            letter-spacing: 0.01em;
+            color: var(--cream-dim);
+            background: var(--navy-raised);
+            border: 1px solid var(--navy-line);
+            border-left: 2px solid var(--terracotta);
+            border-radius: 0 var(--radius) var(--radius) 0;
+            padding: 14px 16px;
+            margin-bottom: 24px;
+        }
+
+        .status::before { content: '> '; color: var(--terracotta-soft); }
+
+        .list { display: flex; flex-direction: column; gap: 18px; }
+
+        @media (max-width: 860px) {
+            .sidebar { display: none; }
+            .main { padding: 32px 24px; }
+        }
+    </style>
 </head>
 <body>
     <div class="shell">
         <aside class="sidebar">
             <a class="brand" href="/dashboard">
-                <div class="mark">EO</div>
+                <div class="mark">OD</div>
                 <div>
                     <h1>Outreach Desk</h1>
-                    <p>Research, write, send</p>
+                    <p>Research · Write · Send</p>
                 </div>
             </a>
             <nav class="nav">
-                <a href="/dashboard">Upload</a>
-                <a class="active" href="/waiting-mails">Review</a>
-                <a href="/sent-mails">Sent</a>
+                <a data-idx="01" href="/dashboard">Upload</a>
+                <a data-idx="02" class="active" href="/waiting-mails">Review</a>
+                <a data-idx="03" href="/sent-mails">Sent</a>
             </nav>
             <div class="sidebar-footer">
                 <strong id="userEmail"></strong>
