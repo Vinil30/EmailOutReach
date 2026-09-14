@@ -107,7 +107,7 @@ class ProjectSelector:
             HumanMessage(content=details)
         ]
         llm = ChatGroq(
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             api_key = self.api_key
         )
         structured_llm = llm.with_structured_output(OutputStructure)

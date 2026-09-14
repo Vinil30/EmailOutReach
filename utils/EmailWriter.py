@@ -103,14 +103,53 @@ class EmailWriter:
         )
 
         llm = ChatGroq(
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             api_key=self.api_key
         )
         structured_llm = llm.with_structured_output(OutputStructure)
-        chain = prompt | structured_llm
+        chain = self.prompt | structured_llm
         response = chain.invoke({
             "details": details
         })
 
         return response
+
+    def RewriteForDeliverability(self, email_subject, email_body, risk_reasons):
+        details = f"""
+        Current subject:
+        {email_subject}
+
+        Current HTML body:
+        {email_body}
+
+        Rspamd spam/deliverability risk reasons:
+        {risk_reasons}
+        """
+
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    """
+                    You revise cold outreach emails after Rspamd spam/deliverability risk analysis.
+
+                    Rewrite the message to reduce the specific risks provided by Rspamd.
+                    Preserve the core intent, factual claims, recipient, and professional tone.
+                    Do not add tracking links, exaggerated sales language, urgency tricks,
+                    misleading claims, or attachments.
+                    Return VALID HTML for the body.
+                    Return ONLY the structured output fields.
+                    """,
+                ),
+                ("human", "{details}"),
+            ]
+        )
+
+        llm = ChatGroq(
+            model="openai/gpt-oss-120b",
+            api_key=self.api_key
+        )
+        structured_llm = llm.with_structured_output(OutputStructure)
+        chain = prompt | structured_llm
+        return chain.invoke({"details": details})
 
