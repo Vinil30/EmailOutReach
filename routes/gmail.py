@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import HTMLResponse
+from fastapi.responses import RedirectResponse
 from jose import JWTError, jwt
 
 from database.fxns import (
@@ -48,17 +48,7 @@ async def gmail_callback(code: str | None = None, state: str | None = None, erro
 
     tokens = GmailOAuthClient().exchange_code(code)
     save_gmail_tokens(user_id, token_payload_with_expiry(tokens))
-    return HTMLResponse(
-        """
-        <!doctype html>
-        <html>
-        <head><title>Gmail Connected</title></head>
-        <body>
-            <p>Gmail is connected. You can close this tab and return to Outreach Desk.</p>
-        </body>
-        </html>
-        """
-    )
+    return RedirectResponse("/dashboard?gmail=connected", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/disconnect")

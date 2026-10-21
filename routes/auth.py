@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field
 
+from database.admin import apply_pending_premium
 from database.fxns import (
     authenticate_user,
     create_access_token,
     create_user,
     get_current_user,
+    get_user_by_email,
     public_user,
 )
 
@@ -16,6 +18,7 @@ class RegisterIn(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8)
     name: str | None = None
+    role: str = "student"
 
 
 class LoginIn(BaseModel):
@@ -25,7 +28,9 @@ class LoginIn(BaseModel):
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(payload: RegisterIn):
-    user = create_user(payload.email, payload.password, payload.name)
+    user = create_user(payload.email, payload.password, payload.name, payload.role)
+    apply_pending_premium(get_user_by_email(payload.email))
+    user = public_user(get_user_by_email(payload.email))
     token = create_access_token(user["id"])
     return {"access_token": token, "token_type": "bearer", "user": user}
 

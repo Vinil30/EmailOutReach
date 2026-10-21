@@ -3,11 +3,11 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from database.fxns import ensure_indexes
-from routes import auth, automated, gmail, human_in_loop
+from routes import admin, auth, automated, automation, campaigns, gmail, human_in_loop, profile, spam
 
 
 @asynccontextmanager
@@ -16,7 +16,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Email Outreach Automation", lifespan=lifespan)
+app = FastAPI(title="Outreach Desk", lifespan=lifespan)
 
 cors_origins = [
     origin.strip()
@@ -36,6 +36,11 @@ app.include_router(auth.router)
 app.include_router(gmail.router)
 app.include_router(automated.router)
 app.include_router(human_in_loop.router)
+app.include_router(campaigns.router)
+app.include_router(profile.router)
+app.include_router(spam.router)
+app.include_router(automation.router)
+app.include_router(admin.router)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
@@ -44,34 +49,37 @@ def healthz():
     return {"status": "ok"}
 
 
-@app.get("/")
-def home():
-    return FileResponse("templates/index.html")
+PAGES = {
+    "/": "index.html",
+    "/login": "login.html",
+    "/dashboard": "dashboard.html",
+    "/campaigns": "campaigns.html",
+    "/campaigns/new": "new_campaign.html",
+    "/waiting-mails": "waiting_mails.html",
+    "/sent-mails": "sent_mails.html",
+    "/profile": "profile.html",
+    "/spam-check": "spam_check.html",
+    "/automate": "automate.html",
+    "/templates": "templates.html",
+    "/admin": "admin.html",
+    "/privacy": "privacy.html",
+}
 
 
-@app.get("/login")
-def login_page():
-    return FileResponse("templates/login.html")
+def _page_route(template: str):
+    def page():
+        return FileResponse(f"templates/{template}")
+
+    return page
 
 
-@app.get("/privacy", response_class=HTMLResponse)
-def privacy_page():
-    return "<h1>Privacy</h1><p>We use your data only to provide email outreach features and do not sell it.</p>"
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return FileResponse("static/img/favicon.svg", media_type="image/svg+xml")
 
 
-@app.get("/dashboard")
-def dashboard_page():
-    return FileResponse("templates/dashboard.html")
-
-
-@app.get("/waiting-mails")
-def waiting_mails_page():
-    return FileResponse("templates/waiting_mails.html")
-
-
-@app.get("/sent-mails")
-def sent_mails_page():
-    return FileResponse("templates/sent_mails.html")
+for _path, _template in PAGES.items():
+    app.add_api_route(_path, _page_route(_template), methods=["GET"], include_in_schema=False)
 
 
 if __name__ == "__main__":
