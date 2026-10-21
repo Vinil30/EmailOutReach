@@ -1,4 +1,4 @@
-/* Mailzen — shared design system. Dark is the default theme; light is opt-in via data-theme="light". */
+/* Mailzen — shared design system. Pages start in light mode (data-theme="light", set before paint); :root holds the dark theme for users who switch to it. */
 :root {
     color-scheme: dark;
     --bg: #0e1014;
