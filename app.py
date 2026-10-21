@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -76,6 +76,15 @@ def _page_route(template: str):
 @app.get("/favicon.ico", include_in_schema=False)
 def favicon():
     return FileResponse("static/img/favicon.png", media_type="image/png")
+
+
+# Google Search Console ownership files must be served from the site root.
+@app.get("/google{token}.html", include_in_schema=False)
+def google_site_verification(token: str):
+    path = f"static/verification/google{token}.html"
+    if not token.isalnum() or not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="Not Found")
+    return FileResponse(path, media_type="text/html")
 
 
 for _path, _template in PAGES.items():
