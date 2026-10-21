@@ -1,678 +1,336 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Outreach Desk · Failure-aware email outreach</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-
-  :root{
-    --navy:        #0d1526;
-    --navy-soft:   #141d33;
-    --navy-panel:  #18223b;
-    --navy-line:   rgba(232, 224, 213, 0.12);
-
-    --cream:       #f7f3ec;
-    --cream-deep:  #efe8dc;
-    --cream-line:  rgba(13, 21, 38, 0.10);
-
-    --terracotta:      #b8542f;
-    --terracotta-soft: #c96a44;
-    --terracotta-deep: #8f3d1f;
-
-    --sand:        #d4b483;
-    --sand-soft:   #e3cba2;
-
-    --sage:        #6b8e7f;
-    --rust:        #a64b2a;
-
-    --font-display: 'Fraunces', Georgia, serif;
-    --font-body:    'Inter', system-ui, sans-serif;
-    --font-mono:    'IBM Plex Mono', ui-monospace, monospace;
-
-    --ease: cubic-bezier(.4, 0, .2, 1);
-  }
-
-  *{ box-sizing: border-box; }
-  html{ scroll-behavior: smooth; }
-
-  @media (prefers-reduced-motion: reduce){
-    html{ scroll-behavior: auto; }
-    *{ animation: none !important; transition-duration: 0.001ms !important; }
-  }
-
-  body{
-    margin: 0;
-    background: var(--cream);
-    color: var(--navy);
-    font-family: var(--font-body);
-    font-size: 16px;
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
-  }
-
-  a{ color: inherit; }
-  :focus-visible{ outline: 2px solid var(--terracotta); outline-offset: 3px; }
-
-  .wrap{ max-width: 1120px; margin: 0 auto; padding: 0 40px; }
-
-  /* ---------- hero block ---------- */
-
-  .hero-block{
-    background: var(--navy);
-    color: var(--cream);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .hero-block::before{
-    content: '';
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(720px 500px at 92% -12%, rgba(184, 84, 47, 0.22), transparent 62%),
-      radial-gradient(600px 480px at 4% 108%, rgba(212, 180, 131, 0.10), transparent 66%);
-    pointer-events: none;
-  }
-
-  .landing-nav{
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    max-width: 1120px;
-    margin: 0 auto;
-    padding: 32px 40px 8px;
-  }
-
-  .brand{ display: flex; align-items: center; gap: 14px; text-decoration: none; color: var(--cream); }
-
-  .mark{
-    width: 42px; height: 42px;
-    border: 1px solid var(--sand);
-    color: var(--sand);
-    display: flex; align-items: center; justify-content: center;
-    font-family: var(--font-mono);
-    font-size: 13px;
-    letter-spacing: 0.04em;
-    flex-shrink: 0;
-    border-radius: 2px;
-  }
-
-  .brand h1{
-    font-family: var(--font-display);
-    font-size: 20px;
-    font-weight: 500;
-    margin: 0;
-    line-height: 1.2;
-    letter-spacing: -0.01em;
-  }
-  .brand p{
-    margin: 4px 0 0;
-    font-size: 11.5px;
-    color: rgba(247, 243, 236, 0.5);
-    font-family: var(--font-mono);
-    letter-spacing: 0.02em;
-  }
-
-  .nav-actions{ display: flex; gap: 10px; }
-
-  .btn{
-    font-family: var(--font-body);
-    font-weight: 500;
-    font-size: 14px;
-    letter-spacing: 0.01em;
-    padding: 11px 22px;
-    border-radius: 999px;
-    border: 1px solid var(--terracotta);
-    background: var(--terracotta);
-    color: var(--cream);
-    text-decoration: none;
-    display: inline-block;
-    transition: background 0.2s var(--ease), border-color 0.2s var(--ease), transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
-  }
-  .btn:hover{
-    background: var(--terracotta-soft);
-    border-color: var(--terracotta-soft);
-    transform: translateY(-1px);
-    box-shadow: 0 10px 22px -8px rgba(184, 84, 47, 0.45);
-  }
-  .btn:active{ transform: translateY(0); box-shadow: none; }
-
-  .btn.secondary{
-    background: transparent;
-    color: var(--cream);
-    border-color: rgba(247, 243, 236, 0.28);
-    border-radius: 2px;
-    padding: 11px 20px;
-  }
-  .btn.secondary:hover{
-    background: transparent;
-    border-color: var(--sand);
-    color: var(--sand-soft);
-    box-shadow: none;
-    transform: none;
-  }
-
-  /* ---------- hero content ---------- */
-
-  .landing-hero{
-    position: relative;
-    max-width: 820px;
-    margin: 0 auto;
-    padding: 72px 40px 88px;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .eyebrow{
-    display: inline-block;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    letter-spacing: 0.06em;
-    color: var(--sand);
-    margin-bottom: 28px;
-    padding: 6px 14px;
-    border: 1px solid rgba(212, 180, 131, 0.3);
-    border-radius: 999px;
-  }
-
-  .hero-copy h2{
-    font-family: var(--font-display);
-    font-style: italic;
-    font-weight: 400;
-    font-size: clamp(2.2rem, 4.4vw, 3.6rem);
-    line-height: 1.1;
-    letter-spacing: -0.015em;
-    margin: 0 0 26px;
-    color: var(--cream);
-    max-width: 20ch;
-  }
-
-  .hero-copy p{
-    font-size: 17px;
-    color: rgba(247, 243, 236, 0.68);
-    max-width: 54ch;
-    margin: 0 auto 40px;
-    line-height: 1.65;
-  }
-
-  .hero-actions{
-    display: flex;
-    gap: 14px;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-  .hero-actions .btn{ padding: 13px 28px; font-size: 14.5px; }
-
-  /* ---------- GAUGE PANEL (fully fixed) ---------- */
-
-  .gauge-panel{
-    margin: 48px auto 0;
-    max-width: 520px;
-    width: 100%;
-    background: var(--navy-panel);
-    border: 1px solid var(--navy-line);
-    border-radius: 8px;
-    padding: 24px 28px 22px;
-    text-align: left;
-    box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.6);
-    opacity: 0;
-    transform: translateY(14px);
-    animation: rise 0.7s var(--ease) 0.15s forwards;
-  }
-  @keyframes rise{ to{ opacity: 1; transform: translateY(0); } }
-
-  .gauge-head{
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    font-family: var(--font-mono);
-    font-size: 11.5px;
-    letter-spacing: 0.03em;
-    padding-bottom: 14px;
-    margin-bottom: 8px;
-    border-bottom: 1px solid var(--navy-line);
-  }
-  .gauge-head .id{ color: rgba(247, 243, 236, 0.42); }
-  .gauge-head .live{ color: var(--sage); display: flex; align-items: center; }
-  .gauge-head .live::before{
-    content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%;
-    background: var(--sage); margin-right: 7px;
-    animation: pulse 2.4s var(--ease) infinite;
-  }
-  @keyframes pulse{
-    0%{ box-shadow: 0 0 0 0 rgba(107, 142, 127, 0.55); }
-    70%{ box-shadow: 0 0 0 7px rgba(107, 142, 127, 0); }
-    100%{ box-shadow: 0 0 0 0 rgba(107, 142, 127, 0); }
-  }
-
-  /* gauge area with explicit aspect ratio, no collapsing */
-  .gauge-wrap{
-    position: relative;
-    width: 100%;
-    max-width: 360px;
-    margin: 8px auto 0;
-    /* gives room for the arc + readout stacked */
-    aspect-ratio: 200 / 150;
-  }
-
-  .gauge-svg{
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: auto;
-    display: block;
-    overflow: visible;
-  }
-
-  .needle{
-    transform-origin: 100px 100px;
-    transition: transform 0.7s var(--ease);
-  }
-
-  /* readout sits BELOW the arc, not overlapping */
-  .gauge-readout{
-    position: absolute;
-    left: 50%;
-    bottom: 4px;
-    transform: translateX(-50%);
-    text-align: center;
-    pointer-events: none;
-    white-space: nowrap;
-  }
-  .gauge-readout .score{
-    font-family: var(--font-display);
-    font-weight: 500;
-    font-size: 32px;
-    display: block;
-    line-height: 1;
-    color: #f7f3ec;
-    letter-spacing: -0.01em;
-  }
-  .gauge-readout .band{
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: rgba(247, 243, 236, 0.55);
-    display: block;
-    margin-top: 8px;
-  }
-
-  .stage-row{
-    display: flex;
-    gap: 6px;
-    margin: 18px 0 16px;
-  }
-  .stage-btn{
-    all: unset;
-    flex: 1;
-    text-align: center;
-    cursor: pointer;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.04em;
-    padding: 9px 4px;
-    border: 1px solid var(--navy-line);
-    border-radius: 3px;
-    color: rgba(247, 243, 236, 0.5);
-    transition: border-color 0.18s var(--ease), color 0.18s var(--ease), background 0.18s var(--ease);
-  }
-  .stage-btn:hover{ color: var(--cream); }
-  .stage-btn:focus-visible{ outline: 2px solid var(--sand); outline-offset: 2px; }
-  .stage-btn.active{ border-color: var(--terracotta); color: var(--cream); background: rgba(184, 84, 47, 0.16); }
-
-  .signals{ display: flex; flex-wrap: wrap; gap: 6px; }
-  .signal-tag{
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    letter-spacing: 0.01em;
-    padding: 5px 10px;
-    border-radius: 999px;
-    border: 1px solid var(--navy-line);
-    color: rgba(247, 243, 236, 0.7);
-  }
-  .signal-tag.warn{ border-color: var(--sand); color: var(--sand-soft); }
-  .signal-tag.bad{ border-color: var(--terracotta); color: var(--terracotta-soft); }
-
-  /* ---------- ticker ---------- */
-
-  .ticker{
-    position: relative;
-    border-top: 1px solid var(--navy-line);
-    overflow: hidden;
-    padding: 16px 0;
-    background: #080e1c;
-  }
-  .ticker-track{
-    display: flex;
-    gap: 48px;
-    white-space: nowrap;
-    width: max-content;
-    font-family: var(--font-mono);
-    font-size: 12.5px;
-    color: rgba(247, 243, 236, 0.45);
-    animation: scroll 36s linear infinite;
-  }
-  .ticker-track span{ flex-shrink: 0; }
-  .ticker-track .ok::before{ content: '✓ '; color: var(--sage); }
-  .ticker-track .no::before{ content: '✗ '; color: var(--terracotta-soft); }
-  @keyframes scroll{
-    from{ transform: translateX(0); }
-    to{ transform: translateX(-50%); }
-  }
-
-  /* ---------- sequence ---------- */
-
-  .sequence{ padding: 100px 0 110px; background: var(--cream); }
-
-  .sequence-head{ max-width: 60ch; margin: 0 auto 64px; text-align: center; }
-  .sequence-head h3{
-    font-family: var(--font-display);
-    font-style: italic;
-    font-weight: 400;
-    font-size: clamp(1.8rem, 3vw, 2.4rem);
-    letter-spacing: -0.015em;
-    margin: 0 0 16px;
-    color: var(--navy);
-  }
-  .sequence-head p{ color: #4a5568; font-size: 16px; margin: 0 auto; max-width: 50ch; }
-
-  .steps{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; }
-
-  .step{
-    border-top: 1.5px solid var(--navy);
-    padding-top: 22px;
-    text-align: left;
-  }
-
-  .step .num{
-    font-family: var(--font-display);
-    font-style: italic;
-    font-size: 28px;
-    color: var(--terracotta);
-    display: block;
-    margin-bottom: 12px;
-    line-height: 1;
-  }
-
-  .step h4{ font-family: var(--font-body); font-size: 16px; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.005em; }
-  .step p{ font-size: 14.5px; color: #4a5568; margin: 0; line-height: 1.6; }
-
-  /* ---------- features ---------- */
-
-  .features-block{ background: var(--navy); color: var(--cream); }
-  .features{
-    max-width: 1120px; margin: 0 auto;
-    padding: 96px 40px 104px;
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px;
-  }
-
-  .feature{ border-left: 1.5px solid var(--navy-line); padding-left: 24px; }
-  .feature.on{ border-left-color: var(--sand); }
-
-  .feature .tag{
-    display: inline-block;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.04em;
-    color: var(--sand);
-    margin-bottom: 14px;
-  }
-  .feature strong{
-    display: block;
-    font-family: var(--font-display);
-    font-size: 21px;
-    font-weight: 500;
-    margin-bottom: 10px;
-    letter-spacing: -0.01em;
-  }
-  .feature p{ color: rgba(247, 243, 236, 0.62); font-size: 14.5px; margin: 0; max-width: 34ch; line-height: 1.65; }
-
-  /* ---------- footer ---------- */
-
-  .landing-footer{ background: var(--navy); border-top: 1px solid var(--navy-line); padding: 26px 40px 42px; }
-  .landing-footer .wrap{ display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
-  .landing-footer p{ font-family: var(--font-mono); font-size: 12px; color: rgba(247, 243, 236, 0.4); margin: 0; letter-spacing: 0.01em; }
-
-  /* ---------- responsive ---------- */
-
-  @media (max-width: 860px){
-    .steps{ grid-template-columns: 1fr 1fr; }
-    .features{ grid-template-columns: 1fr; }
-    .landing-hero{ padding-top: 40px; }
-  }
-
-  @media (max-width: 560px){
-    .wrap{ padding: 0 22px; }
-    .landing-nav{ padding: 22px 22px 6px; }
-    .landing-hero{ padding: 32px 22px 64px; }
-    .sequence .wrap, .features, .landing-footer .wrap{ padding-left: 22px; padding-right: 22px; }
-    .brand p{ display: none; }
-    .steps{ grid-template-columns: 1fr; }
-    .stage-row{ flex-wrap: wrap; }
-    .stage-btn{ flex: 1 1 40%; }
-    .hero-copy h2{ font-size: 2rem; }
-    .gauge-readout .score{ font-size: 28px; }
-  }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>try{if(localStorage.getItem("odTheme")==="light")document.documentElement.dataset.theme="light"}catch(e){}</script>
+    <title>Outreach Desk — email outreach that passes the spam check</title>
+    <meta name="description" content="Personalized student outreach and email campaigns, scored for spam risk before every send and delivered from your own Gmail.">
+    <link rel="icon" href="/static/img/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css?v=7">
+    <link rel="stylesheet" href="/static/css/landing.css?v=7">
 </head>
-<body>
+<body class="lp">
+    <div class="lp-progress" id="scrollProgress"></div>
 
-<div class="hero-block">
-  <nav class="landing-nav" aria-label="Primary">
-    <a class="brand" href="/">
-      <div class="mark">OD</div>
-      <div>
-        <h1>Outreach Desk</h1>
-        <p>failure-aware outreach</p>
-      </div>
-    </a>
-    <div class="nav-actions">
-      <a class="btn secondary" href="/login">Log in</a>
-      <a class="btn" href="/login?mode=signup">Sign up</a>
-    </div>
-  </nav>
-
-  <section class="landing-hero">
-    <div class="hero-copy">
-      <span class="eyebrow">for students sending cold email</span>
-      <h2>Every message, scored before it ever reaches send.</h2>
-      <p>
-        Outreach Desk drafts your outreach, runs it through real spam analysis, shows you
-        exactly what to fix, and sends it from your own Gmail — tracking every rate limit
-        and bounce so nothing goes out twice.
-      </p>
-      <div class="hero-actions">
-        <a class="btn" href="/login?mode=signup">Create account</a>
-        <a class="btn secondary" href="/login">Log in</a>
-      </div>
-    </div>
-
-    <div class="gauge-panel">
-      <div class="gauge-head">
-        <span class="id">trace · msg_8841</span>
-        <span class="live">live</span>
-      </div>
-
-      <div class="gauge-wrap">
-        <!--
-          viewBox 0 0 200 130  →  needle pivot at (100,100)
-          arc radius 80, drawn from (20,100) to (180,100)
-          readout is HTML below, positioned absolutely
-        -->
-        <svg class="gauge-svg" viewBox="0 0 200 130" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
-          <!-- background track -->
-          <path d="M20,100 A80,80 0 0,1 180,100"
-                fill="none" stroke="rgba(247,243,236,0.06)" stroke-width="11" stroke-linecap="round"/>
-          <!-- sage arc (left, 0–40) -->
-          <path d="M20,100 A80,80 0 0,1 60,30.72"
-                fill="none" stroke="#6b8e7f" stroke-width="11" stroke-linecap="round"/>
-          <!-- sand arc (middle, 40–140) -->
-          <path d="M60,30.72 A80,80 0 0,1 140,30.72"
-                fill="none" stroke="#d4b483" stroke-width="11" stroke-linecap="round"/>
-          <!-- terracotta arc (right, 140–180) -->
-          <path d="M140,30.72 A80,80 0 0,1 180,100"
-                fill="none" stroke="#b8542f" stroke-width="11" stroke-linecap="round"/>
-          <!-- needle pointing into the sage/low zone -->
-          <!-- <line class="needle" id="needle"
-                x1="100" y1="100" x2="100" y2="36"
-                stroke="#f7f3ec" stroke-width="2.5" stroke-linecap="round"
-                transform="rotate(-52.2 100 100)"/> -->
-          <!-- hub -->
-          <circle cx="100" cy="100" r="5.5" fill="#f7f3ec"/>
-          <circle cx="100" cy="100" r="2.2" fill="#18223b"/>
-        </svg>
-
-        <div class="gauge-readout">
-          <span class="score" id="scoreText">2.1</span>
-          <span class="band" id="bandText">low risk</span>
+    <!-- ============ NAV ============ -->
+    <header class="lp-nav" id="nav">
+        <div class="lp-wrap lp-nav-inner">
+            <a class="brand" href="/">
+                <div class="brand-mark">Od</div>
+                <div class="brand-name">Outreach Desk</div>
+            </a>
+            <nav class="lp-links" aria-label="Sections">
+                <a href="#guard">How it works</a>
+                <a href="#lab">Try the guard</a>
+                <a href="#modes">Two modes</a>
+                <a href="#pricing">Pricing</a>
+                <a href="#faq">FAQ</a>
+            </nav>
+            <div class="lp-nav-actions" id="navActions">
+                <button type="button" class="theme-toggle" data-theme-toggle></button>
+                <a class="btn ghost lp-hide-sm" href="/login">Log in</a>
+                <a class="btn primary" href="/login?mode=signup">Get started</a>
+            </div>
         </div>
-      </div>
+    </header>
 
-      <div class="stage-row" role="tablist" aria-label="Message stages">
-        <button class="stage-btn" data-stage="draft" role="tab" aria-selected="false">draft</button>
-        <button class="stage-btn active" data-stage="analyze" role="tab" aria-selected="true">analyzed</button>
-        <button class="stage-btn" data-stage="send" role="tab" aria-selected="false">send</button>
-        <button class="stage-btn" data-stage="deliver" role="tab" aria-selected="false">delivered</button>
-      </div>
-
-      <div class="signals" id="signalTags">
-        <span class="signal-tag">SPF pass</span>
-        <span class="signal-tag">no shortened links</span>
-        <span class="signal-tag">subject length ok</span>
-      </div>
-    </div>
-  </section>
-
-  <div class="ticker" aria-hidden="true">
-    <div class="ticker-track">
-      <span class="ok">SPF record valid</span>
-      <span class="ok">DKIM signed</span>
-      <span class="no">subject line reads as promotional</span>
-      <span class="ok">no shortened links</span>
-      <span class="ok">send time within window</span>
-      <span class="no">too many exclamation marks</span>
-      <span class="ok">plain-text ratio healthy</span>
-      <span class="ok">recipient domain reachable</span>
-      <span class="ok">SPF record valid</span>
-      <span class="ok">DKIM signed</span>
-      <span class="no">subject line reads as promotional</span>
-      <span class="ok">no shortened links</span>
-      <span class="ok">send time within window</span>
-      <span class="no">too many exclamation marks</span>
-      <span class="ok">plain-text ratio healthy</span>
-      <span class="ok">recipient domain reachable</span>
-    </div>
-  </div>
-</div>
-
-<main>
-
-  <section class="sequence">
-    <div class="wrap">
-      <div class="sequence-head">
-        <h3>How a message moves through Outreach Desk</h3>
-        <p>Four stages, every time — nothing sends without passing through the first three.</p>
-      </div>
-      <div class="steps">
-        <div class="step">
-          <span class="num">01</span>
-          <h4>Draft</h4>
-          <p>Give it the recipient and the context. It writes a first pass shaped for that role and company, not a template with blanks.</p>
+    <!-- ============ HERO ============ -->
+    <section class="lp-hero">
+        <div class="lp-hero-glow" aria-hidden="true"></div>
+        <div class="lp-wrap lp-hero-copy intro">
+            <span class="lp-pill"><span class="dot"></span>For students &amp; email campaigns</span>
+            <h1>Every email gets checked <em>before it's sent.</em></h1>
+            <p class="lp-lead">
+                Outreach Desk writes personalized outreach from your projects or your offer, scores every message
+                on 14 spam checks, rewrites what's risky, and sends only what passes — from your own Gmail.
+            </p>
+            <div class="lp-cta">
+                <a class="btn primary lg" href="/login?mode=signup&role=student">Start as a student</a>
+                <a class="btn secondary lg" href="/login?mode=signup&role=campaigner">Run a campaign</a>
+            </div>
+            <p class="lp-fine">Send-only Gmail access · No inbox reading · Free to self-host</p>
         </div>
-        <div class="step">
-          <span class="num">02</span>
-          <h4>Analyze</h4>
-          <p>Every draft runs through a local spam-risk guard before you see a send button. You get a score and the exact reasons behind it.</p>
-        </div>
-        <div class="step">
-          <span class="num">03</span>
-          <h4>Correct</h4>
-          <p>Flagged lines are marked with what triggered them, so you rewrite a phrase instead of starting over.</p>
-        </div>
-        <div class="step">
-          <span class="num">04</span>
-          <h4>Send</h4>
-          <p>Mail goes out through your own Gmail account over OAuth. Outreach Desk never sees your password.</p>
-        </div>
-      </div>
-    </div>
-  </section>
 
-  <div class="features-block">
-    <section class="features">
-      <div class="feature on">
-        <span class="tag">analysis</span>
-        <strong>Local spam guard</strong>
-        <p>Every draft gets a deterministic risk score before it ships, broken down by the signals that raised it — not just a pass or fail.</p>
-      </div>
-      <div class="feature">
-        <span class="tag">sending</span>
-        <strong>Gmail OAuth</strong>
-        <p>You authorize once. Every message sends from your own inbox, under your name, so replies land where you already work.</p>
-      </div>
-      <div class="feature">
-        <span class="tag">reliability</span>
-        <strong>Retry state</strong>
-        <p>Rate limits, timeouts, and server errors are tracked per message, so retrying never means sending the same email twice.</p>
-      </div>
+        <!-- Scanner stage -->
+        <div class="lp-wrap intro" style="--d: 200ms">
+            <div class="lp-stage" id="stage">
+                <div class="lp-stage-head">
+                    <span class="lp-live"><span class="dot"></span>Live simulation</span>
+                    <div class="lp-stage-stats">
+                        <span><b id="statChecked">0</b> checked</span>
+                        <span><b id="statFixed">0</b> rewritten</span>
+                        <span><b id="statSent">0</b> delivered</span>
+                    </div>
+                </div>
+                <div class="lp-stage-grid">
+                    <div class="lp-lane">
+                        <div class="lp-lane-title">Drafts</div>
+                        <div class="lp-lane-list" id="laneDrafts"></div>
+                    </div>
+                    <div class="lp-guard">
+                        <div class="lp-lane-title">Spam guard</div>
+                        <div class="lp-guard-slot" id="guardSlot">
+                            <div class="lp-beam" aria-hidden="true"></div>
+                            <div class="lp-guard-idle">Waiting for the next draft…</div>
+                        </div>
+                    </div>
+                    <div class="lp-lane">
+                        <div class="lp-lane-title">Inbox</div>
+                        <div class="lp-lane-list" id="laneInbox"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </section>
-  </div>
 
-</main>
+    <!-- ============ HOW IT WORKS ============ -->
+    <section class="lp-section" id="guard">
+        <div class="lp-wrap">
+            <div class="lp-head reveal">
+                <span class="eyebrow">How it works</span>
+                <h2>Write, check, fix, send. In that order, every time.</h2>
+            </div>
+            <div class="lp-steps4">
+                <article class="lp-step reveal">
+                    <span class="n">01</span>
+                    <h3>Write</h3>
+                    <p>AI drafts each email from web research plus your projects or your offer. Or write one template and let merge fields fill it per contact.</p>
+                </article>
+                <article class="lp-step reveal" style="--d: 80ms">
+                    <span class="n">02</span>
+                    <h3>Check</h3>
+                    <p>14 local checks: capitals, pressure words, link safety, leftover placeholders, length, calls to action, the subject line and the unsubscribe line.</p>
+                </article>
+                <article class="lp-step reveal" style="--d: 160ms">
+                    <span class="n">03</span>
+                    <h3>Fix</h3>
+                    <p>Anything scoring 4 or more gets one targeted AI rewrite. If it's still risky, it waits in your review queue with the exact reasons.</p>
+                </article>
+                <article class="lp-step reveal" style="--d: 240ms">
+                    <span class="n">04</span>
+                    <h3>Send</h3>
+                    <p>Delivered from your own Gmail with a random 1–3 minute gap between emails, retried on rate limits and never sent twice.</p>
+                </article>
+            </div>
+        </div>
+    </section>
 
-<footer class="landing-footer">
-  <div class="wrap">
-    <p>Outreach Desk</p>
-    <p>built for outreach that survives contact with a spam filter</p>
-  </div>
-</footer>
+    <!-- ============ LAB ============ -->
+    <section class="lp-section" id="lab">
+        <div class="lp-wrap">
+            <div class="lp-head reveal">
+                <span class="eyebrow">Try it</span>
+                <h2>Can you get past the guard?</h2>
+                <p>Switch on the habits that land emails in spam, or edit the draft yourself. This is the real checker that gates every send.</p>
+            </div>
 
-<script>
-  const stageData = {
-    draft:   { angle: -90, score: '—',  band: 'not analyzed', tags: [
-      {t:'recipient matched'}, {t:'role: Data Platform'}, {t:'tone: direct'}
-    ]},
-    analyze: { angle: -52.2, score: '2.1', band: 'low risk', tags: [
-      {t:'SPF pass'}, {t:'no shortened links'}, {t:'subject length ok'}
-    ]},
-    send: { angle: -52.2, score: '2.1', band: 'queued to send', tags: [
-      {t:'1 of 1 in queue'}, {t:'no duplicate hash'}, {t:'rate limit ok'}
-    ]},
-    deliver: { angle: -52.2, score: '2.1', band: 'delivered', tags: [
-      {t:'inbox placement'}, {t:'no bounce'}, {t:'thread id assigned'}
-    ]}
-  };
+            <div class="lp-lab reveal">
+                <div class="lp-composer">
+                    <div class="lp-composer-top">
+                        <div class="segmented" id="typeToggle" aria-label="Check as">
+                            <button type="button" class="active" data-type="outreach">1:1 outreach</button>
+                            <button type="button" data-type="campaign">Bulk campaign</button>
+                        </div>
+                        <button type="button" class="btn ghost sm" id="labReset">Reset draft</button>
+                    </div>
 
-  const needle = document.getElementById('needle');
-  const scoreText = document.getElementById('scoreText');
-  const bandText = document.getElementById('bandText');
-  const signalTags = document.getElementById('signalTags');
-  const buttons = document.querySelectorAll('.stage-btn');
+                    <div class="lp-habits" id="habits">
+                        <label class="lp-habit"><input type="checkbox" data-habit="caps"><span class="sw"></span>SHOUTING</label>
+                        <label class="lp-habit"><input type="checkbox" data-habit="urgency"><span class="sw"></span>Urgency</label>
+                        <label class="lp-habit"><input type="checkbox" data-habit="bang"><span class="sw"></span>!!!</label>
+                        <label class="lp-habit"><input type="checkbox" data-habit="short"><span class="sw"></span>Short link</label>
+                        <label class="lp-habit"><input type="checkbox" data-habit="placeholder"><span class="sw"></span>Forgot names</label>
+                        <label class="lp-habit"><input type="checkbox" data-habit="fake"><span class="sw"></span>Fake “RE:”</label>
+                        <label class="lp-habit"><input type="checkbox" data-habit="money"><span class="sw"></span>Money talk</label>
+                    </div>
 
-  function renderStage(key){
-    const d = stageData[key];
-    needle.setAttribute('transform', `rotate(${d.angle} 100 100)`);
-    scoreText.textContent = d.score;
-    bandText.textContent = d.band;
-    signalTags.innerHTML = d.tags.map(s => `<span class="signal-tag${s.cls ? ' ' + s.cls : ''}">${s.t}</span>`).join('');
-  }
+                    <div class="lp-mailform">
+                        <div class="lp-mailrow"><span>To</span><b>priya@brightloop.io</b></div>
+                        <label class="lp-mailrow"><span>Subject</span><input id="subjectInput" autocomplete="off" spellcheck="false"></label>
+                        <div class="hl-wrap">
+                            <div class="hl-backdrop" id="bodyBackdrop" aria-hidden="true"></div>
+                            <textarea id="bodyInput" spellcheck="false" rows="12" aria-label="Email body"></textarea>
+                        </div>
+                    </div>
+                </div>
 
-  buttons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      buttons.forEach(b => { b.classList.toggle('active', b === btn); b.setAttribute('aria-selected', b === btn ? 'true' : 'false'); });
-      renderStage(btn.dataset.stage);
-    });
-  });
-</script>
+                <aside class="lp-verdict-panel">
+                    <div class="lp-ring-row">
+                        <div class="lp-ring" id="ring">
+                            <svg viewBox="0 0 120 120" aria-hidden="true">
+                                <circle cx="60" cy="60" r="52" class="ring-track"/>
+                                <circle cx="60" cy="60" r="52" class="ring-fill" id="ringFill"/>
+                            </svg>
+                            <div class="lp-ring-num"><b id="scoreValue">0.0</b><span>of 10</span></div>
+                        </div>
+                        <div>
+                            <div class="lp-verdict-title" id="verdictTitle">Clear to send</div>
+                            <div class="lp-verdict-sub" id="verdictSub">Passes every check.</div>
+                        </div>
+                    </div>
 
+                    <div class="lp-bar">
+                        <div class="lp-bar-track"><span class="lp-bar-fill" id="barFill"></span><span class="lp-bar-marker" id="barMarker"></span><span class="lp-bar-line"></span></div>
+                        <div class="lp-bar-labels"><span>Sends</span><span>Held at 4</span></div>
+                    </div>
+
+                    <div class="lp-issues-head"><span>What the guard sees</span><span class="muted" id="passCount"></span></div>
+                    <div class="lp-issues" id="issues"></div>
+                </aside>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ MODES ============ -->
+    <section class="lp-section" id="modes">
+        <div class="lp-wrap">
+            <div class="lp-head reveal">
+                <span class="eyebrow">Two workspaces, one engine</span>
+                <h2>Built for students. Ready for campaigns.</h2>
+            </div>
+
+            <div class="lp-modes reveal">
+                <div class="lp-modes-tabs" role="tablist" id="modeSwitch">
+                    <button type="button" class="active" data-mode="student" role="tab"><b>Student outreach</b><span>Internships, jobs, research</span></button>
+                    <button type="button" data-mode="campaign" role="tab"><b>Email campaigns</b><span>Marketing &amp; sales to a list</span></button>
+                </div>
+
+                <div class="lp-mode" data-panel="student">
+                    <div class="lp-mode-copy">
+                        <h3>Your projects, matched to every company.</h3>
+                        <p>Add a few projects once. For each company on your list, the app reads what they build and features the work that fits. Pick a company:</p>
+                        <div class="lp-pick" id="companyList">
+                            <button type="button" class="active" data-company="0">Hugging Face</button>
+                            <button type="button" data-company="1">Zipline</button>
+                            <button type="button" data-company="2">Razorpay</button>
+                        </div>
+                    </div>
+                    <div class="lp-mode-visual">
+                        <div class="lp-projects" id="projectCards">
+                            <div class="lp-project"><b>InterviewBot</b><span>LLM mock interviewer</span></div>
+                            <div class="lp-project"><b>InfSec</b><span>Real-time YOLO safety monitor</span></div>
+                            <div class="lp-project"><b>Self-Healing DAG</b><span>LoRA DistilBERT rerouting</span></div>
+                            <div class="lp-project"><b>CostIQ</b><span>Multi-agent cost anomalies</span></div>
+                            <div class="lp-project"><b>SmartFarming.AI</b><span>Voice-first field advisor</span></div>
+                            <div class="lp-project"><b>BidMind</b><span>Pitch matching with FAISS</span></div>
+                        </div>
+                        <div class="lp-snippet" id="studentSnippet"></div>
+                    </div>
+                </div>
+
+                <div class="lp-mode" data-panel="campaign" hidden>
+                    <div class="lp-mode-copy">
+                        <h3>One template. Every contact feels personal.</h3>
+                        <p>Each CSV column becomes a merge field, with fallbacks for blanks. A sender footer and unsubscribe line are added for you. Pick a contact:</p>
+                        <div class="lp-pick" id="contactList">
+                            <button type="button" class="active" data-row="0">Priya · Brightloop</button>
+                            <button type="button" data-row="1">Daniel · Northwind</button>
+                            <button type="button" data-row="2">Mei · <i>blank fields</i></button>
+                        </div>
+                    </div>
+                    <div class="lp-mode-visual">
+                        <div class="lp-template"><span>Template</span><code>Hi {{first_name|there}}, saw {{company}} is growing in {{city|your region}}…</code></div>
+                        <div class="lp-snippet" id="campaignSnippet"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ NUMBERS ============ -->
+    <section class="lp-band">
+        <div class="lp-wrap lp-numbers">
+            <div class="reveal"><b data-count="14">0</b><span>spam checks on every email</span></div>
+            <div class="reveal" style="--d: 80ms"><b>1–3<small>min</small></b><span>random gap between every email</span></div>
+            <div class="reveal" style="--d: 160ms"><b data-count="1">0</b><span>targeted AI rewrite before holding</span></div>
+            <div class="reveal" style="--d: 240ms"><b data-count="0">0</b><span>passwords or inbox access needed</span></div>
+        </div>
+    </section>
+
+    <!-- ============ PRICING ============ -->
+    <section class="lp-section" id="pricing">
+        <div class="lp-wrap">
+            <div class="lp-head reveal">
+                <span class="eyebrow">Pricing</span>
+                <h2>Start free. Go Premium when you're ready to scale.</h2>
+            </div>
+            <div class="lp-plans">
+                <article class="lp-plan reveal">
+                    <div class="lp-plan-name">General</div>
+                    <div class="lp-plan-price">Free</div>
+                    <p class="lp-plan-tag">Bring your own contact list.</p>
+                    <ul>
+                        <li><b>20 emails</b> in total</li>
+                        <li>Upload your own CSV or Excel list</li>
+                        <li>Profile with projects and resume link</li>
+                        <li>Templates and AI personalization</li>
+                        <li>Spam check before every send</li>
+                    </ul>
+                    <a class="btn secondary lg block" href="/login?mode=signup">Create a free account</a>
+                </article>
+                <article class="lp-plan lp-plan-premium reveal" style="--d: 100ms">
+                    <div class="lp-plan-name">Premium <span class="badge accent plain">Most popular</span></div>
+                    <div class="lp-plan-price">Our data, automated</div>
+                    <p class="lp-plan-tag">We supply the recruiter contacts and run the sending for you.</p>
+                    <ul>
+                        <li><b>100 emails every week</b></li>
+                        <li>Access to our curated company &amp; recruiter database</li>
+                        <li>One-click automation that resumes where it stopped</li>
+                        <li>See every company you've reached</li>
+                        <li>Everything in General · 30 days per purchase</li>
+                    </ul>
+                    <a class="btn primary lg block" href="https://srotabase.com/@vmarena/email-automation-premium" target="_blank" rel="noopener">Buy Premium</a>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section class="lp-section" id="faq">
+        <div class="lp-wrap lp-faq-wrap">
+            <div class="lp-head lp-head-left reveal">
+                <span class="eyebrow">FAQ</span>
+                <h2>Questions, answered.</h2>
+            </div>
+            <div class="lp-faq reveal">
+                <details open><summary>Does a low score guarantee the inbox?</summary><p>No tool can promise that. Inbox placement also depends on your domain's reputation and the recipient's filters. The guard catches the content problems you control, before they cost you.</p></details>
+                <details><summary>Can Outreach Desk read my email?</summary><p>No. It asks Google only for the <code>gmail.send</code> scope, which can send mail you approve but can't read, search or delete anything.</p></details>
+                <details><summary>Do I need AI to use it?</summary><p>No. Template campaigns with merge fields work end to end without an AI key. AI is used for personalization and for rewriting flagged drafts.</p></details>
+                <details><summary>What happens to people who unsubscribe?</summary><p>Add them to your suppression list once and they're skipped in every future campaign.</p></details>
+                <details><summary>How does Premium get activated?</summary><p>After you buy Premium we add it to the email on your account, usually within a day. It lasts 30 days; buy again to renew. Premium users never see the database itself, only the companies they've emailed.</p></details>
+                <details><summary>What if the server restarts mid-campaign?</summary><p>The campaign is marked interrupted, and you can resume it from the contact where it stopped.</p></details>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ CTA ============ -->
+    <section class="lp-section lp-final">
+        <div class="lp-wrap">
+            <div class="lp-final-card reveal">
+                <h2>Your next email deserves a second look.</h2>
+                <p>Set up in two minutes. Connect Gmail when you're ready to send.</p>
+                <div class="lp-cta lp-cta-center">
+                    <a class="btn primary lg" href="/login?mode=signup&role=student">Start as a student</a>
+                    <a class="btn secondary lg" href="/login?mode=signup&role=campaigner">Run a campaign</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="lp-footer">
+        <div class="lp-wrap lp-footer-inner">
+            <a class="brand" href="/"><div class="brand-mark">Od</div><div class="brand-name">Outreach Desk</div></a>
+            <span class="small muted">Spam scoring is a pre-send heuristic; it can't guarantee inbox placement.</span>
+            <span class="small"><a href="/privacy">Privacy</a> · <a href="/login">Log in</a></span>
+        </div>
+    </footer>
+
+    <script src="/static/js/api.js?v=7"></script>
+    <script src="/static/js/risk.js?v=7"></script>
+    <script src="/static/js/landing.js?v=7"></script>
 </body>
 </html>
