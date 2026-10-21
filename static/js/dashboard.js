@@ -1,79 +1,111 @@
-if (!OutreachApi.requireAuth()) {
-    throw new Error("Authentication required");
-}
-OutreachApi.bindLogout();
+(async () => {
+    const user = await Layout.init();
+    const campaigner = OutreachApi.isCampaigner(user);
+    const esc = OutreachApi.escapeHtml;
+    const $ = id => document.getElementById(id);
+    const firstName = (user.profile?.full_name || user.name || user.email || "").split(/[\s@]/)[0];
+    const hour = new Date().getHours();
+    $("greeting").textContent = `${hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"}, ${firstName}`;
 
-const uploadStatus = document.getElementById("uploadStatus");
-const automateBtn = document.getElementById("automateBtn");
-const reviewBtn = document.getElementById("reviewBtn");
-const connectGmailBtn = document.getElementById("connectGmailBtn");
-
-async function loadGmailStatus() {
-    try {
-        const data = await OutreachApi.request("/gmail/status");
-        connectGmailBtn.textContent = data.connected ? "Gmail Connected" : "Connect Gmail";
-        connectGmailBtn.className = data.connected ? "btn secondary" : "btn";
-    } catch (error) {
-        OutreachApi.setStatus(uploadStatus, error.message, "error");
-    }
-}
-
-async function connectGmail() {
-    connectGmailBtn.disabled = true;
-    try {
-        const data = await OutreachApi.request("/gmail/connect");
-        window.location.href = data.authorization_url;
-    } catch (error) {
-        OutreachApi.setStatus(uploadStatus, error.message, "error");
-        connectGmailBtn.disabled = false;
-    }
-}
-
-async function upload(mode) {
-    const file = document.getElementById("fileInput").files[0];
-    const emailFrom = document.getElementById("fromInput").value;
-    if (!file || !emailFrom) {
-        OutreachApi.setStatus(uploadStatus, "Choose a file and sender email first.", "error");
-        return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("gmail") === "connected") {
+        OutreachApi.toast("Gmail connected. You can send now.", "ok");
+        history.replaceState(null, "", "/dashboard");
     }
 
-    const form = new FormData();
-    form.append("file", file);
-    form.append("email_from", emailFrom);
+    document.querySelectorAll("[data-icon]").forEach(node => { node.innerHTML = Layout.icon(node.dataset.icon); });
 
-    const isAutomated = mode === "automated";
-    OutreachApi.setStatus(
-        uploadStatus,
-        isAutomated
-            ? "Running automation one contact at a time. Emails are sent at least 1 minute apart."
-            : "Generating drafts one contact at a time. Each process starts at least 30 seconds apart."
-    );
-    automateBtn.disabled = true;
-    reviewBtn.disabled = true;
+    const [plan, stats, profile] = await Promise.all([
+        OutreachApi.request("/api/plan").catch(() => null),
+        OutreachApi.request("/api/campaigns/stats").catch(() => null),
+        OutreachApi.request("/api/profile").catch(() => null)
+    ]);
 
-    try {
-        const data = await OutreachApi.request(isAutomated ? "/automated/run" : "/human/generate", {
-            method: "POST",
-            body: form
-        });
-        const message = isAutomated
-            ? `Processed ${data.processed} contacts with a ${data.delay_seconds}-second email delay and ${data.process_start_delay_seconds}-second process start spacing.`
-            : `Processed ${data.processed} contacts with ${data.process_start_delay_seconds}-second process start spacing.`;
-        OutreachApi.setStatus(uploadStatus, message, "ok");
-        if (isAutomated) {
-            window.location.href = "/sent-mails";
-        } else {
-            window.location.href = "/waiting-mails";
-        }
-    } catch (error) {
-        OutreachApi.setStatus(uploadStatus, error.message, "error");
-    } finally {
-        automateBtn.disabled = false;
-        reviewBtn.disabled = false;
+    // ---- Plan ----
+    if (plan) {
+        const premium = plan.plan === "premium";
+        const pct = Math.min(100, (plan.used / Math.max(1, plan.limit)) * 100);
+        const until = OutreachApi.formatDate(plan.premium_until);
+        const resets = OutreachApi.formatDate(plan.resets_at);
+        const daysLeft = plan.premium_until ? Math.ceil((OutreachApi.parseDate(plan.premium_until) - Date.now()) / 86400000) : 0;
+        const showBuy = !premium || daysLeft <= 5;
+        $("planCard").innerHTML = `
+            <div class="card-body">
+                <div class="plan-row">
+                    <div>
+                        <span class="eyebrow">${premium ? "Premium plan" : "General plan"}</span>
+                        <div class="plan-title">${plan.remaining} email${plan.remaining === 1 ? "" : "s"} left ${premium ? "this week" : ""}</div>
+                        <p class="small muted" style="margin-top:4px;">
+                            ${premium
+                                ? `${plan.used} of ${plan.limit} sent this week · resets ${esc(resets)} · Premium until ${esc(until)}`
+                                : `${plan.used} of ${plan.limit} lifetime emails used${plan.premium_expired ? ` · Premium ended ${esc(until)}` : ""}`}
+                        </p>
+                    </div>
+                    <div class="actions">
+                        ${premium ? `<a class="btn primary" href="/automate">Open automation</a>` : ""}
+                        ${showBuy ? `<a class="btn ${premium ? "secondary" : "primary"}" href="${esc(plan.premium_url)}" target="_blank" rel="noopener">${premium ? "Renew Premium" : "Buy Premium"}</a>` : ""}
+                    </div>
+                </div>
+                <div class="plan-meter-lg ${plan.remaining ? "" : "full"}"><span style="width:${pct}%"></span></div>
+                ${premium ? "" : `<p class="small muted">Premium gives you 100 emails every week and our recruiter database, sent automatically. After you buy, we activate it on <b>${esc(user.email)}</b>, usually within a day.</p>`}
+            </div>`;
+        if (!premium) $("automateGo").textContent = "Premium feature →";
     }
-}
 
-automateBtn.addEventListener("click", () => upload("automated"));
-reviewBtn.addEventListener("click", () => upload("review"));
-connectGmailBtn.addEventListener("click", connectGmail);
-loadGmailStatus();
+    // ---- Banners ----
+    const banners = $("banners");
+    if (!user.gmail_connected) {
+        banners.insertAdjacentHTML("beforeend", `
+            <div class="banner warn">
+                <strong>Connect Gmail to send.</strong>
+                <span>Emails go out from your own account, so you'll see them in your Sent folder.</span>
+                <span class="spacer"></span>
+                <button class="btn primary sm" id="bannerGmail">Connect Gmail</button>
+            </div>`);
+        $("bannerGmail").addEventListener("click", () => Layout.connectGmail().catch(error => OutreachApi.toast(error.message, "error")));
+    }
+
+    // ---- Setup checklist ----
+    const p = user.profile || {};
+    const projectsCount = profile?.projects?.length || 0;
+    const steps = campaigner
+        ? [
+            ["Connect Gmail", user.gmail_connected, "#gmail"],
+            ["Add your organization and offer", Boolean(p.organization && p.offer), "/profile"],
+            ["Add a mailing address for the footer", Boolean(p.physical_address), "/profile"],
+            ["Send your first list", Boolean(stats?.campaigns), "/campaigns/new"]
+        ]
+        : [
+            ["Connect Gmail", user.gmail_connected, "#gmail"],
+            ["Add your name and headline", Boolean(p.full_name && (p.headline || p.school)), "/profile"],
+            ["Add your resume link", Boolean(p.resume_url), "/profile"],
+            ["Add at least one project", projectsCount >= 1, "/profile#projects"],
+            ["Choose a template", Boolean(p.template_id), "/templates"]
+        ];
+    const done = steps.filter(step => step[1]).length;
+    $("setupProgress").textContent = `${done}/${steps.length} done`;
+    $("setupList").innerHTML = steps.map(([label, ok, href]) => `
+        <li class="${ok ? "pass" : "fail"}" style="${ok ? "" : "background:transparent"}">
+            <span class="ico" style="${ok ? "" : "background:var(--line-strong)"}">${ok ? "✓" : ""}</span>
+            <span class="what">${ok ? `<span class="muted">${esc(label)}</span>` : `<a href="${href}" data-href="${href}">${esc(label)}</a>`}</span>
+            <span></span>
+        </li>`).join("");
+    document.querySelectorAll('#setupList a[data-href="#gmail"]').forEach(link => link.addEventListener("click", event => {
+        event.preventDefault();
+        Layout.connectGmail().catch(error => OutreachApi.toast(error.message, "error"));
+    }));
+
+    // ---- Activity ----
+    if (stats) {
+        $("activity").innerHTML = `
+            <dt>Sent in total</dt><dd>${stats.sent}</dd>
+            <dt>Waiting for review</dt><dd>${stats.waiting ? `<a href="/waiting-mails">${stats.waiting}</a>` : 0}</dd>
+            <dt>Held by spam check</dt><dd>${stats.flagged}</dd>
+            <dt>Failed sends</dt><dd>${stats.failed}</dd>`;
+    }
+
+    CampaignView.mount($("recentCampaigns"), {
+        limit: 4,
+        emptyHtml: `<div class="empty"><strong>No lists sent yet</strong><span>Upload contacts and pick a template to get started.</span><a class="btn primary" href="/campaigns/new">Send to my list</a></div>`
+    });
+})();

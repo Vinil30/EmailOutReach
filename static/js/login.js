@@ -1,7 +1,6 @@
 OutreachApi.redirectIfLoggedIn();
 
 const authForm = document.getElementById("authForm");
-const registerBtn = document.getElementById("registerBtn");
 const loginBtn = document.getElementById("loginBtn");
 const loginTab = document.getElementById("loginTab");
 const signupTab = document.getElementById("signupTab");
@@ -9,21 +8,32 @@ const authStatus = document.getElementById("authStatus");
 const authTitle = document.getElementById("authTitle");
 const authIntro = document.getElementById("authIntro");
 const nameLabel = document.getElementById("nameLabel");
+const roleField = document.getElementById("roleField");
+const roleChoice = document.getElementById("roleChoice");
 const params = new URLSearchParams(window.location.search);
 let authMode = params.get("mode") === "signup" ? "register" : "login";
 
+if (params.get("role") === "campaigner") {
+    roleChoice.querySelector('input[value="campaigner"]').checked = true;
+}
+
+function syncRoleCards() {
+    roleChoice.querySelectorAll(".choice").forEach(node => node.classList.toggle("active", node.querySelector("input").checked));
+}
+
 function renderAuthMode() {
     const isSignup = authMode === "register";
-    authTitle.textContent = isSignup ? "Create account" : "Log in";
+    authTitle.textContent = isSignup ? "Create your account" : "Log in";
     authIntro.textContent = isSignup
-        ? "Create your workspace, then connect Gmail from the dashboard before sending."
-        : "Sign in to run campaigns, review generated drafts, and inspect delivery status.";
+        ? "Pick a mode — you can switch later. Connect Gmail from the dashboard when you're ready to send."
+        : "Welcome back. Your campaigns and drafts are where you left them.";
     loginBtn.textContent = isSignup ? "Create account" : "Log in";
-    registerBtn.textContent = isSignup ? "Use existing account" : "Create a new account";
-    nameLabel.style.display = isSignup ? "grid" : "none";
+    nameLabel.hidden = !isSignup;
+    roleField.hidden = !isSignup;
     document.getElementById("passwordInput").autocomplete = isSignup ? "new-password" : "current-password";
     loginTab.classList.toggle("active", !isSignup);
     signupTab.classList.toggle("active", isSignup);
+    syncRoleCards();
 }
 
 async function submitAuth(mode) {
@@ -33,37 +43,34 @@ async function submitAuth(mode) {
     };
     if (mode === "register") {
         payload.name = document.getElementById("nameInput").value || null;
+        payload.role = roleChoice.querySelector("input:checked").value;
     }
 
-    OutreachApi.setStatus(authStatus, mode === "register" ? "Creating account..." : "Signing in...");
+    loginBtn.disabled = true;
+    OutreachApi.setStatus(authStatus, mode === "register" ? "Creating account…" : "Signing in…");
     try {
-        const data = await OutreachApi.request(`/auth/${mode}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        });
+        const data = await OutreachApi.request(`/auth/${mode}`, { method: "POST", json: payload });
         OutreachApi.saveSession(data);
-        window.location.replace(params.get("next") || "/dashboard");
+        const fallback = mode === "register" ? "/profile" : "/dashboard";
+        const next = params.get("next");
+        window.location.replace(next && next.startsWith("/") && !next.startsWith("//") ? next : fallback);
     } catch (error) {
         OutreachApi.setStatus(authStatus, error.message, "error");
+        loginBtn.disabled = false;
     }
 }
 
 function setMode(mode) {
     authMode = mode;
+    OutreachApi.setStatus(authStatus, "");
     renderAuthMode();
-    OutreachApi.setStatus(authStatus, mode === "register" ? "Create an account to continue." : "Log in to continue.");
 }
 
 authForm.addEventListener("submit", event => {
     event.preventDefault();
     submitAuth(authMode);
 });
-
-registerBtn.addEventListener("click", () => {
-    setMode(authMode === "register" ? "login" : "register");
-});
-
+roleChoice.addEventListener("change", syncRoleCards);
 loginTab.addEventListener("click", () => setMode("login"));
 signupTab.addEventListener("click", () => setMode("register"));
 

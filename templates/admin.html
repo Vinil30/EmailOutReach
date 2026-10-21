@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>try{if(localStorage.getItem("odTheme")==="light")document.documentElement.dataset.theme="light"}catch(e){}</script>
+    <title>Admin · Outreach Desk</title>
+    <link rel="icon" href="/static/img/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css?v=7">
+</head>
+<body>
+    <div class="shell">
+        <aside class="sidebar" id="sidebar"></aside>
+        <main class="main">
+            <header class="page-head">
+                <div>
+                    <span class="eyebrow">Admin</span>
+                    <h1>Admin panel</h1>
+                    <p>Grant Premium after a purchase, manage the contact database premium users send to, and see how much everyone has sent.</p>
+                </div>
+                <div class="segmented" id="tabs">
+                    <button type="button" class="active" data-tab="users">Users &amp; Premium</button>
+                    <button type="button" data-tab="leads">Contact database</button>
+                </div>
+            </header>
+
+            <section class="stats" id="stats"></section>
+
+            <!-- Users & Premium -->
+            <div data-pane="users" class="stack">
+                <div class="card">
+                    <div class="card-head"><div><h2>Grant Premium</h2><p>Use the email they bought with. It works even if they haven't signed up yet; renewing adds days on top of any time left.</p></div></div>
+                    <form class="card-body admin-grant" id="grantForm">
+                        <label class="field"><span>Email</span><input type="email" name="email" required placeholder="buyer@example.com"></label>
+                        <label class="field"><span>Days</span><input type="text" name="days" value="30" inputmode="numeric"></label>
+                        <label class="field"><span>Note <span class="muted">(optional)</span></span><input name="note" placeholder="e.g. srotabase order #1234"></label>
+                        <button class="btn primary" type="submit">Grant Premium</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <div class="card-head">
+                        <h2>Users</h2>
+                        <input type="search" id="userSearch" placeholder="Search by email" class="admin-search">
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>User</th><th>Plan</th><th class="right">Sent total</th><th class="right">This week</th><th class="right">From database</th><th>Automation</th><th class="right">Actions</th></tr></thead>
+                            <tbody id="userRows"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-head"><h3>Recent Premium changes</h3></div>
+                    <div class="card-body" id="grantLog"></div>
+                </div>
+            </div>
+
+            <!-- Contact database -->
+            <div data-pane="leads" class="stack" hidden>
+                <div class="grid grid-2">
+                    <div class="card">
+                        <div class="card-head"><div><h2>Add a contact</h2><p>Premium users never see this list, only the companies they reach.</p></div></div>
+                        <form class="card-body form" id="leadForm">
+                            <div class="grid grid-2">
+                                <label class="field"><span>Email</span><input type="email" name="email" required></label>
+                                <label class="field"><span>Name</span><input name="name"></label>
+                                <label class="field"><span>Company</span><input name="company"></label>
+                                <label class="field"><span>Role</span><input name="role" placeholder="e.g. Engineering Manager"></label>
+                            </div>
+                            <label class="field"><span>Notes <span class="muted">(used for personalization)</span></span><input name="details" placeholder="e.g. Hiring ML interns, Bengaluru"></label>
+                            <div class="actions"><button class="btn primary" type="submit">Add contact</button></div>
+                        </form>
+                    </div>
+                    <div class="card">
+                        <div class="card-head"><div><h2>Import many</h2><p>CSV or Excel with columns: email, name, company, role, details.</p></div></div>
+                        <div class="card-body form">
+                            <div class="dropzone" id="importDrop">
+                                <input id="importFile" type="file" accept=".csv,.xlsx,.xls">
+                                <strong>Drop a file</strong>
+                                <span class="small">or paste rows below</span>
+                                <span class="file" id="importName"></span>
+                            </div>
+                            <textarea id="importText" class="code" rows="4" placeholder="email,name,company,role&#10;jane@acme.com,Jane Doe,Acme,Talent Lead"></textarea>
+                            <div class="actions"><button class="btn secondary" type="button" id="importBtn">Import</button><span class="status small" id="importStatus"></span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-head">
+                        <h2>Contacts <span class="muted small" id="leadTotal"></span></h2>
+                        <input type="search" id="leadSearch" placeholder="Search email, name, company" class="admin-search">
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>Contact</th><th>Company</th><th>Role</th><th class="right">Emailed by</th><th>Active</th><th class="right"></th></tr></thead>
+                            <tbody id="leadRows"></tbody>
+                        </table>
+                    </div>
+                    <div class="card-body actions" style="justify-content:flex-end;">
+                        <button class="btn ghost sm" type="button" id="prevPage">← Previous</button>
+                        <span class="small muted" id="pageInfo"></span>
+                        <button class="btn ghost sm" type="button" id="nextPage">Next →</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="/static/js/api.js?v=7"></script>
+    <script src="/static/js/layout.js?v=7"></script>
+    <script src="/static/js/admin.js?v=7"></script>
+</body>
+</html>

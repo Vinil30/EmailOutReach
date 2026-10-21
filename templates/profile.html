@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>try{if(localStorage.getItem("odTheme")==="light")document.documentElement.dataset.theme="light"}catch(e){}</script>
+    <title>Profile · Outreach Desk</title>
+    <link rel="icon" href="/static/img/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css?v=7">
+</head>
+<body>
+    <div class="shell">
+        <aside class="sidebar" id="sidebar"></aside>
+        <main class="main">
+            <header class="page-head">
+                <div>
+                    <span class="eyebrow">Settings</span>
+                    <h1 id="title">Profile</h1>
+                    <p id="lead">This is what the writer knows about you. The more specific it is, the less generic every email sounds.</p>
+                </div>
+            </header>
+
+            <section class="stack">
+                <div class="card">
+                    <div class="card-head"><div><h2>Workspace mode</h2><p>Switch any time — your campaigns and history stay put.</p></div></div>
+                    <div class="card-body">
+                        <div class="choice-grid" id="roleChoice">
+                            <label class="choice"><input type="radio" name="role" value="student"><strong>🎓 Student</strong><span>Internship, job and research outreach. Emails are matched to your projects.</span></label>
+                            <label class="choice"><input type="radio" name="role" value="campaigner"><strong>📣 Campaigns</strong><span>Marketing and sales emails to a list, with merge fields and an unsubscribe footer.</span></label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-main">
+                    <div class="card">
+                        <div class="card-head"><div><h2 id="profileTitle">About you</h2><p id="profileHint"></p></div></div>
+                        <form class="card-body form" id="profileForm">
+                            <div class="grid grid-2">
+                                <label class="field"><span>Full name</span><input name="full_name" autocomplete="name"></label>
+                                <label class="field" data-role="student"><span>School / university</span><input name="school" placeholder="e.g. IIIT Kota, B.Tech CSE '26"></label>
+                                <label class="field" data-role="campaigner"><span>Organization</span><input name="organization" placeholder="e.g. Brightloop Analytics"></label>
+                            </div>
+                            <label class="field" data-role="student"><span>Headline</span><input name="headline" placeholder="e.g. ML engineer focused on agentic systems and LLM tooling"></label>
+                            <label class="field" data-role="student"><span>Skills</span><input name="skills" placeholder="Python, LangGraph, FastAPI, PyTorch, MongoDB"></label>
+                            <label class="field" data-role="student"><span>What you're looking for</span><input name="goal" placeholder="e.g. Summer 2027 ML/AI internship, remote or Bengaluru"></label>
+                            <div class="grid grid-2" data-role="student">
+                                <label class="field"><span>Resume link</span><input name="resume_url" type="url" placeholder="https://drive.google.com/file/d/…/view"><small>A public Google Drive (or similar) link. Set sharing to “Anyone with the link”.</small></label>
+                                <label class="field"><span>Portfolio / GitHub / LinkedIn</span><input name="portfolio_url" type="url" placeholder="https://github.com/you"></label>
+                            </div>
+                            <label class="field" data-role="campaigner"><span>Website</span><input name="website" type="url" placeholder="https://brightloop.io"></label>
+                            <label class="field" data-role="campaigner"><span>Your offer</span><textarea name="offer" rows="3" placeholder="What you sell or propose, and the concrete outcome for the recipient"></textarea></label>
+                            <div class="grid grid-2" data-role="campaigner">
+                                <label class="field"><span>Audience</span><input name="audience" placeholder="e.g. Marketing leads at D2C brands"></label>
+                                <label class="field"><span>Default tone</span>
+                                    <select name="tone">
+                                        <option>Friendly and professional</option>
+                                        <option>Warm and conversational</option>
+                                        <option>Concise and direct</option>
+                                        <option>Formal</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <label class="field"><span>Sign-off</span><textarea name="signature" rows="3" placeholder="Best regards,&#10;Your Name&#10;Role · Link"></textarea></label>
+
+                            <div data-role="campaigner" class="form">
+                                <div class="divider"></div>
+                                <div>
+                                    <div class="field-label">Compliance footer</div>
+                                    <small class="help">Appended to every campaign email. Anti-spam laws (CAN-SPAM, GDPR, CASL) expect a sender identity, a postal address and a way to opt out.</small>
+                                </div>
+                                <label class="field"><span>Postal address</span><input name="physical_address" placeholder="221B Baker Street, London"></label>
+                                <label class="field"><span>Unsubscribe line</span><input name="unsubscribe_text" placeholder='Not interested? Reply with "unsubscribe" and we won&#39;t email you again.'></label>
+                            </div>
+                            <div class="actions">
+                                <button class="btn primary" type="submit">Save profile</button>
+                                <span class="status" id="profileStatus"></span>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="stack">
+                        <div class="card">
+                            <div class="card-head"><h3>Gmail</h3><span id="gmailBadge"></span></div>
+                            <div class="card-body stack">
+                                <p class="small muted">Emails send from your own account through Google OAuth with the <code>gmail.send</code> scope only — Outreach Desk can't read your inbox.</p>
+                                <div class="actions">
+                                    <button class="btn primary sm" type="button" id="connectGmailBtn">Connect Gmail</button>
+                                    <button class="btn ghost sm" type="button" id="disconnectGmailBtn" hidden>Disconnect</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card" data-role="campaigner">
+                            <div class="card-head"><div><h3>Suppression list</h3><p>These addresses are skipped in every campaign.</p></div></div>
+                            <div class="card-body form">
+                                <textarea id="suppressionInput" class="code" rows="6" placeholder="one email per line"></textarea>
+                                <div class="actions"><button class="btn secondary sm" type="button" id="saveSuppressionBtn">Save list</button><span class="status small" id="suppressionStatus"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" data-role="student" id="projects">
+                    <div class="card-head">
+                        <div><h2>Projects</h2><p>For each company, the most relevant ones (up to 3) are picked and woven into the email.</p></div>
+                        <div class="actions">
+                            <button class="btn ghost sm" type="button" id="importBtn">Import JSON</button>
+                            <button class="btn primary sm" type="button" id="addProjectBtn">Add project</button>
+                        </div>
+                    </div>
+                    <div class="card-body"><div class="project-grid" id="projectGrid"></div></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="modal-backdrop" id="projectModal" hidden>
+        <form class="modal" id="projectForm">
+            <div class="card-head"><h3 id="projectModalTitle">Add project</h3><button class="btn ghost sm" type="button" data-close>Cancel</button></div>
+            <div class="card-body form">
+                <label class="field"><span>Name</span><input name="name" required placeholder="e.g. SmartFarming.AI"></label>
+                <label class="field"><span>What it does</span><textarea name="summary" rows="4" required placeholder="One or two sentences a recruiter would understand."></textarea></label>
+                <label class="field"><span>Tech stack</span><input name="tech" placeholder="LangGraph, Whisper, FastAPI"></label>
+                <label class="field"><span>Impact / results</span><input name="impact" placeholder="e.g. Used by 300 farmers; 92% intent accuracy"></label>
+                <label class="field"><span>Link</span><input name="link" type="url" placeholder="https://github.com/you/project"></label>
+                <div class="actions"><button class="btn primary" type="submit">Save project</button></div>
+            </div>
+        </form>
+    </div>
+
+    <div class="modal-backdrop" id="importModal" hidden>
+        <form class="modal" id="importForm">
+            <div class="card-head"><h3>Import projects</h3><button class="btn ghost sm" type="button" data-close>Cancel</button></div>
+            <div class="card-body form">
+                <p class="small muted">Paste a JSON array of <code>{"name", "summary", "tech", "impact", "link"}</code> objects.</p>
+                <textarea id="importInput" class="code" rows="10" placeholder='[{"name": "InterviewBot", "summary": "LLM mock interviewer..."}]'></textarea>
+                <div class="actions">
+                    <button class="btn primary" type="submit">Import</button>
+                    <button class="btn ghost" type="button" id="loadSampleBtn">Load sample projects</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script src="/static/js/api.js?v=7"></script>
+    <script src="/static/js/layout.js?v=7"></script>
+    <script src="/static/js/profile.js?v=7"></script>
+</body>
+</html>

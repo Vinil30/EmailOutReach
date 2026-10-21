@@ -3,399 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | Outreach Desk</title>
+    <script>try{if(localStorage.getItem("odTheme")==="light")document.documentElement.dataset.theme="light"}catch(e){}</script>
+    <title>Log in · Outreach Desk</title>
+    <link rel="icon" href="/static/img/favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css">
-    <style>
-        :root {
-            --navy: #0d1526;
-            --navy-soft: #141d33;
-            --navy-panel: #18223b;
-            --navy-raised: #1e2a46;
-            --navy-line: rgba(232, 224, 213, 0.12);
-            --cream: #f7f3ec;
-            --cream-dim: rgba(247, 243, 236, 0.66);
-            --cream-muted: rgba(247, 243, 236, 0.46);
-            --terracotta: #b8542f;
-            --terracotta-soft: #c96a44;
-            --sand: #d4b483;
-            --sage: #6b8e7f;
-        }
-
-        * { box-sizing: border-box; }
-
-        html, body {
-            margin: 0;
-            min-height: 100vh;
-            background: var(--navy);
-            color: var(--cream);
-            font-family: Inter, system-ui, sans-serif;
-            letter-spacing: 0;
-        }
-
-        .auth-page {
-            min-height: 100vh;
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(380px, 460px);
-        }
-
-        .auth-copy {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 34px 54px 46px;
-            background:
-                radial-gradient(720px 500px at 90% 4%, rgba(184, 84, 47, 0.18), transparent 64%),
-                radial-gradient(640px 460px at 5% 105%, rgba(212, 180, 131, 0.08), transparent 64%),
-                var(--navy);
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            color: var(--cream);
-            text-decoration: none;
-            width: max-content;
-        }
-
-        .mark {
-            width: 42px;
-            height: 42px;
-            border: 1px solid var(--sand);
-            border-radius: 2px;
-            display: grid;
-            place-items: center;
-            color: var(--sand);
-            font-family: "IBM Plex Mono", monospace;
-            font-size: 13px;
-            letter-spacing: 0.04em;
-        }
-
-        .brand h1 {
-            margin: 0;
-            font-family: Fraunces, Georgia, serif;
-            font-size: 20px;
-            font-weight: 500;
-            line-height: 1.1;
-        }
-
-        .brand p {
-            margin: 5px 0 0;
-            color: var(--cream-muted);
-            font-family: "IBM Plex Mono", monospace;
-            font-size: 11px;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-        }
-
-        .auth-hero {
-            max-width: 680px;
-            padding: 72px 0;
-        }
-
-        .auth-hero span {
-            color: var(--sand);
-            font-family: "IBM Plex Mono", monospace;
-            font-size: 12px;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
-
-        .auth-hero h2 {
-            margin: 24px 0 20px;
-            max-width: 12ch;
-            font-family: Fraunces, Georgia, serif;
-            font-size: clamp(44px, 6vw, 74px);
-            font-style: italic;
-            font-weight: 400;
-            line-height: 0.98;
-        }
-
-        .auth-hero p {
-            max-width: 58ch;
-            margin: 0;
-            color: var(--cream-dim);
-            font-size: 16px;
-            line-height: 1.75;
-        }
-
-        .auth-points {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 16px;
-            max-width: 780px;
-        }
-
-        .auth-point {
-            border-top: 1px solid var(--navy-line);
-            padding-top: 14px;
-        }
-
-        .auth-point strong {
-            display: block;
-            margin-bottom: 6px;
-            color: var(--sand);
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        .auth-point p {
-            margin: 0;
-            color: var(--cream-muted);
-            font-size: 13px;
-            line-height: 1.55;
-        }
-
-        .auth-panel-wrap {
-            min-height: 100vh;
-            display: grid;
-            align-items: center;
-            padding: 34px;
-            background: var(--navy-soft);
-            border-left: 1px solid var(--navy-line);
-        }
-
-        .auth-box {
-            width: 100%;
-            background: var(--navy-panel);
-            border: 1px solid var(--navy-line);
-            border-radius: 8px;
-            box-shadow: 0 28px 70px rgba(0, 0, 0, 0.28);
-            padding: 28px;
-        }
-
-        .auth-box h1 {
-            margin: 0 0 8px;
-            font-family: Fraunces, Georgia, serif;
-            font-size: 30px;
-            font-style: italic;
-            font-weight: 400;
-            color: var(--cream);
-        }
-
-        .auth-box p {
-            margin: 0 0 24px;
-            color: var(--cream-dim);
-            font-size: 14px;
-            line-height: 1.6;
-        }
-
-        .mode-tabs {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 6px;
-            margin-bottom: 24px;
-            padding: 5px;
-            background: var(--navy-raised);
-            border: 1px solid var(--navy-line);
-            border-radius: 8px;
-        }
-
-        .mode-tab {
-            min-height: 40px;
-            border: 0;
-            border-radius: 5px;
-            background: transparent;
-            color: var(--cream-muted);
-            cursor: pointer;
-            font: 600 13px Inter, system-ui, sans-serif;
-        }
-
-        .mode-tab.active {
-            background: var(--terracotta);
-            color: var(--cream);
-        }
-
-        .auth-form {
-            display: grid;
-            gap: 16px;
-        }
-
-        .auth-form label {
-            display: grid;
-            gap: 8px;
-            color: var(--cream-muted);
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-        }
-
-        .auth-form input {
-            width: 100%;
-            min-height: 46px;
-            border: 1px solid var(--navy-line);
-            border-radius: 5px;
-            background: var(--navy-raised);
-            color: var(--cream);
-            padding: 0 14px;
-            outline: none;
-            font: 500 14px Inter, system-ui, sans-serif;
-        }
-
-        .auth-form input::placeholder { color: rgba(247, 243, 236, 0.28); }
-
-        .auth-form input:focus {
-            border-color: var(--terracotta-soft);
-            box-shadow: 0 0 0 3px rgba(184, 84, 47, 0.16);
-        }
-
-        .auth-actions {
-            display: grid;
-            gap: 12px;
-            margin-top: 8px;
-        }
-
-        .btn {
-            min-height: 46px;
-            border-radius: 999px;
-            border: 1px solid var(--terracotta);
-            background: var(--terracotta);
-            color: var(--cream);
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0 20px;
-            font: 700 14px Inter, system-ui, sans-serif;
-            text-decoration: none;
-        }
-
-        .btn:hover {
-            background: var(--terracotta-soft);
-            border-color: var(--terracotta-soft);
-        }
-
-        .btn.secondary {
-            border-color: rgba(247, 243, 236, 0.22);
-            background: transparent;
-            color: var(--cream-dim);
-            border-radius: 5px;
-        }
-
-        .btn.secondary:hover {
-            color: var(--sand);
-            border-color: var(--sand);
-            background: transparent;
-        }
-
-        .status {
-            min-height: 44px;
-            margin-top: 18px;
-            padding: 12px 14px;
-            border: 1px solid var(--navy-line);
-            border-left: 2px solid var(--terracotta);
-            border-radius: 0 5px 5px 0;
-            background: var(--navy-raised);
-            color: var(--cream-dim);
-            font: 12.5px/1.6 "IBM Plex Mono", monospace;
-        }
-
-        .status.error {
-            color: #ffb4a3;
-            border-left-color: #ff8a70;
-        }
-
-        .status.ok {
-            color: #9fd0ba;
-            border-left-color: var(--sage);
-        }
-
-        .auth-foot {
-            margin-top: 20px;
-            color: var(--cream-muted);
-            font-size: 13px;
-            line-height: 1.55;
-        }
-
-        @media (max-width: 900px) {
-            .auth-page { grid-template-columns: 1fr; }
-            .auth-copy { min-height: auto; padding: 28px 24px 34px; }
-            .auth-hero { padding: 48px 0 34px; }
-            .auth-hero h2 { font-size: 42px; }
-            .auth-points { grid-template-columns: 1fr; }
-            .auth-panel-wrap { min-height: auto; padding: 24px; border-left: 0; }
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css?v=7">
 </head>
 <body>
-    <main class="auth-page">
-        <section class="auth-copy">
+    <div class="auth-wrap">
+        <aside class="auth-art">
             <a class="brand" href="/">
-                <div class="mark">OD</div>
-                <div>
-                    <h1>Outreach Desk</h1>
-                    <p>failure-aware outreach</p>
-                </div>
+                <div class="brand-mark">Od</div>
+                <div><div class="brand-name">Outreach Desk</div><div class="brand-sub">Write · Check · Send</div></div>
             </a>
+            <h2>Write once. Check every word. Send with confidence.</h2>
+            <p class="quote">Every draft gets a spam score and a list of exact fixes before a send button ever appears.</p>
+        </aside>
 
-            <div class="auth-hero">
-                <span>Account required</span>
-                <h2>Send from a real workspace.</h2>
-                <p>
-                    Create an account, connect Gmail, upload contacts, and review generated
-                    drafts before they move into the sent-mail record.
-                </p>
-            </div>
-
-            <div class="auth-points" aria-label="Workflow summary">
-                <div class="auth-point">
-                    <strong>1. Sign in</strong>
-                    <p>Keep contacts, drafts, and send history tied to your account.</p>
+        <div class="auth-form-side" style="position:relative;">
+            <button type="button" class="theme-toggle" data-theme-toggle style="position:absolute;top:20px;right:20px;"></button>
+            <div class="auth-card">
+                <div>
+                    <h1 id="authTitle">Log in</h1>
+                    <p class="muted" id="authIntro">Welcome back.</p>
                 </div>
-                <div class="auth-point">
-                    <strong>2. Connect Gmail</strong>
-                    <p>Authorize sending with OAuth from the dashboard.</p>
+                <div class="segmented" style="width:100%;">
+                    <button type="button" id="loginTab" class="active">Log in</button>
+                    <button type="button" id="signupTab">Create account</button>
                 </div>
-                <div class="auth-point">
-                    <strong>3. Review or automate</strong>
-                    <p>Run safe sending with deliverability checks before dispatch.</p>
-                </div>
-            </div>
-        </section>
-
-        <section class="auth-panel-wrap" aria-label="Authentication">
-            <div class="auth-box">
-                <div class="mode-tabs" role="tablist" aria-label="Authentication mode">
-                    <button class="mode-tab active" type="button" id="loginTab" data-mode="login">Log in</button>
-                    <button class="mode-tab" type="button" id="signupTab" data-mode="register">Sign up</button>
-                </div>
-
-                <h1 id="authTitle">Log in</h1>
-                <p id="authIntro">Sign in to run campaigns, review generated drafts, and inspect delivery status.</p>
-
-                <form id="authForm" class="auth-form">
-                    <label id="nameLabel">
-                        Name
-                        <input id="nameInput" type="text" autocomplete="name" placeholder="Your name">
-                    </label>
-                    <label>
-                        Email
-                        <input id="emailInput" type="email" autocomplete="email" required placeholder="you@example.com">
-                    </label>
-                    <label>
-                        Password
-                        <input id="passwordInput" type="password" autocomplete="current-password" minlength="8" required placeholder="At least 8 characters">
-                    </label>
-                    <div class="auth-actions">
-                        <button class="btn" type="submit" id="loginBtn">Log in</button>
-                        <button class="btn secondary" type="button" id="registerBtn">Create a new account</button>
+                <form id="authForm" class="form">
+                    <div id="roleField" class="field" hidden>
+                        <span>I'm using Outreach Desk for</span>
+                        <div class="choice-grid" id="roleChoice" style="grid-template-columns:1fr 1fr;">
+                            <label class="choice active"><input type="radio" name="role" value="student" checked><strong>🎓 Student outreach</strong><span>Internships & jobs</span></label>
+                            <label class="choice"><input type="radio" name="role" value="campaigner"><strong>📣 Campaigns</strong><span>Marketing & sales</span></label>
+                        </div>
                     </div>
+                    <label class="field" id="nameLabel" hidden><span>Name</span><input id="nameInput" type="text" autocomplete="name" placeholder="Your name"></label>
+                    <label class="field"><span>Email</span><input id="emailInput" type="email" autocomplete="email" required placeholder="you@example.com"></label>
+                    <label class="field"><span>Password</span><input id="passwordInput" type="password" required minlength="8" placeholder="At least 8 characters"></label>
+                    <button class="btn primary lg block" id="loginBtn" type="submit">Log in</button>
+                    <div id="authStatus" class="status" style="text-align:center;"></div>
                 </form>
-
-                <div id="authStatus" class="status">Choose log in or sign up to continue.</div>
-                <div class="auth-foot">
-                    New accounts can connect Gmail after signing in. Gmail credentials are handled by Google OAuth.
-                </div>
+                <p class="small muted" style="text-align:center;">By continuing you agree to our <a href="/privacy">privacy policy</a>.</p>
             </div>
-        </section>
-    </main>
-
-    <script src="/static/js/api.js"></script>
-    <script src="/static/js/login.js"></script>
+        </div>
+    </div>
+    <script src="/static/js/api.js?v=7"></script>
+    <script src="/static/js/login.js?v=7"></script>
 </body>
 </html>

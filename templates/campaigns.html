@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>try{if(localStorage.getItem("odTheme")==="light")document.documentElement.dataset.theme="light"}catch(e){}</script>
+    <title>Campaigns · Outreach Desk</title>
+    <link rel="icon" href="/static/img/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css?v=7">
+</head>
+<body>
+    <div class="shell">
+        <aside class="sidebar" id="sidebar"></aside>
+        <main class="main">
+            <header class="page-head">
+                <div>
+                    <span class="eyebrow">Campaigns</span>
+                    <h1>Every run, start to finish</h1>
+                    <p>Campaigns process in the background, one contact at a time. You can leave this page — progress is saved.</p>
+                </div>
+                <div class="actions">
+                    <a class="btn primary" href="/campaigns/new">New campaign</a>
+                </div>
+            </header>
+            <div class="card">
+                <div class="card-body" id="campaignList"><div class="skeleton"></div></div>
+            </div>
+        </main>
+    </div>
+    <script src="/static/js/api.js?v=7"></script>
+    <script src="/static/js/layout.js?v=7"></script>
+    <script src="/static/js/campaign_view.js?v=7"></script>
+    <script>
+        Layout.init().then(() => {
+            CampaignView.mount(document.getElementById("campaignList"), {
+                detailed: true,
+                emptyHtml: `<div class="empty"><strong>No campaigns yet</strong><span>Launch one to see live progress here.</span><a class="btn primary" href="/campaigns/new">New campaign</a></div>`
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>try{if(localStorage.getItem("odTheme")==="light")document.documentElement.dataset.theme="light"}catch(e){}</script>
+    <title>Privacy · Outreach Desk</title>
+    <link rel="icon" href="/static/img/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css?v=7">
+</head>
+<body class="public">
+    <nav class="public-nav">
+        <a class="brand" href="/"><div class="brand-mark">Od</div><div><div class="brand-name">Outreach Desk</div></div></a>
+        <div class="actions"><button type="button" class="theme-toggle" data-theme-toggle></button><a class="btn secondary" href="/login">Log in</a></div>
+    </nav>
+    <main class="section" style="max-width:760px;">
+        <h2>Privacy</h2>
+        <div class="stack" style="margin-top:20px;color:var(--ink-2);">
+            <p>We use your data only to provide email outreach features and do not sell it.</p>
+            <p><strong>What we store:</strong> your account email and hashed password, the profile, projects and campaign settings you enter, the contact lists you upload for campaigns, generated drafts, send results, and Gmail OAuth tokens.</p>
+            <p><strong>Gmail access:</strong> we request only the <code>gmail.send</code> scope, which lets the app send mail you approve. It cannot read, search or delete messages in your inbox. You can disconnect at any time from your profile, or revoke access in your Google account.</p>
+            <p><strong>Third parties:</strong> when AI writing or company research is enabled, recipient and company details are sent to the configured LLM (Groq) and search (Tavily) providers to generate the email.</p>
+            <p><strong>Recipients:</strong> campaign emails include an opt-out line. Add anyone who asks to stop to your suppression list and they're skipped in every future campaign.</p>
+        </div>
+    </main>
+    <script src="/static/js/api.js?v=7"></script>
+</body>
+</html>

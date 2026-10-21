@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>try{if(localStorage.getItem("odTheme")==="light")document.documentElement.dataset.theme="light"}catch(e){}</script>
+    <title>New campaign · Outreach Desk</title>
+    <link rel="icon" href="/static/img/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css?v=7">
+</head>
+<body>
+    <div class="shell">
+        <aside class="sidebar" id="sidebar"></aside>
+        <main class="main">
+            <header class="page-head">
+                <div>
+                    <span class="eyebrow" id="eyebrow">New campaign</span>
+                    <h1 id="title">Build a campaign</h1>
+                    <p id="lead">Three steps: who it goes to, what it says, and how it sends. Every email is spam-checked before it can leave.</p>
+                </div>
+            </header>
+
+            <section class="grid grid-main">
+                <div class="stack">
+                    <!-- Step 1: contacts -->
+                    <div class="card">
+                        <div class="card-head">
+                            <div><h2>1 · Recipients</h2><p id="contactsHint">Upload a CSV/Excel file or paste rows.</p></div>
+                            <a class="btn ghost sm" id="sampleCsv" href="/static/demo/demo_input.csv" download>Sample CSV</a>
+                        </div>
+                        <div class="card-body form">
+                            <div class="segmented" id="sourceToggle">
+                                <button type="button" class="active" data-source="file">Upload file</button>
+                                <button type="button" data-source="paste">Paste</button>
+                            </div>
+                            <div id="sourceFile">
+                                <div class="dropzone" id="dropzone">
+                                    <input id="fileInput" type="file" accept=".csv,.xlsx,.xls">
+                                    <strong>Drop a CSV or Excel file</strong>
+                                    <span class="small">or click to browse · up to 500 contacts</span>
+                                    <span class="file" id="fileName"></span>
+                                </div>
+                            </div>
+                            <label class="field" id="sourcePaste" hidden>
+                                <span>Contacts</span>
+                                <textarea id="contactsText" class="code" rows="7"></textarea>
+                                <small>First line can be a header row. Without one, use: <code>email, name, company, details</code></small>
+                            </label>
+                            <div id="contactPreview"></div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: message -->
+                    <div class="card">
+                        <div class="card-head"><div><h2>2 · Message</h2><p>Let AI personalize each email, or write one template with merge fields.</p></div></div>
+                        <div class="card-body form">
+                            <div class="choice-grid" id="writingMode">
+                                <label class="choice active"><input type="radio" name="writing" value="ai" checked><strong>✦ AI-personalized</strong><span id="aiChoiceText">Researches each company and writes a unique email.</span></label>
+                                <label class="choice"><input type="radio" name="writing" value="template"><strong>{ } Template + merge fields</strong><span>Your words, filled per contact. No AI needed.</span></label>
+                            </div>
+
+                            <div id="aiFields" class="form">
+                                <div class="grid grid-2" id="campaignerAiFields" hidden>
+                                    <label class="field"><span>What you're offering</span><textarea id="offerInput" rows="3" placeholder="e.g. A 2-week analytics audit for D2C brands that typically cuts ad waste by 15%"></textarea></label>
+                                    <div class="form">
+                                        <label class="field"><span>Desired action</span><input id="goalInput" placeholder="e.g. Book a 15-minute intro call"></label>
+                                        <label class="field"><span>Tone</span>
+                                            <select id="toneInput">
+                                                <option>Friendly and professional</option>
+                                                <option>Warm and conversational</option>
+                                                <option>Concise and direct</option>
+                                                <option>Formal</option>
+                                            </select>
+                                        </label>
+                                    </div>
+                                </div>
+                                <label class="field" id="studentGoalField"><span>What you're looking for</span><input id="studentGoalInput" placeholder="e.g. Summer 2027 ML engineering internship"></label>
+                                <label class="field"><span>Extra instructions <span class="muted">(optional)</span></span><input id="instructionsInput" placeholder="e.g. Mention I'm available from May, keep it under 150 words"></label>
+                                <label class="toggle"><input type="checkbox" id="researchInput" checked> Research each company on the web first</label>
+                                <div class="banner info small" id="projectsNote" hidden></div>
+                            </div>
+
+                            <div id="templateFields" class="form" hidden>
+                                <div>
+                                    <div class="field-label" style="margin-bottom:6px;">Start from a template</div>
+                                    <div class="chips" id="galleryChips"><span class="small muted">Loading templates…</span></div>
+                                </div>
+                                <label class="field"><span>Subject</span><input id="subjectTemplate" placeholder="Quick idea for {{company}}"></label>
+                                <label class="field">
+                                    <span>Body</span>
+                                    <textarea id="bodyTemplate" rows="10" placeholder="Hi {{first_name|there}},&#10;&#10;..."></textarea>
+                                    <small>Use <code>{{field}}</code> or <code>{{field|fallback}}</code>. Blank lines become paragraphs; HTML is allowed.</small>
+                                </label>
+                                <div>
+                                    <div class="field-label" style="margin-bottom:6px;">Merge fields from your list</div>
+                                    <div class="chips" id="fieldChips"><span class="small muted">Add recipients to see their columns.</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: delivery -->
+                    <div class="card">
+                        <div class="card-head"><div><h2>3 · Delivery</h2><p>Choose whether you approve each email or let safe ones go out automatically.</p></div></div>
+                        <div class="card-body form">
+                            <div class="grid grid-2">
+                                <label class="field"><span>Campaign name</span><input id="nameInput" placeholder="e.g. Fall internship push"></label>
+                                <label class="field"><span>Sender email</span><input id="fromInput" type="email" placeholder="you@gmail.com"><small>Must match the Gmail account you connect.</small></label>
+                            </div>
+                            <div class="choice-grid" id="modeChoice">
+                                <label class="choice active"><input type="radio" name="mode" value="review" checked><strong>Review first</strong><span>Drafts wait in your queue. You edit, re-check and send.</span></label>
+                                <label class="choice"><input type="radio" name="mode" value="auto"><strong>Auto-send low risk</strong><span>Emails scoring under 4 send automatically, a random 1–3 minutes apart. Risky ones are held.</span></label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="stack" style="position:sticky;top:20px;">
+                    <div class="card">
+                        <div class="card-head"><h3>Summary</h3></div>
+                        <div class="card-body">
+                            <dl class="kv" id="summary"></dl>
+                            <div class="divider" style="margin:16px 0;"></div>
+                            <div class="banner warn small" id="gmailWarning" hidden>Gmail isn't connected — drafts will be created, but sending will fail until you connect it.</div>
+                            <button class="btn primary lg block" id="launchBtn" type="button">Launch campaign</button>
+                            <div class="status small" id="launchStatus" style="margin-top:10px;text-align:center;"></div>
+                        </div>
+                    </div>
+                    <div class="card" id="templateRiskCard" hidden>
+                        <div class="card-head"><div><h3>Live spam check</h3><p id="riskFor">Preview with your first contact</p></div></div>
+                        <div class="card-body">
+                            <div id="templateRisk"></div>
+                            <div class="divider" style="margin:14px 0;"></div>
+                            <div class="field-label" style="margin-bottom:6px;">Rendered preview</div>
+                            <div class="mail-preview" id="templatePreview" style="min-height:120px;"></div>
+                        </div>
+                    </div>
+                </aside>
+            </section>
+        </main>
+    </div>
+    <script src="/static/js/api.js?v=7"></script>
+    <script src="/static/js/layout.js?v=7"></script>
+    <script src="/static/js/risk.js?v=7"></script>
+    <script src="/static/js/new_campaign.js?v=7"></script>
+</body>
+</html>

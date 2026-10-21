@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>try{if(localStorage.getItem("odTheme")==="light")document.documentElement.dataset.theme="light"}catch(e){}</script>
+    <title>Spam Lab · Outreach Desk</title>
+    <link rel="icon" href="/static/img/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css?v=7">
+</head>
+<body>
+    <div class="shell">
+        <aside class="sidebar" id="sidebar"></aside>
+        <main class="main">
+            <header class="page-head">
+                <div>
+                    <span class="eyebrow">Spam Lab</span>
+                    <h1>Test any email before it goes out</h1>
+                    <p>Paste a draft from anywhere. It's scored with the same guard that gates every send — nothing is saved.</p>
+                </div>
+                <div class="actions">
+                    <button class="btn ghost" type="button" data-example="spammy">Try a spammy example</button>
+                    <button class="btn ghost" type="button" data-example="clean">Try a clean example</button>
+                </div>
+            </header>
+            <section class="grid grid-main">
+                <div class="card">
+                    <div class="card-body form">
+                        <div class="segmented" id="typeToggle">
+                            <button type="button" class="active" data-type="outreach">1:1 outreach</button>
+                            <button type="button" data-type="campaign">Bulk campaign</button>
+                        </div>
+                        <label class="field"><span>Subject</span><input id="subjectInput" placeholder="Subject line"></label>
+                        <label class="field"><span>Body <span class="muted">(plain text or HTML)</span></span><textarea id="bodyInput" rows="14" placeholder="Paste your email here…"></textarea></label>
+                        <div>
+                            <div class="field-label" style="margin-bottom:6px;">Preview</div>
+                            <div class="mail-preview" id="preview"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card" style="position:sticky;top:20px;">
+                    <div class="card-head"><h3>Result</h3><span class="small muted">updates as you type</span></div>
+                    <div class="card-body" id="result"><div class="muted small">Start typing to see your score.</div></div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="/static/js/api.js?v=7"></script>
+    <script src="/static/js/layout.js?v=7"></script>
+    <script src="/static/js/risk.js?v=7"></script>
+    <script src="/static/js/spam_check.js?v=7"></script>
+</body>
+</html>
