@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script>try{if(localStorage.getItem("odTheme")!=="dark")document.documentElement.dataset.theme="light"}catch(e){document.documentElement.dataset.theme="light"}</script>
-    <title>Mailzen — email outreach that passes the spam check</title>
-    <meta name="description" content="Personalized student outreach and email campaigns, scored for spam risk before every send and delivered from your own Gmail.">
+    <title>Mailzen — your job outreach, on autopilot</title>
+    <meta name="description" content="Mailzen emails recruiters for you from your own Gmail, with your resume and best project. Premium adds our recruiter database, AI-written emails and one-click automation.">
     <link rel="icon" type="image/png" href="/static/img/favicon.png">
     <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css?v=9">
-    <link rel="stylesheet" href="/static/css/landing.css?v=9">
+    <link rel="stylesheet" href="/static/css/style.css?v=10">
+    <link rel="stylesheet" href="/static/css/landing.css?v=10">
 </head>
 <body class="lp">
     <div class="lp-progress" id="scrollProgress"></div>
@@ -25,16 +25,15 @@
                 <div class="brand-name">Mailzen</div>
             </a>
             <nav class="lp-links" aria-label="Sections">
-                <a href="#guard">How it works</a>
-                <a href="#lab">Try the guard</a>
-                <a href="#modes">Two modes</a>
+                <a href="#how">How it works</a>
+                <a href="#premium">Premium</a>
                 <a href="#pricing">Pricing</a>
                 <a href="#faq">FAQ</a>
             </nav>
             <div class="lp-nav-actions" id="navActions">
                 <button type="button" class="theme-toggle" data-theme-toggle></button>
                 <a class="btn ghost lp-hide-sm" href="/login">Log in</a>
-                <a class="btn primary" href="/login?mode=signup">Get started</a>
+                <a class="btn primary" href="/login?mode=signup">Start free</a>
             </div>
         </div>
     </header>
@@ -42,91 +41,232 @@
     <!-- ============ HERO ============ -->
     <section class="lp-hero">
         <div class="lp-hero-glow" aria-hidden="true"></div>
-        <div class="lp-wrap lp-hero-copy intro">
-            <span class="lp-pill"><span class="dot"></span>For students &amp; email campaigns</span>
-            <h1>Every email gets checked <em>before it's sent.</em></h1>
-            <p class="lp-lead">
-                Mailzen writes personalized outreach from your projects or your offer, scores every message
-                on 14 spam checks, rewrites what's risky, and sends only what passes — from your own Gmail.
-            </p>
-            <div class="lp-cta">
-                <a class="btn primary lg" href="/login?mode=signup&role=student">Start as a student</a>
-                <a class="btn secondary lg" href="/login?mode=signup&role=campaigner">Run a campaign</a>
+        <div class="lp-wrap lz-hero">
+            <div class="lz-hero-copy intro">
+                <span class="lp-pill"><span class="dot"></span>Job outreach, automated</span>
+                <h1>Your job outreach, <em>on autopilot.</em></h1>
+                <p class="lp-lead">
+                    Mailzen emails recruiters for you, from your own Gmail, with your resume and your best project.
+                    Pick a template or let AI write each one, press Start, and it keeps sending while you prepare for interviews.
+                </p>
+                <div class="lp-cta lz-cta-left">
+                    <a class="btn primary lg" href="/login?mode=signup">Start free</a>
+                    <a class="btn secondary lg" href="#premium">See what Premium does</a>
+                </div>
+                <ul class="lz-hero-points">
+                    <li><b>Free</b> 20 emails to your own contact list</li>
+                    <li><b>Premium</b> 100 emails a week to our recruiter database, written by AI</li>
+                </ul>
             </div>
-            <p class="lp-fine">Send-only Gmail access · No inbox reading · Free to self-host</p>
-        </div>
 
-        <!-- Scanner stage -->
-        <div class="lp-wrap intro" style="--d: 200ms">
-            <div class="lp-stage" id="stage">
-                <div class="lp-stage-head">
-                    <span class="lp-live"><span class="dot"></span>Live simulation</span>
-                    <div class="lp-stage-stats">
-                        <span><b id="statChecked">0</b> checked</span>
-                        <span><b id="statFixed">0</b> rewritten</span>
-                        <span><b id="statSent">0</b> delivered</span>
+            <!-- Automation console (simulated) -->
+            <div class="lz-console intro" id="console" style="--d: 180ms" aria-label="Automation preview">
+                <div class="lz-console-head">
+                    <div>
+                        <div class="lz-console-title">Your automation</div>
+                        <div class="lz-console-sub">Sending from <b>you@gmail.com</b></div>
                     </div>
+                    <button type="button" class="btn primary sm" id="consoleToggle">Stop</button>
                 </div>
-                <div class="lp-stage-grid">
-                    <div class="lp-lane">
-                        <div class="lp-lane-title">Drafts</div>
-                        <div class="lp-lane-list" id="laneDrafts"></div>
-                    </div>
-                    <div class="lp-guard">
-                        <div class="lp-lane-title">Spam guard</div>
-                        <div class="lp-guard-slot" id="guardSlot">
-                            <div class="lp-beam" aria-hidden="true"></div>
-                            <div class="lp-guard-idle">Waiting for the next draft…</div>
-                        </div>
-                    </div>
-                    <div class="lp-lane">
-                        <div class="lp-lane-title">Inbox</div>
-                        <div class="lp-lane-list" id="laneInbox"></div>
-                    </div>
+                <div class="lz-console-status">
+                    <span class="badge ok live" id="consoleBadge">Running</span>
+                    <span id="consoleNext">Next email in 1:42</span>
                 </div>
+                <div class="lz-console-meter">
+                    <div class="lz-meter-row"><span>This week</span><span><b id="consoleUsed">37</b> / 100</span></div>
+                    <div class="plan-meter-lg"><span id="consoleBar" style="width:37%"></span></div>
+                </div>
+                <div class="lz-console-list-head"><span>Companies reached</span><span class="muted">in your Gmail Sent folder too</span></div>
+                <ul class="lz-feed" id="consoleFeed"></ul>
+                <div class="lz-console-foot">Simulation · time sped up</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ BEFORE / AFTER ============ -->
+    <section class="lp-section lz-tight" id="why">
+        <div class="lp-wrap">
+            <div class="lp-head reveal">
+                <span class="eyebrow">Why Mailzen</span>
+                <h2>Stop spending your evenings on cold emails.</h2>
+                <p>Every part of the job-outreach grind, handled.</p>
+            </div>
+            <div class="lz-compare reveal">
+                <div class="lz-compare-row lz-compare-head"><span></span><span>Doing it by hand</span><span>With Mailzen</span></div>
+                <div class="lz-compare-row"><span>Finding who to email</span><span>Hours of searching LinkedIn and guessing addresses</span><span><b>Premium:</b> our recruiter database, ready to go</span></div>
+                <div class="lz-compare-row"><span>Writing each email</span><span>Fifteen minutes each, rewriting the same pitch</span><span>A template, or AI that researches each company</span></div>
+                <div class="lz-compare-row"><span>Staying out of spam</span><span>Guesswork</span><span>14 checks before every send, with fixes</span></div>
+                <div class="lz-compare-row"><span>Sending</span><span>Copy, paste, send, repeat</span><span>Press Start; one email every 1–3 minutes</span></div>
+                <div class="lz-compare-row"><span>Keeping track</span><span>A spreadsheet you forget to update</span><span>Every company reached, listed automatically</span></div>
             </div>
         </div>
     </section>
 
     <!-- ============ HOW IT WORKS ============ -->
-    <section class="lp-section" id="guard">
+    <section class="lp-section" id="how">
         <div class="lp-wrap">
             <div class="lp-head reveal">
                 <span class="eyebrow">How it works</span>
-                <h2>Write, check, fix, send. In that order, every time.</h2>
+                <h2>Set it up once. Press Start.</h2>
             </div>
-            <div class="lp-steps4">
-                <article class="lp-step reveal">
-                    <span class="n">01</span>
-                    <h3>Write</h3>
-                    <p>Pick a template and your featured project; only the name and company change per contact. On Premium, AI researches each company and drafts a unique email instead.</p>
+            <div class="lz-steps">
+                <article class="lz-step reveal">
+                    <span class="lz-step-n">1</span>
+                    <h3>Build your profile</h3>
+                    <p>Your headline, skills, a public resume link and the projects you're proud of. Connect Gmail so emails go out from you.</p>
+                    <div class="lz-mini">
+                        <span class="lz-chip ok">✓ Resume link</span>
+                        <span class="lz-chip ok">✓ 3 projects</span>
+                        <span class="lz-chip ok">✓ Gmail connected</span>
+                    </div>
                 </article>
-                <article class="lp-step reveal" style="--d: 80ms">
-                    <span class="n">02</span>
-                    <h3>Check</h3>
-                    <p>14 local checks: capitals, pressure words, link safety, leftover placeholders, length, calls to action, the subject line and the unsubscribe line.</p>
+                <article class="lz-step reveal" style="--d: 90ms">
+                    <span class="lz-step-n">2</span>
+                    <h3>Choose how it writes</h3>
+                    <p>A template that swaps in each recruiter's name and company, or (on Premium) AI that researches every company and writes a unique email.</p>
+                    <div class="lz-mini">
+                        <span class="lz-chip">Template</span>
+                        <span class="lz-chip dark">AI-personalized</span>
+                    </div>
                 </article>
-                <article class="lp-step reveal" style="--d: 160ms">
-                    <span class="n">03</span>
-                    <h3>Fix</h3>
-                    <p>Anything scoring 4 or more is held in your review queue with the exact reasons and fixes. On Premium, AI drafts get one targeted rewrite first.</p>
+                <article class="lz-step reveal" style="--d: 180ms">
+                    <span class="lz-step-n">3</span>
+                    <h3>Press Start</h3>
+                    <p>Upload your own list, or on Premium let Mailzen use its recruiter database. Every email is spam-checked, then sent 1–3 minutes apart.</p>
+                    <div class="lz-mini">
+                        <span class="lz-start">▶ Start</span>
+                        <span class="muted small">Stop anytime. Resumes where it left off.</span>
+                    </div>
                 </article>
-                <article class="lp-step reveal" style="--d: 240ms">
-                    <span class="n">04</span>
-                    <h3>Send</h3>
-                    <p>Delivered from your own Gmail with a random 1–3 minute gap between emails, retried on rate limits and never sent twice.</p>
+            </div>
+
+            <!-- Template vs AI -->
+            <div class="lz-writer reveal" id="writing">
+                <div class="lz-writer-controls">
+                    <h3>See the difference</h3>
+                    <p class="muted">Same profile, three different companies.</p>
+                    <div class="segmented" id="writerMode">
+                        <button type="button" class="active" data-mode="template">Template</button>
+                        <button type="button" data-mode="ai">AI-personalized <span class="lz-tag">Premium</span></button>
+                    </div>
+                    <div class="lz-company-picks" id="writerCompanies">
+                        <button type="button" class="active" data-company="0"><b>Northwind Labs</b><span>Payments infrastructure</span></button>
+                        <button type="button" data-company="1"><b>Orbit Robotics</b><span>Warehouse robots</span></button>
+                        <button type="button" data-company="2"><b>Kestrel Health</b><span>Clinical AI</span></button>
+                    </div>
+                    <p class="lz-writer-note" id="writerNote"></p>
+                </div>
+                <div class="lz-email">
+                    <div class="lz-email-top">
+                        <div><span class="muted">To</span> <b id="writerTo"></b></div>
+                        <span class="badge ok" id="writerScore">Spam score 0.4</span>
+                    </div>
+                    <div class="lz-email-subject" id="writerSubject"></div>
+                    <div class="lz-email-body" id="writerBody"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ PREMIUM ============ -->
+    <section class="lz-premium" id="premium">
+        <div class="lp-wrap">
+            <div class="lp-head reveal">
+                <span class="eyebrow">Premium</span>
+                <h2>We bring the contacts. You bring the resume.</h2>
+                <p>Premium turns Mailzen into a job-hunting assistant that finds the people, writes the emails and sends them for you.</p>
+            </div>
+            <div class="lz-features">
+                <article class="lz-feature reveal">
+                    <span class="lz-icon">◎</span>
+                    <h3>Our recruiter database</h3>
+                    <p>Recruiters and hiring managers, added and kept fresh by our team. No more hunting for email addresses.</p>
                 </article>
+                <article class="lz-feature reveal" style="--d: 60ms">
+                    <span class="lz-icon">▶</span>
+                    <h3>One-click automation</h3>
+                    <p>Press Start and emails go out from your Gmail, 1–3 minutes apart. Stop anytime; Start picks up at the next company.</p>
+                </article>
+                <article class="lz-feature reveal" style="--d: 120ms">
+                    <span class="lz-icon">✦</span>
+                    <h3>AI-written emails</h3>
+                    <p>For each company, AI reads what they build, picks your best-matching project and drafts a unique email.</p>
+                </article>
+                <article class="lz-feature reveal">
+                    <span class="lz-icon">100</span>
+                    <h3>100 emails every week</h3>
+                    <p>A fresh allowance every Monday, about 14 a day. Plenty to reach every company you care about.</p>
+                </article>
+                <article class="lz-feature reveal" style="--d: 60ms">
+                    <span class="lz-icon">☰</span>
+                    <h3>See every company reached</h3>
+                    <p>A running list of who you've emailed. Every message is also in your Gmail Sent folder, so replies come straight to you.</p>
+                </article>
+                <article class="lz-feature reveal" style="--d: 120ms">
+                    <span class="lz-icon">✓</span>
+                    <h3>Checked and fixed by AI</h3>
+                    <p>Every draft passes the spam check. If one is flagged, AI rewrites the risky parts before it goes out.</p>
+                </article>
+            </div>
+
+            <div class="lz-saver reveal">
+                <div>
+                    <h3>How much time does it save?</h3>
+                    <label class="lz-slider">
+                        <span>Minutes you spend finding, writing and sending one email by hand: <b id="saverMinutes">15</b></span>
+                        <input type="range" id="saverInput" min="5" max="30" step="1" value="15">
+                    </label>
+                </div>
+                <div class="lz-saver-out">
+                    <div><b id="saverWeek">25</b><span>hours back every week</span></div>
+                    <div><b id="saverMonth">100</b><span>hours back every month</span></div>
+                </div>
+            </div>
+
+            <div class="lz-premium-cta reveal">
+                <a class="btn primary lg" href="https://srotabase.com/@vmarena/email-automation-premium" target="_blank" rel="noopener">Buy Premium</a>
+                <span>30 days per purchase · activated on your Mailzen email, usually within a day</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ PRICING ============ -->
+    <section class="lp-section" id="pricing">
+        <div class="lp-wrap">
+            <div class="lp-head reveal">
+                <span class="eyebrow">Pricing</span>
+                <h2>Start free. Upgrade when you're ready to go all in.</h2>
+            </div>
+            <div class="lz-table reveal">
+                <div class="lz-tr lz-th"><span></span><span>General<small>Free</small></span><span>Premium<small>30-day pass</small></span></div>
+                <div class="lz-tr"><span>Emails</span><span>20 in total</span><span><b>100 every week</b></span></div>
+                <div class="lz-tr"><span>Who you email</span><span>Your own uploaded list</span><span><b>Our recruiter database</b> + your own lists</span></div>
+                <div class="lz-tr"><span>Writing</span><span>Ready-made templates</span><span>Templates or <b>AI-personalized</b></span></div>
+                <div class="lz-tr"><span>Automation</span><span>Send your uploaded list</span><span><b>One-click Start/Stop</b> over the database</span></div>
+                <div class="lz-tr"><span>Spam check before sending</span><span>✓</span><span>✓ plus AI fixes</span></div>
+                <div class="lz-tr"><span>Sends from your own Gmail</span><span>✓</span><span>✓</span></div>
+                <div class="lz-tr"><span>Companies-reached tracker</span><span>Sent log</span><span>✓ live list</span></div>
+                <div class="lz-tr lz-tf"><span></span>
+                    <span><a class="btn secondary block" href="/login?mode=signup">Create a free account</a></span>
+                    <span><a class="btn primary block" href="https://srotabase.com/@vmarena/email-automation-premium" target="_blank" rel="noopener">Buy Premium</a></span>
+                </div>
+            </div>
+
+            <div class="lz-activate">
+                <div class="lz-act reveal"><span>1</span><p><b>Create your free account</b> and set up your profile and resume.</p></div>
+                <div class="lz-act reveal" style="--d: 80ms"><span>2</span><p><b>Buy Premium</b> using the same email as your Mailzen account.</p></div>
+                <div class="lz-act reveal" style="--d: 160ms"><span>3</span><p><b>We activate it</b>, usually within a day. Open Automate and press Start.</p></div>
             </div>
         </div>
     </section>
 
     <!-- ============ LAB ============ -->
-    <section class="lp-section" id="lab">
+    <section class="lp-section" id="guard">
         <div class="lp-wrap">
             <div class="lp-head reveal">
-                <span class="eyebrow">Try it</span>
+                <span class="eyebrow">Built-in spam check</span>
                 <h2>Can you get past the guard?</h2>
-                <p>Switch on the habits that land emails in spam, or edit the draft yourself. This is the real checker that gates every send.</p>
+                <p>Every email is checked before Mailzen sends it. Switch on the habits that land emails in spam and watch the real checker react.</p>
             </div>
 
             <div class="lp-lab reveal">
@@ -186,107 +326,17 @@
         </div>
     </section>
 
-    <!-- ============ MODES ============ -->
-    <section class="lp-section" id="modes">
+
+    <!-- ============ CAMPAIGNS ============ -->
+    <section class="lp-section lz-tight">
         <div class="lp-wrap">
-            <div class="lp-head reveal">
-                <span class="eyebrow">Two workspaces, one engine</span>
-                <h2>Built for students. Ready for campaigns.</h2>
-            </div>
-
-            <div class="lp-modes reveal">
-                <div class="lp-modes-tabs" role="tablist" id="modeSwitch">
-                    <button type="button" class="active" data-mode="student" role="tab"><b>Student outreach</b><span>Internships, jobs, research</span></button>
-                    <button type="button" data-mode="campaign" role="tab"><b>Email campaigns</b><span>Marketing &amp; sales to a list</span></button>
+            <div class="lz-business reveal">
+                <div>
+                    <span class="eyebrow">Also for businesses</span>
+                    <h3>Campaign mode for marketing and sales emails</h3>
+                    <p class="muted">Upload any contact list, write one template with merge fields like <code>{{first_name}}</code>, and Mailzen adds your sender details and an unsubscribe line automatically. Same plans, same spam check.</p>
                 </div>
-
-                <div class="lp-mode" data-panel="student">
-                    <div class="lp-mode-copy">
-                        <h3>Your projects, matched to every company.</h3>
-                        <p>Add a few projects once. For each company on your list, the app reads what they build and features the work that fits. Pick a company:</p>
-                        <div class="lp-pick" id="companyList">
-                            <button type="button" class="active" data-company="0">Hugging Face</button>
-                            <button type="button" data-company="1">Zipline</button>
-                            <button type="button" data-company="2">Razorpay</button>
-                        </div>
-                    </div>
-                    <div class="lp-mode-visual">
-                        <div class="lp-projects" id="projectCards">
-                            <div class="lp-project"><b>InterviewBot</b><span>LLM mock interviewer</span></div>
-                            <div class="lp-project"><b>InfSec</b><span>Real-time YOLO safety monitor</span></div>
-                            <div class="lp-project"><b>Self-Healing DAG</b><span>LoRA DistilBERT rerouting</span></div>
-                            <div class="lp-project"><b>CostIQ</b><span>Multi-agent cost anomalies</span></div>
-                            <div class="lp-project"><b>SmartFarming.AI</b><span>Voice-first field advisor</span></div>
-                            <div class="lp-project"><b>BidMind</b><span>Pitch matching with FAISS</span></div>
-                        </div>
-                        <div class="lp-snippet" id="studentSnippet"></div>
-                    </div>
-                </div>
-
-                <div class="lp-mode" data-panel="campaign" hidden>
-                    <div class="lp-mode-copy">
-                        <h3>One template. Every contact feels personal.</h3>
-                        <p>Each CSV column becomes a merge field, with fallbacks for blanks. A sender footer and unsubscribe line are added for you. Pick a contact:</p>
-                        <div class="lp-pick" id="contactList">
-                            <button type="button" class="active" data-row="0">Priya · Brightloop</button>
-                            <button type="button" data-row="1">Daniel · Northwind</button>
-                            <button type="button" data-row="2">Mei · <i>blank fields</i></button>
-                        </div>
-                    </div>
-                    <div class="lp-mode-visual">
-                        <div class="lp-template"><span>Template</span><code>Hi {{first_name|there}}, saw {{company}} is growing in {{city|your region}}…</code></div>
-                        <div class="lp-snippet" id="campaignSnippet"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- ============ NUMBERS ============ -->
-    <section class="lp-band">
-        <div class="lp-wrap lp-numbers">
-            <div class="reveal"><b data-count="14">0</b><span>spam checks on every email</span></div>
-            <div class="reveal" style="--d: 80ms"><b>1–3<small>min</small></b><span>random gap between every email</span></div>
-            <div class="reveal" style="--d: 160ms"><b data-count="4">0</b><span>ready-made templates, plus your own</span></div>
-            <div class="reveal" style="--d: 240ms"><b data-count="0">0</b><span>passwords or inbox access needed</span></div>
-        </div>
-    </section>
-
-    <!-- ============ PRICING ============ -->
-    <section class="lp-section" id="pricing">
-        <div class="lp-wrap">
-            <div class="lp-head reveal">
-                <span class="eyebrow">Pricing</span>
-                <h2>Start free. Go Premium when you're ready to scale.</h2>
-            </div>
-            <div class="lp-plans">
-                <article class="lp-plan reveal">
-                    <div class="lp-plan-name">General</div>
-                    <div class="lp-plan-price">Free</div>
-                    <p class="lp-plan-tag">Bring your own contact list.</p>
-                    <ul>
-                        <li><b>20 emails</b> in total</li>
-                        <li>Upload your own CSV or Excel list</li>
-                        <li>Profile with projects and resume link</li>
-                        <li>Ready-made templates with your resume and featured project</li>
-                        <li>Spam check before every send</li>
-                    </ul>
-                    <a class="btn secondary lg block" href="/login?mode=signup">Create a free account</a>
-                </article>
-                <article class="lp-plan lp-plan-premium reveal" style="--d: 100ms">
-                    <div class="lp-plan-name">Premium <span class="badge accent plain">Most popular</span></div>
-                    <div class="lp-plan-price">Our data, automated</div>
-                    <p class="lp-plan-tag">We supply the recruiter contacts and run the sending for you.</p>
-                    <ul>
-                        <li><b>100 emails every week</b></li>
-                        <li>Access to our curated company &amp; recruiter database</li>
-                        <li>AI-written emails: researches each company and picks your best project</li>
-                        <li>One-click automation that resumes where it stopped</li>
-                        <li>See every company you've reached</li>
-                        <li>Everything in General · 30 days per purchase</li>
-                    </ul>
-                    <a class="btn primary lg block" href="https://srotabase.com/@vmarena/email-automation-premium" target="_blank" rel="noopener">Buy Premium</a>
-                </article>
+                <a class="btn secondary lg" href="/login?mode=signup&role=campaigner">Start a campaign</a>
             </div>
         </div>
     </section>
@@ -299,12 +349,13 @@
                 <h2>Questions, answered.</h2>
             </div>
             <div class="lp-faq reveal">
-                <details open><summary>Does a low score guarantee the inbox?</summary><p>No tool can promise that. Inbox placement also depends on your domain's reputation and the recipient's filters. The guard catches the content problems you control, before they cost you.</p></details>
-                <details><summary>Can Mailzen read my email?</summary><p>No. It asks Google only for the <code>gmail.send</code> scope, which can send mail you approve but can't read, search or delete anything.</p></details>
-                <details><summary>What's the difference between a template and AI?</summary><p>A template sends the same email to everyone, with only the recipient's name and company swapped in and your featured project kept the same. AI-personalized (Premium) researches each company, picks your best-matching project and drafts a unique email.</p></details>
-                <details><summary>What happens to people who unsubscribe?</summary><p>Add them to your suppression list once and they're skipped in every future campaign.</p></details>
-                <details><summary>How does Premium get activated?</summary><p>After you buy Premium we add it to the email on your account, usually within a day. It lasts 30 days; buy again to renew. Premium users never see the database itself, only the companies they've emailed.</p></details>
-                <details><summary>What if the server restarts mid-campaign?</summary><p>The campaign is marked interrupted, and you can resume it from the contact where it stopped.</p></details>
+                <details open><summary>Do the emails really come from my Gmail?</summary><p>Yes. You connect Gmail once, and every email is sent from your account, so it appears in your Sent folder and replies come straight to your inbox. Mailzen only asks for permission to send; it can't read your inbox.</p></details>
+                <details><summary>What exactly do I get with Premium?</summary><p>100 emails every week, access to our recruiter database, one-click automation that sends for you, AI-written emails personalized to each company, and AI fixes for anything the spam check flags. Each purchase lasts 30 days.</p></details>
+                <details><summary>How does Premium get activated?</summary><p>Buy Premium using the email you signed up to Mailzen with. We activate it on that account, usually within a day. Buy again before it ends to add another 30 days on top.</p></details>
+                <details><summary>Can I see or download the recruiter database?</summary><p>No. The database stays private; Mailzen sends to it on your behalf. You see each company and contact you've reached, and the full emails are in your Gmail Sent folder.</p></details>
+                <details><summary>What's the difference between a template and AI?</summary><p>A template sends the same email to everyone, with only the recipient's name and company changed and your featured project kept the same. AI-personalized (Premium) researches each company, picks your best-matching project and writes a unique email.</p></details>
+                <details><summary>What can I do on the free plan?</summary><p>Upload your own list of contacts, pick a template, and send up to 20 emails in total, all spam-checked and sent from your Gmail.</p></details>
+                <details><summary>Will this get my Gmail flagged?</summary><p>Mailzen sends one email at a time with a random 1–3 minute gap, never repeats a recipient, and blocks anything that looks like spam before it leaves. No tool can guarantee the inbox, but these are the habits that protect your account.</p></details>
             </div>
         </div>
     </section>
@@ -313,11 +364,11 @@
     <section class="lp-section lp-final">
         <div class="lp-wrap">
             <div class="lp-final-card reveal">
-                <h2>Your next email deserves a second look.</h2>
-                <p>Set up in two minutes. Connect Gmail when you're ready to send.</p>
+                <h2>Let Mailzen send the emails.<br>You get ready for the interviews.</h2>
+                <p>Set up in five minutes. Your first 20 emails are free.</p>
                 <div class="lp-cta lp-cta-center">
-                    <a class="btn primary lg" href="/login?mode=signup&role=student">Start as a student</a>
-                    <a class="btn secondary lg" href="/login?mode=signup&role=campaigner">Run a campaign</a>
+                    <a class="btn primary lg" href="/login?mode=signup">Start free</a>
+                    <a class="btn secondary lg" href="https://srotabase.com/@vmarena/email-automation-premium" target="_blank" rel="noopener">Buy Premium</a>
                 </div>
             </div>
         </div>
@@ -326,13 +377,13 @@
     <footer class="lp-footer">
         <div class="lp-wrap lp-footer-inner">
             <a class="brand" href="/"><div class="brand-mark" aria-hidden="true"></div><div class="brand-name">Mailzen</div></a>
-            <span class="small muted">Spam scoring is a pre-send heuristic; it can't guarantee inbox placement.</span>
+            <span class="small muted">Spam scoring is a pre-send check; no tool can guarantee inbox placement.</span>
             <span class="small"><a href="/privacy">Privacy</a> · <a href="/login">Log in</a></span>
         </div>
     </footer>
 
-    <script src="/static/js/api.js?v=9"></script>
-    <script src="/static/js/risk.js?v=9"></script>
-    <script src="/static/js/landing.js?v=9"></script>
+    <script src="/static/js/api.js?v=10"></script>
+    <script src="/static/js/risk.js?v=10"></script>
+    <script src="/static/js/landing.js?v=10"></script>
 </body>
 </html>

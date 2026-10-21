@@ -53,129 +53,161 @@
         requestAnimationFrame(step);
     }
 
-    // ---------- Hero: emails passing through the guard ----------
-    const EMAILS = [
-        { to: "Alex Rivera", org: "Hugging Face", subject: "Internship idea: self-healing ML pipelines", score: 0.4 },
-        { to: "Priya Kapoor", org: "Brightloop", subject: "URGENT: FREE growth audit for Brightloop!!!", score: 7.6,
-          flags: ["ALL CAPS", "Pressure words", "!!!"], fixed: "A quick idea for Brightloop's ad spend", after: 0.6 },
-        { to: "Keller Rinaudo", org: "Zipline", subject: "Real-time vision work for your drone fleet", score: 0.7 },
-        { to: "Daniel Okafor", org: "Northwind", subject: "RE: Hi [Name], act now — limited offer", score: 6.4,
-          flags: ["Fake RE:", "Placeholder left in", "“Act now”"], fixed: "Daniel, a two-week audit for Northwind", after: 0.5 },
-        { to: "Mei Lin", org: "Harbor Analytics", subject: "Cutting warehouse walk time at Harbor", score: 0.3 }
+    // ---------- Hero: simulated automation console ----------
+    // Fictional companies, so the demo never implies a real company received these emails.
+    const COMPANIES = [
+        ["Northwind Labs", "Talent Partner"],
+        ["Orbit Robotics", "Engineering Manager"],
+        ["Kestrel Health", "University Recruiter"],
+        ["Lumen Pay", "Head of Data"],
+        ["Brightloop", "Hiring Manager"],
+        ["Harbor Analytics", "Tech Recruiter"],
+        ["Tidewater AI", "ML Team Lead"],
+        ["Copperline", "Talent Acquisition"]
     ];
-    const stage = $("stage");
-    const guard = stage.querySelector(".lp-guard");
-    const slot = $("guardSlot");
-    const drafts = $("laneDrafts");
-    const inbox = $("laneInbox");
-    const stats = { checked: 0, fixed: 0, sent: 0 };
-    let paused = false;
-    stage.addEventListener("pointerenter", () => { paused = true; });
-    stage.addEventListener("pointerleave", () => { paused = false; });
+    const feed = $("consoleFeed");
+    const consoleEl = $("console");
+    let running = true;
+    let used = 37;
+    let companyIndex = 0;
+    let countdown = 102;
 
-    async function sleep(ms) {
-        let left = ms;
-        while (left > 0 || paused || document.hidden) {
-            await wait(60);
-            if (!paused && !document.hidden) left -= 60;
+    function addFeedItem(animate = true) {
+        const [company, role] = COMPANIES[companyIndex % COMPANIES.length];
+        companyIndex += 1;
+        const item = document.createElement("li");
+        if (!animate) item.style.animation = "none";
+        item.innerHTML = `<span class="av">${esc(company[0])}</span><span><b>${esc(company)}</b><small>${esc(role)}</small></span><span class="when">Sent ✓<br><small>just now</small></span>`;
+        feed.prepend(item);
+        [...feed.children].slice(4).forEach(node => node.remove());
+        [...feed.children].slice(1).forEach((node, i) => {
+            const when = node.querySelector(".when small");
+            if (when) when.textContent = `${(i + 1) * 2} min ago`;
+        });
+    }
+
+    function paintConsole() {
+        const minutes = Math.floor(countdown / 60);
+        const seconds = String(countdown % 60).padStart(2, "0");
+        $("consoleNext").textContent = running ? `Next email in ${minutes}:${seconds}` : "Paused. Start resumes at the next company.";
+        $("consoleBadge").textContent = running ? "Running" : "Stopped";
+        $("consoleBadge").className = `badge ${running ? "ok live" : "plain"}`;
+        $("consoleToggle").textContent = running ? "Stop" : "Start";
+        $("consoleUsed").textContent = used;
+        $("consoleBar").style.width = `${used}%`;
+        consoleEl.classList.toggle("paused", !running);
+    }
+
+    for (let i = 0; i < 3; i++) addFeedItem(false);
+    paintConsole();
+    $("consoleToggle").addEventListener("click", () => { running = !running; paintConsole(); });
+
+    // Time runs ~30x fast: a 1-3 minute gap passes in a few seconds.
+    setInterval(() => {
+        if (!running || document.hidden) return;
+        countdown -= 30;
+        if (countdown <= 0) {
+            addFeedItem();
+            used = used >= 100 ? 37 : used + 1;
+            countdown = 60 + Math.floor(Math.random() * 120);
         }
-    }
+        paintConsole();
+    }, reduced ? 4000 : 1000);
 
-    function mini(email, extra = "", note = "") {
-        return `<div class="lp-mini ${extra}"><b>${esc(email.to)}</b><span>${esc(email.org)}${note ? ` · <span class="note">${note}</span>` : ""}</span></div>`;
-    }
+    // ---------- Template vs AI demo ----------
+    const WRITER = [
+        { to: "Ayesha Khan, Northwind Labs", first: "Ayesha", company: "Northwind Labs",
+          ai: { subject: "Fraud signals at Northwind and a project of mine",
+                hook: "Northwind's move into real-time settlement means fraud checks have to run in milliseconds.",
+                project: "CostIQ, a multi-agent system that flags payment anomalies in ecommerce data",
+                fit: "I'd love to bring that same anomaly-detection work to your risk team." } },
+        { to: "Daniel Okafor, Orbit Robotics", first: "Daniel", company: "Orbit Robotics",
+          ai: { subject: "Warehouse robots and real-time vision",
+                hook: "Orbit's fleet has to see shelves, people and pallets reliably in busy warehouses.",
+                project: "InfSec, a real-time YOLO and pose-estimation monitor that halved false alarms",
+                fit: "That perception work maps closely to what your robots need on the floor." } },
+        { to: "Mei Lin, Kestrel Health", first: "Mei", company: "Kestrel Health",
+          ai: { subject: "Reliable ML for clinical triage",
+                hook: "Clinical AI at Kestrel can't fail silently; a missed signal matters.",
+                project: "Self-Healing DAG, a LoRA DistilBERT pipeline that detects failing steps and reroutes at runtime",
+                fit: "Building models that stay reliable is exactly what I want to keep doing." } }
+    ];
+    let writerMode = "template";
+    let writerIndex = 0;
 
-    function renderDrafts(index) {
-        drafts.innerHTML = [1, 2, 3].map(offset => mini(EMAILS[(index + offset) % EMAILS.length])).join("");
-    }
+    function renderWriter() {
+        const item = WRITER[writerIndex];
+        const swap = text => `<span class="chg">${esc(text)}</span>`;
+        $("writerTo").textContent = item.to;
+        if (writerMode === "template") {
+            $("writerSubject").innerHTML = `Internship at ${swap(item.company)}`;
+            $("writerBody").innerHTML = `Hi ${swap(item.first)},
 
-    async function countTo(node, from, to, ms) {
-        const steps = Math.max(1, Math.round(ms / 40));
-        for (let i = 1; i <= steps; i++) {
-            node.textContent = (from + (to - from) * (i / steps)).toFixed(1);
-            await sleep(40);
+I'm Sam, an ML engineer building agentic systems (IIIT Kota).
+I'm reaching out because I'd love to contribute to ${swap(item.company)}.
+
+Recently I built InterviewBot: an LLM mock interviewer that scores answers live.
+
+My resume: drive.google.com/…/view
+
+I'm looking for a Summer 2027 ML internship. Would you be open to a quick chat?
+
+Best regards,
+Sam`;
+            $("writerScore").textContent = "Spam score 0.0";
+            $("writerNote").innerHTML = "<b>Template</b> (all plans): the same email for everyone. Only the highlighted name and company change, and your featured project stays the same.";
+        } else {
+            const ai = text => `<span class="ai">${esc(text)}</span>`;
+            $("writerSubject").innerHTML = ai(item.ai.subject);
+            $("writerBody").innerHTML = `Hi ${esc(item.first)},
+
+${ai(item.ai.hook)}
+
+I recently built ${ai(item.ai.project)}. ${ai(item.ai.fit)}
+
+I'm Sam, an ML engineer at IIIT Kota, looking for a Summer 2027 internship. My resume: drive.google.com/…/view
+
+Would you be open to a 15-minute chat?
+
+Best,
+Sam`;
+            $("writerScore").textContent = "Spam score 0.4";
+            $("writerNote").innerHTML = "<b>AI-personalized</b> (Premium): researches each company, picks your best-matching project, and writes the highlighted parts fresh for every recipient.";
         }
+        const body = $("writerBody");
+        body.style.animation = "none";
+        void body.offsetWidth;
+        body.style.animation = "";
     }
 
-    function bumpStat(key) {
-        stats[key] += 1;
-        $(`stat${key[0].toUpperCase()}${key.slice(1)}`).textContent = stats[key];
+    $("writerMode").addEventListener("click", event => {
+        const button = event.target.closest("button[data-mode]");
+        if (!button) return;
+        writerMode = button.dataset.mode;
+        $("writerMode").querySelectorAll("button").forEach(node => node.classList.toggle("active", node === button));
+        renderWriter();
+    });
+    $("writerCompanies").addEventListener("click", event => {
+        const button = event.target.closest("button[data-company]");
+        if (!button) return;
+        writerIndex = Number(button.dataset.company);
+        $("writerCompanies").querySelectorAll("button").forEach(node => node.classList.toggle("active", node === button));
+        renderWriter();
+    });
+    renderWriter();
+
+    // ---------- Time-saved estimate ----------
+    function renderSaver() {
+        const minutes = Number($("saverInput").value);
+        const weekly = Math.round((100 * minutes) / 60);
+        $("saverMinutes").textContent = minutes;
+        $("saverWeek").textContent = weekly;
+        $("saverMonth").textContent = weekly * 4;
     }
+    $("saverInput").addEventListener("input", renderSaver);
+    renderSaver();
 
-    async function runStage() {
-        for (let index = 0; ; index = (index + 1) % EMAILS.length) {
-            const email = EMAILS[index];
-            drafts.querySelector(".lp-mini")?.classList.add("leaving");
-            await sleep(300);
-            renderDrafts(index);
-
-            slot.querySelector(".lp-card")?.remove();
-            slot.insertAdjacentHTML("beforeend", `
-                <div class="lp-card">
-                    <div class="lp-card-top">
-                        <div class="lp-avatar">${esc(email.to[0])}</div>
-                        <div class="lp-card-who"><b>${esc(email.to)}</b><span>${esc(email.org)}</span></div>
-                        <div class="lp-score-pill">–</div>
-                    </div>
-                    <div class="lp-card-subject">${esc(email.subject)}</div>
-                    <div class="lp-lines"><i></i><i></i><i></i></div>
-                    <div class="lp-flags"></div>
-                    <div class="lp-card-status">Scanning 14 checks…</div>
-                </div>`);
-            const card = slot.querySelector(".lp-card");
-            const pill = card.querySelector(".lp-score-pill");
-            const flags = card.querySelector(".lp-flags");
-            const status = card.querySelector(".lp-card-status");
-            const subject = card.querySelector(".lp-card-subject");
-
-            await sleep(400);
-            guard.classList.add("scanning");
-            await countTo(pill, 0, email.score, 900);
-            guard.classList.remove("scanning");
-            bumpStat("checked");
-
-            if (email.flags) {
-                card.classList.add("flagged");
-                pill.classList.add("bad");
-                status.textContent = `Held — score ${email.score.toFixed(1)} is over 4`;
-                for (const flag of email.flags) {
-                    flags.insertAdjacentHTML("beforeend", `<span class="badge bad">${esc(flag)}</span>`);
-                    await sleep(260);
-                }
-                await sleep(700);
-                status.textContent = "Rewriting with AI…";
-                subject.classList.add("swap");
-                await sleep(500);
-                subject.textContent = email.fixed;
-                subject.classList.remove("swap");
-                flags.innerHTML = `<span class="badge ok">${email.flags.length} issues fixed</span>`;
-                guard.classList.add("scanning");
-                status.textContent = "Re-checking…";
-                await countTo(pill, email.score, email.after, 800);
-                guard.classList.remove("scanning");
-                pill.classList.remove("bad");
-                card.classList.remove("flagged");
-                bumpStat("fixed");
-            }
-
-            card.classList.add("clean");
-            pill.classList.add("ok");
-            status.textContent = "Passed · sending from your Gmail";
-            await sleep(1100);
-
-            card.classList.add("out");
-            await sleep(420);
-            card.remove();
-            inbox.insertAdjacentHTML("afterbegin", mini(email, "delivered", email.flags ? "rewritten" : ""));
-            [...inbox.children].slice(4).forEach(node => node.remove());
-            bumpStat("sent");
-            await sleep(500);
-        }
-    }
-    renderDrafts(-1);
-    runStage();
-
-    // ---------- Lab: try to get past the guard ----------
+    // ---------- Spam check lab ----------
     const CLEAN = {
         subject: "Your warehouse-routing post and a small idea",
         body: "Hi Priya,\n\nI read your team's write-up on cutting pick times at the Pune warehouse. The batching approach was clever, especially how you handled late orders.\n\nI'm a final-year CS student and built a routing simulator that tests batching rules against real order logs. On a public dataset it reduced walking distance by about 18%. You can try it here: https://github.com/aarav/route-sim\n\nWould you be open to a 15-minute chat in the next couple of weeks?\n\nThanks,\nAarav Mehta"
@@ -286,8 +318,8 @@
 
     const VERDICTS = {
         low: ["Clear to send", "In auto mode this goes straight out from your Gmail."],
-        medium: ["Held for review", "One AI rewrite targets these issues. If it's still risky, it waits for you."],
-        high: ["Almost certainly spam", "This would be held, rewritten, and kept out of your recipients' inboxes."]
+        medium: ["Held for review", "It waits in your queue with the exact fixes. On Premium, AI rewrites it first."],
+        high: ["Almost certainly spam", "Mailzen would never send this. It's held until it's fixed."]
     };
 
     function paintResult(risk) {
@@ -357,58 +389,4 @@
         scheduleCheck(0);
     });
     rebuild();
-
-    // ---------- Modes ----------
-    const modeButtons = [...document.querySelectorAll("#modeSwitch button")];
-    modeButtons.forEach(button => button.addEventListener("click", () => {
-        modeButtons.forEach(node => node.classList.toggle("active", node === button));
-        document.querySelectorAll("[data-panel]").forEach(panel => { panel.hidden = panel.dataset.panel !== button.dataset.mode; });
-    }));
-
-    function replay(node) {
-        node.style.animation = "none";
-        void node.offsetWidth;
-        node.style.animation = "";
-    }
-
-    const COMPANIES = [
-        { picks: ["Self-Healing DAG", "InterviewBot"], line: (a, b) => `Hi Alex, your team's work on open models is exactly where I want to grow. I built <span class="tok-proj">${a}</span>, a LoRA DistilBERT pipeline that reroutes around failing nodes, and <span class="tok-proj">${b}</span>, an LLM interviewer that scores answers live…` },
-        { picks: ["InfSec", "SmartFarming.AI"], line: (a, b) => `Hi Keller, reliable perception is what makes last-mile drops safe. My project <span class="tok-proj">${a}</span> runs YOLO and pose estimation in real time, and <span class="tok-proj">${b}</span> coordinates field agents by voice…` },
-        { picks: ["CostIQ", "BidMind"], line: (a, b) => `Hi Shashank, payments at Razorpay's scale depend on catching anomalies early. I built <span class="tok-proj">${a}</span>, a five-agent system that flags cost outliers, and <span class="tok-proj">${b}</span>, which matches pitches with FAISS search…` }
-    ];
-    const projectCards = [...document.querySelectorAll(".lp-project")];
-    function pickCompany(index) {
-        const company = COMPANIES[index];
-        document.querySelectorAll("#companyList button").forEach(button => button.classList.toggle("active", Number(button.dataset.company) === index));
-        projectCards.forEach(card => {
-            const picked = company.picks.includes(card.querySelector("b").textContent);
-            card.classList.toggle("picked", picked);
-            card.classList.toggle("dim", !picked);
-        });
-        $("studentSnippet").innerHTML = company.line(...company.picks);
-        replay($("studentSnippet"));
-    }
-    $("companyList").addEventListener("click", event => {
-        const button = event.target.closest("button[data-company]");
-        if (button) pickCompany(Number(button.dataset.company));
-    });
-    pickCompany(0);
-
-    const ROWS = [
-        { first: "Priya", company: "Brightloop", city: "Bengaluru" },
-        { first: "Daniel", company: "Northwind", city: "Lagos" },
-        { first: "", company: "Harbor", city: "" }
-    ];
-    function pickRow(index) {
-        const row = ROWS[index];
-        document.querySelectorAll("#contactList button").forEach(button => button.classList.toggle("active", Number(button.dataset.row) === index));
-        const field = (value, fallback) => value ? `<span class="tok-merge">${esc(value)}</span>` : `<span class="tok-fallback">${esc(fallback)}</span>`;
-        $("campaignSnippet").innerHTML = `Hi ${field(row.first, "there")}, saw ${field(row.company, "your team")} is growing in ${field(row.city, "your region")}. We help teams like yours find wasted ad spend in a two-week audit. Would a 15-minute call next week be useful?<span class="foot">Brightloop Analytics · 12 MG Road, Bengaluru<br>Not interested? Reply “unsubscribe” and we won't email you again.</span>`;
-        replay($("campaignSnippet"));
-    }
-    $("contactList").addEventListener("click", event => {
-        const button = event.target.closest("button[data-row]");
-        if (button) pickRow(Number(button.dataset.row));
-    });
-    pickRow(0);
 })();
