@@ -106,6 +106,18 @@ const OutreachApi = (() => {
         return data;
     }
 
+    // Shares one in-flight GET per path, so a page can start its data requests before the
+    // sidebar's user check finishes and duplicate requests (plan, stats) hit the server once.
+    const getCache = new Map();
+    function cachedGet(path, { fresh = false } = {}) {
+        if (fresh || !getCache.has(path)) {
+            const pending = request(path);
+            getCache.set(path, pending);
+            pending.catch(() => { if (getCache.get(path) === pending) getCache.delete(path); });
+        }
+        return getCache.get(path);
+    }
+
     function escapeHtml(value) {
         return String(value ?? "")
             .replaceAll("&", "&amp;")
@@ -236,6 +248,7 @@ const OutreachApi = (() => {
     return {
         bindLogout,
         bindThemeToggles,
+        cachedGet,
         clearSession,
         currentTheme,
         duration,

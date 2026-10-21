@@ -1,4 +1,8 @@
 (async () => {
+    // Start this page's data requests alongside the sidebar's user check, not after it.
+    OutreachApi.cachedGet("/human/waiting-emails");
+    OutreachApi.cachedGet("/api/campaigns");
+    let fresh = false;
     const user = await Layout.init();
     const $ = id => document.getElementById(id);
     const reviewStatus = $("reviewStatus");
@@ -44,9 +48,10 @@
         OutreachApi.setStatus(reviewStatus, "Loading drafts…");
         try {
             const [data, campaigns] = await Promise.all([
-                OutreachApi.request("/human/waiting-emails"),
-                OutreachApi.request("/api/campaigns").catch(() => ({ campaigns: [] }))
+                OutreachApi.cachedGet("/human/waiting-emails", { fresh }),
+                OutreachApi.cachedGet("/api/campaigns", { fresh }).catch(() => ({ campaigns: [] }))
             ]);
+            fresh = true;
             emails = data.emails;
             const select = $("campaignFilter");
             select.innerHTML = `<option value="">All campaigns</option>` + campaigns.campaigns

@@ -1,8 +1,11 @@
 from contextlib import asynccontextmanager
+import hashlib
 import os
+import re
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -41,7 +44,22 @@ app.include_router(profile.router)
 app.include_router(spam.router)
 app.include_router(automation.router)
 app.include_router(admin.router)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.add_middleware(GZipMiddleware, minimum_size=800)
+
+
+class CachedStaticFiles(StaticFiles):
+    """Pages reference CSS/JS with a ?v= version, so those URLs can be cached for a year;
+    unversioned files (images, demo CSVs) get a short cache instead of a check on every load."""
+
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        if response.status_code == 200:
+            versioned = b"v=" in scope.get("query_string", b"")
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable" if versioned else "public, max-age=3600"
+        return response
+
+
+app.mount("/static", CachedStaticFiles(directory="static"), name="static")
 
 
 @app.get("/healthz")
@@ -66,9 +84,42 @@ PAGES = {
 }
 
 
+ASSET_REF = re.compile(r'(/static/[^"?]+)\?v=[^"]*"')
+_page_cache: dict[str, tuple[tuple, str]] = {}
+
+
+def _asset_version(match: re.Match) -> str:
+    path = match.group(1).lstrip("/")
+    try:
+        with open(path, "rb") as handle:
+            digest = hashlib.md5(handle.read()).hexdigest()[:10]
+    except OSError:
+        return match.group(0)
+    return f'{match.group(1)}?v={digest}"'
+
+
+def _render_page(template: str) -> str:
+    """Stamp each CSS/JS reference with its content hash, so long-lived browser caching never serves a stale file.
+
+    Rendered pages are memoised on the template's and assets' modification times."""
+    path = f"templates/{template}"
+    html_mtime = os.path.getmtime(path)
+    cached = _page_cache.get(template)
+    if cached:
+        (cached_mtime, asset_mtimes), html = cached
+        if cached_mtime == html_mtime and all(os.path.getmtime(asset) == mtime for asset, mtime in asset_mtimes):
+            return html
+    with open(path, encoding="utf-8") as handle:
+        source = handle.read()
+    assets = tuple(sorted({match.group(1).lstrip("/") for match in ASSET_REF.finditer(source)}))
+    html = ASSET_REF.sub(_asset_version, source)
+    _page_cache[template] = ((html_mtime, tuple((asset, os.path.getmtime(asset)) for asset in assets if os.path.exists(asset))), html)
+    return html
+
+
 def _page_route(template: str):
     def page():
-        return FileResponse(f"templates/{template}")
+        return HTMLResponse(_render_page(template), headers={"Cache-Control": "no-cache"})
 
     return page
 

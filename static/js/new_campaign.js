@@ -1,4 +1,6 @@
 (async () => {
+    // Start this page's data requests alongside the sidebar's user check, not after it.
+    ["/api/profile", "/api/templates"].forEach(path => OutreachApi.cachedGet(path));
     const user = await Layout.init();
     const campaigner = OutreachApi.isCampaigner(user);
     const esc = OutreachApi.escapeHtml;
@@ -31,7 +33,7 @@
         $("aiChoiceText").textContent = "Researches each company, picks your best-matching project, and drafts a unique email.";
         $("subjectTemplate").placeholder = "Interested in interning at {{company}}";
         $("launchBtn").textContent = "Start outreach";
-        OutreachApi.request("/api/profile").then(data => {
+        OutreachApi.cachedGet("/api/profile").then(data => {
             const count = data.projects.length;
             const note = $("projectsNote");
             note.hidden = false;
@@ -77,7 +79,65 @@
         $("sourceToggle").querySelectorAll("button").forEach(node => node.classList.toggle("active", node === button));
         $("sourceFile").hidden = state.source !== "file";
         $("sourcePaste").hidden = state.source !== "paste";
+        $("sourceForm").hidden = state.source !== "form";
+        if (state.source === "form" && !$("formRows").children.length) addFormRow(true);
         loadPreview();
+    });
+
+    // ---- Manual entry form: one row per contact, sent to the server as CSV text ----
+    const FORM_FIELDS = [
+        ["email", "email", "Email (required)"],
+        ["name", "text", "Name"],
+        ["company", "text", "Company"],
+        ["role", "text", "Role, e.g. Recruiter"],
+        ["details", "text", "Notes: what the company does"]
+    ];
+    let formTimer;
+
+    function addFormRow(focus = false) {
+        const row = document.createElement("div");
+        row.className = "contact-form-row";
+        row.innerHTML = FORM_FIELDS.map(([field, type, placeholder]) =>
+            `<input type="${type}" data-field="${field}" placeholder="${placeholder}" aria-label="${field}" ${field === "email" ? "required" : ""}>`
+        ).join("") + `<button type="button" class="btn ghost sm" data-remove aria-label="Remove contact">Remove</button>`;
+        $("formRows").appendChild(row);
+        if (focus) row.querySelector("input").focus();
+        updateFormCount();
+    }
+
+    function formRowsAsCsv() {
+        const quote = value => `"${String(value).replaceAll('"', '""')}"`;
+        const rows = [...$("formRows").querySelectorAll(".contact-form-row")]
+            .map(row => FORM_FIELDS.map(([field]) => row.querySelector(`[data-field="${field}"]`).value.trim()))
+            .filter(values => values[0]);
+        if (!rows.length) return "";
+        return [FORM_FIELDS.map(([field]) => field).join(","), ...rows.map(values => values.map(quote).join(","))].join("\n");
+    }
+
+    function updateFormCount() {
+        const filled = [...$("formRows").querySelectorAll('[data-field="email"]')].filter(input => input.value.trim()).length;
+        $("formCount").textContent = filled ? `${filled} contact${filled === 1 ? "" : "s"} entered` : "Only the email is required.";
+    }
+
+    $("addRowBtn").addEventListener("click", () => addFormRow(true));
+    $("formRows").addEventListener("click", event => {
+        if (!event.target.closest("[data-remove]")) return;
+        event.target.closest(".contact-form-row").remove();
+        if (!$("formRows").children.length) addFormRow();
+        updateFormCount();
+        loadPreview();
+    });
+    $("formRows").addEventListener("input", () => {
+        updateFormCount();
+        clearTimeout(formTimer);
+        formTimer = setTimeout(loadPreview, 600);
+    });
+    // Enter in the last row adds a new one, so a list can be typed without the mouse.
+    $("formRows").addEventListener("keydown", event => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        const row = event.target.closest(".contact-form-row");
+        if (row === $("formRows").lastElementChild && row.querySelector('[data-field="email"]').value.trim()) addFormRow(true);
     });
 
     const dropzone = $("dropzone");
@@ -103,6 +163,8 @@
             form.append("file", $("fileInput").files[0]);
         } else if (state.source === "paste" && $("contactsText").value.trim()) {
             form.append("contacts_text", $("contactsText").value);
+        } else if (state.source === "form" && formRowsAsCsv()) {
+            form.append("contacts_text", formRowsAsCsv());
         } else {
             return null;
         }
@@ -173,7 +235,7 @@
 
     // ---- Template gallery ----
     let dropEmptyLines = false;
-    OutreachApi.request("/api/templates").then(data => {
+    OutreachApi.cachedGet("/api/templates").then(data => {
         const usable = data.templates.filter(template => template.subject_template);
         $("galleryChips").innerHTML = usable.map(template => `<button type="button" data-template="${template.id}">${esc(template.name)}</button>`).join("");
         $("galleryChips").addEventListener("click", event => {
@@ -263,7 +325,7 @@
             <dt>Recipients</dt><dd>${total ? `${total} contacts` : '<span class="muted">none yet</span>'}</dd>
             <dt>Writing</dt><dd>${state.writing === "ai" ? "AI-personalized" : "Template + merge fields"}</dd>
             <dt>Delivery</dt><dd>${state.mode === "auto" ? "Auto-send if score < 4" : "Review every draft"}</dd>
-            <dt>Spam guard</dt><dd>${campaigner ? "14 checks incl. unsubscribe line" : "13 outreach checks"}</dd>
+            <dt>Spam guard</dt><dd>${campaigner ? "22 checks incl. unsubscribe line" : "21 checks"}</dd>
             <dt>Est. time</dt><dd>${total ? (seconds ? `~${OutreachApi.duration(seconds)} (1–3 min between sends)` : "about a minute") : "—"}</dd>`;
     }
 

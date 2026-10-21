@@ -1,4 +1,8 @@
 (async () => {
+    // Start this page's data requests alongside the sidebar's user check, not after it.
+    OutreachApi.cachedGet("/automated/sent-emails");
+    OutreachApi.cachedGet("/api/campaigns");
+    let fresh = false;
     await Layout.init();
     const $ = id => document.getElementById(id);
     const esc = OutreachApi.escapeHtml;
@@ -37,9 +41,10 @@
         OutreachApi.setStatus($("sentStatus"), "Loading…");
         try {
             const [data, campaigns] = await Promise.all([
-                OutreachApi.request("/automated/sent-emails"),
-                OutreachApi.request("/api/campaigns").catch(() => ({ campaigns: [] }))
+                OutreachApi.cachedGet("/automated/sent-emails", { fresh }),
+                OutreachApi.cachedGet("/api/campaigns", { fresh }).catch(() => ({ campaigns: [] }))
             ]);
+            fresh = true;
             emails = data.emails;
             $("campaignFilter").innerHTML = `<option value="">All campaigns</option>` + campaigns.campaigns
                 .filter(campaign => campaign.counts?.sent)
@@ -55,13 +60,26 @@
         const row = event.target.closest("tr[data-index]");
         if (!row) return;
         const email = emails[Number(row.dataset.index)];
+        const risk = email.deliverability_risk;
+        const sentAt = OutreachApi.parseDate(email.sent_at || email.updated_at);
+        const attempts = email.email_response?.attempt || 1;
         $("modalTitle").textContent = email.written_email_details?.email_subject || "(no subject)";
-        $("modalSub").textContent = `To ${email.recipient_email} · from ${email.email_from} · ${new Date(`${email.updated_at}Z`).toLocaleString()}`;
+        $("modalMeta").innerHTML = `
+            <div><dt>To</dt><dd><b>${esc(email.recipient_name || email.recipient_email)}</b>${email.recipient_name ? `<span>${esc(email.recipient_email)}</span>` : ""}</dd></div>
+            <div><dt>Company</dt><dd>${esc(email.company_name || "—")}</dd></div>
+            <div><dt>From</dt><dd>${esc(email.email_from || "—")}</dd></div>
+            <div><dt>Sent</dt><dd>${sentAt ? esc(sentAt.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })) : "—"}</dd></div>
+            <div><dt>List</dt><dd>${esc(email.campaign_name || "—")}</dd></div>
+            <div><dt>Delivery</dt><dd>${attempts === 1 ? "First attempt" : `${attempts} attempts`}</dd></div>`;
         $("mailModal").hidden = false;
-        OutreachApi.renderEmailPreview($("modalPreview"), email.written_email_details?.email_body || "");
-        $("modalRisk").innerHTML = RiskView.render(email.deliverability_risk);
+        document.body.style.overflow = "hidden";
+        OutreachApi.renderEmailPreview($("modalPreview"), email.written_email_details?.email_body || "", 360);
+        // A 0.0 score is a real result: it means every check passed when the email went out.
+        $("modalRisk").innerHTML = risk?.checks
+            ? RiskView.render(risk)
+            : `${RiskView.render(risk)}<p class="small muted" style="margin-top:12px;">This email was sent before detailed check results were recorded, so only its score is available.</p>`;
     });
-    const close = () => { $("mailModal").hidden = true; };
+    const close = () => { $("mailModal").hidden = true; document.body.style.overflow = ""; };
     $("closeModal").addEventListener("click", close);
     $("mailModal").addEventListener("click", event => { if (event.target.id === "mailModal") close(); });
     document.addEventListener("keydown", event => { if (event.key === "Escape") close(); });

@@ -44,14 +44,24 @@
         </main>
     </div>
     <div class="modal-backdrop" id="mailModal" hidden>
-        <div class="modal">
-            <div class="card-head">
-                <div style="min-width:0;"><h3 id="modalTitle"></h3><p id="modalSub"></p></div>
-                <button class="btn ghost sm" type="button" id="closeModal">Close</button>
-            </div>
-            <div class="card-body stack">
-                <div class="mail-preview" id="modalPreview"></div>
-                <div id="modalRisk"></div>
+        <div class="modal sent-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+            <header class="sent-modal-head">
+                <div style="min-width:0;">
+                    <span class="badge ok">Sent</span>
+                    <h2 id="modalTitle"></h2>
+                </div>
+                <button class="btn ghost sm" type="button" id="closeModal" aria-label="Close">✕</button>
+            </header>
+            <dl class="sent-meta" id="modalMeta"></dl>
+            <div class="sent-modal-body">
+                <section class="sent-message">
+                    <div class="sent-section-label">Message</div>
+                    <div class="mail-preview" id="modalPreview"></div>
+                </section>
+                <aside class="sent-report">
+                    <div class="sent-section-label">Spam check at send time</div>
+                    <div id="modalRisk"></div>
+                </aside>
             </div>
         </div>
     </div>

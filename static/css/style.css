@@ -347,7 +347,7 @@ p { margin: 0; }
 
 /* ---------- Forms ---------- */
 .form { display: grid; gap: 16px; }
-.field { display: grid; gap: 6px; }
+.field { display: grid; gap: 6px; align-content: start; }
 .field > span, .field-label {
     font-size: 13px;
     font-weight: 500;
@@ -999,3 +999,42 @@ tbody tr.clickable:hover { background: var(--surface-2); }
 .ai-pane .card-body { display: grid; gap: 16px; max-width: 680px; }
 .choice.locked { opacity: 0.6; cursor: not-allowed; }
 .choice.locked:hover { border-color: var(--line-strong); }
+
+/* ---------- Sent email detail ---------- */
+.sent-modal { width: min(1080px, 100%); max-height: calc(100vh - 48px); display: flex; flex-direction: column; overflow: hidden; }
+.sent-modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 22px 26px 16px; }
+.sent-modal-head h2 { margin-top: 10px; font-family: var(--serif); font-size: 24px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.25; overflow-wrap: anywhere; }
+.sent-meta { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1px; margin: 0; border-block: 1px solid var(--line); background: var(--line); }
+.sent-meta > div { padding: 12px 18px; background: var(--surface-2); min-width: 0; }
+.sent-meta dt { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--faint); }
+.sent-meta dd { margin: 4px 0 0; font-size: 13.5px; overflow-wrap: anywhere; }
+.sent-meta dd span { display: block; font-size: 12.5px; color: var(--muted); }
+.sent-modal-body { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); min-height: 0; overflow: auto; }
+.sent-message { padding: 22px 26px 26px; min-width: 0; }
+.sent-message .mail-preview { max-height: none; min-height: 360px; padding: 20px 24px; }
+.sent-report { padding: 22px 24px 26px; border-left: 1px solid var(--line); background: var(--surface-2); min-width: 0; }
+.sent-section-label { margin-bottom: 12px; font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-2); }
+@media (max-width: 900px) {
+    .sent-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .sent-modal-body { grid-template-columns: 1fr; }
+    .sent-report { border-left: 0; border-top: 1px solid var(--line); }
+}
+
+/* ---------- Manual contact form ---------- */
+.contact-form { display: grid; gap: 10px; }
+/* Each contact is a small two-line card: email, name, company / role, notes, remove. */
+.contact-form-rows { display: grid; gap: 10px; }
+.contact-form-row {
+    display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2);
+    grid-template-columns: 1.3fr 1fr 1fr; grid-template-areas: "email name company" "role details remove";
+}
+.contact-form-row [data-field="email"] { grid-area: email; }
+.contact-form-row [data-field="name"] { grid-area: name; }
+.contact-form-row [data-field="company"] { grid-area: company; }
+.contact-form-row [data-field="role"] { grid-area: role; }
+.contact-form-row [data-field="details"] { grid-area: details; }
+.contact-form-row [data-remove] { grid-area: remove; justify-self: end; align-self: center; color: var(--muted); }
+.contact-form-row input { min-height: 38px; padding: 7px 10px; font-size: 13.5px; background: var(--surface); }
+@media (max-width: 860px) {
+    .contact-form-row { grid-template-columns: 1fr 1fr; grid-template-areas: "email email" "name company" "role role" "details details" "remove remove"; }
+}

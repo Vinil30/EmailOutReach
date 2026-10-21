@@ -96,9 +96,9 @@ const Layout = (() => {
 
     let currentPlan = null;
 
-    async function refreshPlan() {
+    async function refreshPlan({ fresh = true } = {}) {
         try {
-            currentPlan = await OutreachApi.request("/api/plan");
+            currentPlan = await OutreachApi.cachedGet("/api/plan", { fresh });
             const node = document.getElementById("planChip");
             if (node) node.innerHTML = planChip(currentPlan);
         } catch {
@@ -109,7 +109,7 @@ const Layout = (() => {
 
     async function refreshUser() {
         try {
-            const user = await OutreachApi.request("/auth/me");
+            const user = await OutreachApi.cachedGet("/auth/me");
             OutreachApi.setUser(user);
             return user;
         } catch {
@@ -117,9 +117,9 @@ const Layout = (() => {
         }
     }
 
-    async function refreshReviewCount() {
+    async function refreshReviewCount({ fresh = true } = {}) {
         try {
-            const stats = await OutreachApi.request("/api/campaigns/stats");
+            const stats = await OutreachApi.cachedGet("/api/campaigns/stats", { fresh });
             const node = document.getElementById("reviewCount");
             if (node) {
                 node.textContent = stats.waiting;
@@ -137,10 +137,16 @@ const Layout = (() => {
             throw new Error("Authentication required");
         }
         renderSidebar(OutreachApi.getUser());
+        // Sidebar data starts in parallel with the user check instead of after it.
+        refreshReviewCount({ fresh: false });
+        refreshPlan({ fresh: false });
         const user = await refreshUser();
         renderSidebar(user);
-        refreshReviewCount();
-        refreshPlan();
+        // Re-rendering the sidebar resets the review badge, so re-apply the (already shared) stats.
+        OutreachApi.cachedGet("/api/campaigns/stats").then(stats => {
+            const badge = document.getElementById("reviewCount");
+            if (badge) { badge.textContent = stats.waiting; badge.hidden = !stats.waiting; }
+        }).catch(() => {});
         return user;
     }
 

@@ -1,4 +1,6 @@
 (async () => {
+    // Start this page's data requests alongside the sidebar's user check, not after it.
+    ["/api/plan", "/api/campaigns/stats", "/api/profile", "/api/campaigns"].forEach(path => OutreachApi.cachedGet(path));
     const user = await Layout.init();
     const campaigner = OutreachApi.isCampaigner(user);
     const esc = OutreachApi.escapeHtml;
@@ -16,9 +18,9 @@
     document.querySelectorAll("[data-icon]").forEach(node => { node.innerHTML = Layout.icon(node.dataset.icon); });
 
     const [plan, stats, profile] = await Promise.all([
-        OutreachApi.request("/api/plan").catch(() => null),
-        OutreachApi.request("/api/campaigns/stats").catch(() => null),
-        OutreachApi.request("/api/profile").catch(() => null)
+        OutreachApi.cachedGet("/api/plan").catch(() => null),
+        OutreachApi.cachedGet("/api/campaigns/stats").catch(() => null),
+        OutreachApi.cachedGet("/api/profile").catch(() => null)
     ]);
 
     // ---- Plan ----

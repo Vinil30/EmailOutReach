@@ -13,7 +13,7 @@ const RiskView = (() => {
         const [title, sub, tone] = VERDICT[risk.level] || VERDICT.LOW;
         const pct = Math.min(100, (Number(risk.score) / 10) * 100);
         const tips = Object.fromEntries((risk.reasons || []).map((reason, index) => [reason, (risk.suggestions || [])[index]]));
-        const checks = (risk.checks || []).map(check => `
+        const checks = [...(risk.checks || [])].sort((a, b) => Number(a.passed) - Number(b.passed)).map(check => `
             <li class="${check.passed ? "pass" : "fail"}">
                 <span class="ico">${check.passed ? "✓" : "!"}</span>
                 <span class="what">

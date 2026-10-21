@@ -1,4 +1,7 @@
 (async () => {
+    // Start this page's data requests alongside the sidebar's user check, not after it.
+    OutreachApi.cachedGet("/api/templates");
+    let fresh = false;
     await Layout.init();
     const $ = id => document.getElementById(id);
     const esc = OutreachApi.escapeHtml;
@@ -144,7 +147,8 @@
     }
 
     async function load() {
-        [data, plan] = await Promise.all([OutreachApi.request("/api/templates"), plan || OutreachApi.request("/api/plan")]);
+        [data, plan] = await Promise.all([OutreachApi.cachedGet("/api/templates", { fresh }), plan || OutreachApi.cachedGet("/api/plan")]);
+        fresh = true;
         if (!viewing) viewing = data.selected === "ai" ? "short" : data.selected;
         if (!writing) writing = data.selected === "ai" ? "ai" : "template";
         renderWriting();

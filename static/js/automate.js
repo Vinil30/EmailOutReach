@@ -1,4 +1,7 @@
 (async () => {
+    // Start this page's data requests alongside the sidebar's user check, not after it.
+    OutreachApi.cachedGet("/api/automation");
+    let fresh = false;
     const user = await Layout.init();
     const $ = id => document.getElementById(id);
     const esc = OutreachApi.escapeHtml;
@@ -114,7 +117,8 @@
 
     async function load() {
         try {
-            data = await OutreachApi.request("/api/automation");
+            data = await OutreachApi.cachedGet("/api/automation", { fresh });
+            fresh = true;
         } catch (error) {
             content.innerHTML = `<div class="status error">${esc(error.message)}</div>`;
             return;

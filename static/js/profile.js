@@ -1,4 +1,7 @@
 (async () => {
+    // Start this page's data requests alongside the sidebar's user check, not after it.
+    OutreachApi.cachedGet("/api/profile");
+    let fresh = false;
     let user = await Layout.init();
     const $ = id => document.getElementById(id);
     const esc = OutreachApi.escapeHtml;
@@ -51,7 +54,8 @@
     }
 
     async function load() {
-        const data = await OutreachApi.request("/api/profile");
+        const data = await OutreachApi.cachedGet("/api/profile", { fresh });
+        fresh = true;
         user = data.user;
         projects = data.projects;
         $("suppressionInput").value = (data.suppressed_emails || []).join("\n");

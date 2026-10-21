@@ -58,14 +58,14 @@ Background campaign runner (one contact at a time, survives page reloads)
         |
 Research -> project match (students) -> write (AI or template) -> compliance footer (campaigns)
         |
-Local spam-risk guard: 13 checks (+ opt-out check for campaigns)
+Local spam-risk guard: 21 checks (+ opt-out check for campaigns)
    LOW (< 4)   -> SEND (auto mode) or ready in the review queue
    MEDIUM/HIGH -> one AI rewrite (AI mode) -> re-check -> held for review if still risky
         |
 Gmail API send with bounded retries, duplicate suppression, persisted state
 ```
 
-The spam guard scores capitalization, punctuation, link count, suspicious URLs, promotional phrases, urgency words, length, repetition, calls to action, subject line problems, unfilled placeholders, money language and (for campaigns) a missing unsubscribe line. Each failing check comes with a plain-language fix, and the review editor re-scores live as you type. `POST /spam/check` exposes the same guard statelessly (it powers the Spam Lab page and the landing page demo).
+The spam guard scores capitalization, punctuation, link count, suspicious URLs, promotional phrases, urgency words, length, repetition, calls to action, subject line problems (length, "!", capitals, sales words, money signs, fake RE:), unfilled placeholders, money language, hidden or invisible text, link text that points somewhere else, generic greetings like "Dear Sir/Madam", requests for passwords or bank details, spelling tricks like "fr33", emoji overload, heavy formatting, image-heavy emails and (for campaigns) a missing unsubscribe line. Each failing check comes with a plain-language fix, and the review editor re-scores live as you type. `POST /spam/check` exposes the same guard statelessly (it powers the Spam Lab page and the landing page demo).
 
 ## Pages
 

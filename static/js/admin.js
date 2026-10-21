@@ -1,4 +1,10 @@
 (async () => {
+    // Admins start the first data requests alongside the sidebar's user check, not after it.
+    if (OutreachApi.getUser()?.is_admin) {
+        OutreachApi.cachedGet("/api/admin/stats");
+        OutreachApi.cachedGet("/api/admin/users?q=");
+    }
+    const firstLoad = { stats: true, users: true };
     const user = await Layout.init();
     const $ = id => document.getElementById(id);
     const esc = OutreachApi.escapeHtml;
@@ -20,7 +26,8 @@
     });
 
     async function loadStats() {
-        const stats = await OutreachApi.request("/api/admin/stats");
+        const stats = await OutreachApi.cachedGet("/api/admin/stats", { fresh: !firstLoad.stats });
+        firstLoad.stats = false;
         $("stats").innerHTML = [
             ["Users", stats.users],
             ["Premium now", stats.premium_active],
@@ -32,7 +39,8 @@
 
     // ---- Users ----
     async function loadUsers() {
-        const data = await OutreachApi.request(`/api/admin/users?q=${encodeURIComponent($("userSearch").value.trim())}`);
+        const data = await OutreachApi.cachedGet(`/api/admin/users?q=${encodeURIComponent($("userSearch").value.trim())}`, { fresh: !firstLoad.users });
+        firstLoad.users = false;
         $("userRows").innerHTML = data.users.length ? data.users.map(row => `
             <tr data-email="${esc(row.email)}">
                 <td><div class="cell-main">${esc(row.name || row.email)}</div><div class="cell-sub">${esc(row.email)} · ${row.role === "campaigner" ? "Campaigns" : "Job seeker"}${row.gmail_connected ? "" : " · no Gmail"}</div></td>

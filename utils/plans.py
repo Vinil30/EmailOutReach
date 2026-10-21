@@ -36,13 +36,14 @@ def week_start(now: datetime | None = None) -> datetime:
 def quota_status(user: dict[str, Any]) -> dict[str, Any]:
     user_id = str(user["_id"])
     premium = is_premium(user)
+    lifetime_sent = emailsSent.count_documents({"user_id": user_id})
     if premium:
         start = week_start()
-        used = emailsSent.count_documents({"user_id": user_id, "sent_at": {"$gte": start}})
+        used = emailsSent.count_documents({"user_id": user_id, "sent_at": {"$gte": start}}) if lifetime_sent else 0
         limit = PREMIUM_WEEKLY_LIMIT
         resets_at = start + timedelta(days=7)
     else:
-        used = emailsSent.count_documents({"user_id": user_id})
+        used = lifetime_sent
         limit = GENERAL_LIFETIME_LIMIT
         resets_at = None
     until = as_utc(user.get("premium_until"))
@@ -55,7 +56,7 @@ def quota_status(user: dict[str, Any]) -> dict[str, Any]:
         "resets_at": resets_at,
         "premium_until": until,
         "premium_expired": bool(until and not premium),
-        "lifetime_sent": emailsSent.count_documents({"user_id": user_id}),
+        "lifetime_sent": lifetime_sent,
         "premium_url": PREMIUM_URL,
     }
 

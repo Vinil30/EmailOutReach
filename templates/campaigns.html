@@ -35,6 +35,7 @@
     <script src="/static/js/layout.js?v=9"></script>
     <script src="/static/js/campaign_view.js?v=9"></script>
     <script>
+        OutreachApi.cachedGet("/api/campaigns");
         Layout.init().then(() => {
             CampaignView.mount(document.getElementById("campaignList"), {
                 detailed: true,

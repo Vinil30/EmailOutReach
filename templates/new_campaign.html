@@ -35,7 +35,15 @@
                         <div class="card-body form">
                             <div class="segmented" id="sourceToggle">
                                 <button type="button" class="active" data-source="file">Upload file</button>
+                                <button type="button" data-source="form">Fill a form</button>
                                 <button type="button" data-source="paste">Paste</button>
+                            </div>
+                            <div id="sourceForm" class="contact-form" hidden>
+                                <div id="formRows" class="contact-form-rows"></div>
+                                <div class="actions">
+                                    <button type="button" class="btn secondary sm" id="addRowBtn">+ Add another contact</button>
+                                    <span class="small muted" id="formCount"></span>
+                                </div>
                             </div>
                             <div id="sourceFile">
                                 <div class="dropzone" id="dropzone">

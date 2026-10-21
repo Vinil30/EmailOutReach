@@ -60,9 +60,13 @@ const CampaignView = (() => {
     function mount(container, { limit = 50, detailed = false, emptyHtml = "" } = {}) {
         let timer = null;
 
+        let fresh = false;
+
         async function load() {
             try {
-                const data = await OutreachApi.request("/api/campaigns");
+                // The first load can reuse a request the page already started; polling always refetches.
+                const data = await OutreachApi.cachedGet("/api/campaigns", { fresh });
+                fresh = true;
                 const list = data.campaigns.slice(0, limit);
                 container.innerHTML = list.length
                     ? list.map(campaign => row(campaign, { detailed })).join("")

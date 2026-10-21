@@ -392,12 +392,29 @@ def get_overview_stats(user_id: str) -> dict[str, Any]:
             ]
         )
     )
+    # One pass over the drafts instead of three separate counts.
+    drafts = list(
+        emailsGenerated.aggregate(
+            [
+                {"$match": {"user_id": uid}},
+                {"$group": {
+                    "_id": None,
+                    "waiting": {"$sum": {"$cond": [{"$eq": ["$email_status", False]}, 1, 0]}},
+                    "flagged": {"$sum": {"$cond": [{"$eq": ["$outreach_status", "REGENERATE"]}, 1, 0]}},
+                    "failed": {"$sum": {"$cond": [
+                        {"$regexMatch": {"input": {"$ifNull": ["$outreach_status", ""]}, "regex": "^FAILED"}}, 1, 0,
+                    ]}},
+                }},
+            ]
+        )
+    )
+    draft_counts = drafts[0] if drafts else {}
     return {
         "sent": sent[0]["n"] if sent else 0,
         "avg_sent_risk": round(sent[0]["avg"] or 0, 2) if sent else 0,
-        "waiting": emailsGenerated.count_documents({"user_id": uid, "email_status": False}),
-        "flagged": emailsGenerated.count_documents({"user_id": uid, "outreach_status": "REGENERATE"}),
-        "failed": emailsGenerated.count_documents({"user_id": uid, "outreach_status": {"$regex": "^FAILED"}}),
+        "waiting": draft_counts.get("waiting", 0),
+        "flagged": draft_counts.get("flagged", 0),
+        "failed": draft_counts.get("failed", 0),
         "campaigns": campaigns.count_documents({"user_id": uid}),
         "projects": projects.count_documents({"user_id": uid}),
     }

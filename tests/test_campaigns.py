@@ -133,3 +133,30 @@ def test_campaigner_rewrite_keeps_footer(monkeypatch):
     assert "data-compliance-footer" in updated["written_email_details"].email_body
     assert updated["deliverability_risk"]["action"] == "SEND"
     assert len(updated["deliverability_history"]) == 2
+
+
+def test_stricter_checks_catch_phishing_tricks():
+    phishing = analyze_email_risk(
+        "Account check",
+        CLEAN_BODY.replace("Hi Priya,", "Dear Sir/Madam,")
+        + '<p>Please verify your account and share your bank details.</p><p><a href="https://evil.example">www.google.com</a></p>',
+    )
+    assert {"generic greeting", "requests for sensitive information", "misleading link text"} <= set(phishing.reasons)
+    assert phishing.action == "REGENERATE"
+
+
+def test_stricter_checks_catch_obfuscation_and_hidden_text():
+    risk = analyze_email_risk(
+        "Your fr33 internship!",
+        CLEAN_BODY + '<p style="color:#ffffff">keywords</p><p>Get a F R E E review.</p>',
+    )
+    assert {"obfuscated words", "hidden or invisible text", "subject line issues"} <= set(risk.reasons)
+
+
+def test_compliance_footer_and_polite_phrases_stay_clean():
+    body = with_compliance_footer(CLEAN_BODY.replace("Happy to share it if useful.", "Feel free to ask for it."), {"organization": "Brightloop"})
+    risk = analyze_email_risk("Routing idea for your team", body, campaign_type="campaign")
+    assert risk.action == "SEND"
+    assert "heavy formatting" not in risk.reasons
+    assert "excessive promotional or urgent language" not in risk.reasons
+    assert len(risk.checks) == 22

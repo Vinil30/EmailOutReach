@@ -7,32 +7,84 @@ from typing import Any
 
 PROMOTIONAL_PHRASES = (
     "100% free",
+    "100% guaranteed",
+    "act immediately",
     "act now",
     "apply now",
+    "as seen on",
     "best price",
+    "big savings",
     "buy now",
+    "call now",
     "cash bonus",
+    "claim your",
+    "click below",
     "click here",
     "congratulations",
     "dear friend",
+    "don't delete",
     "don't miss",
     "double your",
     "earn extra",
+    "earn money",
+    "extra income",
+    "free gift",
     "free trial",
+    "get paid",
     "guaranteed",
+    "incredible deal",
+    "last chance",
     "limited time",
     "lowest price",
     "make money",
+    "miracle",
+    "no catch",
     "no cost",
     "no obligation",
+    "no strings attached",
     "once in a lifetime",
     "order now",
     "risk free",
+    "risk-free",
+    "satisfaction guaranteed",
     "special offer",
+    "this is not spam",
+    "this isn't spam",
     "urgent",
+    "while supplies last",
     "winner",
+    "work from home",
     "you have been selected",
+    "you're a winner",
 )
+
+GENERIC_GREETINGS = re.compile(
+    r"^\s*(?:dear\s+(?:sir|madam|sir\s*/\s*madam|sir\s+or\s+madam|friend|candidate|user|customer|valued\s+\w+)|"
+    r"to\s+whom\s+it\s+may\s+concern|hello\s+(?:friend|dear)|greetings\s+of\s+the\s+day)\b",
+    re.IGNORECASE,
+)
+
+SENSITIVE_REQUESTS = re.compile(
+    r"\b(?:password|passcode|otp|one[- ]time\s+code|bank\s+(?:account|details)|account\s+number|credit\s+card|"
+    r"card\s+number|cvv|social\s+security|wire\s+transfer|gift\s+cards?|verify\s+your\s+(?:account|identity)|"
+    r"confirm\s+your\s+(?:account|identity|details)|login\s+details|send\s+(?:me\s+)?money)\b",
+    re.IGNORECASE,
+)
+
+# Letter swaps and spaced-out letters spammers use to dodge keyword filters ("fr33", "F R E E").
+OBFUSCATED_WORDS = re.compile(
+    r"(?<![\w@$])(?=[a-z0-9@$]*[0-9@$])(?:fr[e3]{2}|[o0]ff[e3]r|m[o0]n[e3]y|c[a4@$]sh|w[i1]nn[e3]r|pr[i1]z[e3]|d[i1]sc[o0]unt|s[a4@$]v[e3])(?![\w@$])",
+    re.IGNORECASE,
+)
+SPACED_LETTERS = re.compile(r"\b(?:[A-Z]\s){3,}[A-Z]\b")
+
+HIDDEN_TEXT = re.compile(
+    r"display\s*:\s*none|visibility\s*:\s*hidden|font-size\s*:\s*[0-5](?:\.\d+)?px|font-size\s*:\s*0\b|opacity\s*:\s*0(?:\.0+)?\s*[;\"']|"
+    r"color\s*:\s*(?:#fff\b|#ffffff\b|white\b|transparent\b)",
+    re.IGNORECASE,
+)
+
+EMOJI = re.compile("[\U0001F300-\U0001FAFF\U00002600-\U000027BF\U0001F1E6-\U0001F1FF]")
 
 CTA_PHRASES = (
     "book a call",
@@ -77,6 +129,14 @@ SUGGESTIONS = {
     "unfilled placeholders": "Replace every [placeholder] or {{merge_field}} before sending.",
     "missing opt-out line": "Bulk campaigns should tell recipients how to unsubscribe.",
     "heavy money language": "Mention pricing once, plainly, if at all.",
+    "hidden or invisible text": "Remove hidden, tiny or white-on-white text; filters treat it as a trick.",
+    "misleading link text": "Make each link's visible text match where it actually goes.",
+    "generic greeting": "Greet the person by name instead of 'Dear Sir/Madam' or 'To whom it may concern'.",
+    "requests for sensitive information": "Never ask for passwords, bank or card details by email; it reads as phishing.",
+    "obfuscated words": "Spell words normally; tricks like 'fr33' or 'F R E E' are a classic spam signal.",
+    "too many emojis": "Use emojis sparingly, if at all, in professional email.",
+    "heavy formatting": "Keep formatting light: a little bold is fine, coloured text and many styles are not.",
+    "image-heavy email": "Lead with real text; emails that are mostly images get filtered.",
 }
 
 
@@ -158,21 +218,22 @@ def analyze_email_risk(
     scorer.check(
         "excessive capitalization",
         "Capitalization",
-        caps_ratio > 0.35 or len(all_caps_words) >= 4,
+        caps_ratio > 0.3 or len(all_caps_words) >= 4,
         2.0,
         f"{round(caps_ratio * 100)}% capitals, {len(all_caps_words)} all-caps words",
     )
 
     exclamation_count = text.count("!")
     question_count = text.count("?")
+    repeated_marks = re.findall(r"[!?]{2,}", text)
     signals["exclamation_count"] = exclamation_count
     signals["question_count"] = question_count
     scorer.check(
         "excessive punctuation",
         "Punctuation",
-        exclamation_count >= 4 or question_count >= 4 or exclamation_count + question_count >= 6,
+        exclamation_count >= 3 or question_count >= 4 or bool(repeated_marks),
         1.5,
-        f"{exclamation_count} '!' and {question_count} '?'",
+        f"{exclamation_count} '!' and {question_count} '?'" + (f", {len(repeated_marks)} repeated like '!!'" if repeated_marks else ""),
     )
 
     urls = re.findall(r"https?://[^\s<>\"]+", email_body or "")
@@ -195,16 +256,22 @@ def analyze_email_risk(
         "common spam or promotional phrases",
         "Spam phrases",
         bool(phrase_hits),
-        min(2.5, 0.7 * len(phrase_hits)),
+        min(3.0, 0.8 * len(phrase_hits)),
         ", ".join(phrase_hits) or "none found",
     )
 
-    urgent_hits = re.findall(r"\b(?:urgent|immediately|asap|limited|exclusive|guaranteed|free|now)\b", lower_text)
+    # "Feel free to" is ordinary politeness, not a pressure word.
+    pressure_text = re.sub(r"\bfeel free\b", " ", lower_text)
+    urgent_hits = re.findall(
+        r"\b(?:urgent|urgently|immediately|asap|limited|exclusive|guaranteed|free|hurry|deadline|expires?|expiring|instant|instantly)\b"
+        r"|\b(?:act|buy|call|order|reply|respond|join)\s+now\b|\btoday only\b",
+        pressure_text,
+    )
     signals["urgent_language_count"] = len(urgent_hits)
     scorer.check(
         "excessive promotional or urgent language",
         "Urgency words",
-        len(urgent_hits) >= 3,
+        len(urgent_hits) >= 2,
         1.5,
         f"{len(urgent_hits)} pressure words",
     )
@@ -245,6 +312,80 @@ def analyze_email_risk(
     money_hits = re.findall(r"[$€£₹]\s?\d|\b\d+\s?%\s?off\b|\$\$+", text, re.IGNORECASE)
     signals["money_mentions"] = len(money_hits)
     scorer.check("heavy money language", "Money talk", len(money_hits) >= 3, 1.0, f"{len(money_hits)} mentions")
+
+    html = email_body or ""
+    # The compliance footer is ours and intentionally small and grey, so it's excluded from styling checks.
+    styled_html = re.sub(r"<p[^>]*data-compliance-footer[^>]*>.*?</p>", "", html, flags=re.IGNORECASE | re.DOTALL)
+
+    hidden = HIDDEN_TEXT.findall(styled_html)
+    signals["hidden_text_rules"] = len(hidden)
+    scorer.check(
+        "hidden or invisible text",
+        "Hidden text",
+        bool(hidden),
+        2.5,
+        ", ".join(sorted(set(match.strip() for match in hidden))[:3]) or "none",
+    )
+
+    mismatched = _mismatched_links(html)
+    signals["mismatched_links"] = mismatched[:3]
+    scorer.check(
+        "misleading link text",
+        "Link text matches target",
+        bool(mismatched),
+        2.5,
+        ", ".join(mismatched[:2]) or "every link goes where it says",
+    )
+
+    greeting_match = GENERIC_GREETINGS.search(body_text.strip())
+    scorer.check(
+        "generic greeting",
+        "Personal greeting",
+        bool(greeting_match),
+        1.0,
+        f'starts with "{greeting_match.group(0).strip()}"' if greeting_match else "addressed to a person",
+    )
+
+    sensitive = sorted({match.lower() for match in SENSITIVE_REQUESTS.findall(text)})
+    signals["sensitive_requests"] = sensitive[:5]
+    scorer.check(
+        "requests for sensitive information",
+        "No sensitive requests",
+        bool(sensitive),
+        3.0,
+        ", ".join(sensitive[:3]) or "none",
+    )
+
+    combined = f"{subject}\n{body_text}"
+    obfuscated = [match.strip() for match in OBFUSCATED_WORDS.findall(combined) + SPACED_LETTERS.findall(combined)]
+    signals["obfuscated_words"] = obfuscated[:5]
+    scorer.check("obfuscated words", "Spelling tricks", bool(obfuscated), 2.0, ", ".join(obfuscated[:3]) or "none")
+
+    emoji_count = len(EMOJI.findall(f"{subject}{body_text}"))
+    signals["emoji_count"] = emoji_count
+    scorer.check("too many emojis", "Emojis", emoji_count >= 3, 1.0, f"{emoji_count} emojis")
+
+    emphasis_tags = len(re.findall(r"<(?:b|strong|u|font|big|mark)\b", styled_html, re.IGNORECASE))
+    color_styles = len(re.findall(r"(?:^|[;\"'\s])(?:color|background(?:-color)?)\s*:", styled_html, re.IGNORECASE))
+    large_fonts = len(re.findall(r"font-size\s*:\s*(?:1[89]|[2-9]\d)px", styled_html, re.IGNORECASE))
+    signals["formatting"] = {"emphasis_tags": emphasis_tags, "color_styles": color_styles, "large_fonts": large_fonts}
+    scorer.check(
+        "heavy formatting",
+        "Formatting",
+        emphasis_tags >= 5 or color_styles >= 2 or large_fonts >= 1,
+        1.0,
+        f"{emphasis_tags} bold/underline tags, {color_styles} colour styles",
+    )
+
+    images = len(re.findall(r"<img\b", html, re.IGNORECASE))
+    signals["image_count"] = images
+    scorer.check(
+        "image-heavy email",
+        "Text vs images",
+        images >= 1 and word_count < 60 * images,
+        1.5,
+        f"{images} images, {word_count} words",
+    )
 
     if campaign_type == "campaign":
         has_opt_out = bool(OPT_OUT_PATTERN.search(body_text))
@@ -306,8 +447,33 @@ def _subject_problems(subject: str) -> list[str]:
     problems = []
     if not stripped:
         problems.append("subject is empty")
-    elif len(stripped) > 78:
-        problems.append("subject is longer than 78 characters")
+    elif len(stripped) > 70:
+        problems.append("subject is longer than 70 characters")
     if re.match(r"^(re|fwd?)\s*:", stripped, re.IGNORECASE):
         problems.append("fake reply/forward prefix")
+    if "!" in stripped:
+        problems.append("exclamation mark in subject")
+    letters = re.findall(r"[A-Za-z]", stripped)
+    if len(letters) >= 8 and sum(char.isupper() for char in letters) / len(letters) > 0.6:
+        problems.append("subject is mostly capitals")
+    if re.search(r"[$€£₹%]", stripped):
+        problems.append("money or percent sign in subject")
+    if re.search(r"\b(?:free|urgent|guaranteed|winner|offer|deal|discount)\b", stripped, re.IGNORECASE):
+        problems.append("sales word in subject")
     return problems
+
+
+def _domain(value: str) -> str:
+    match = re.search(r"(?:https?://)?(?:www\.)?([a-z0-9-]+(?:\.[a-z0-9-]+)+)", value.strip().lower())
+    return match.group(1) if match else ""
+
+
+def _mismatched_links(html: str) -> list[str]:
+    """Links whose visible text names one site while the href points to another, a phishing tell."""
+    mismatches = []
+    for href, label in re.findall(r"<a\b[^>]*href=[\"']([^\"']+)[\"'][^>]*>(.*?)</a>", html or "", re.IGNORECASE | re.DOTALL):
+        visible = _strip_html(label).strip()
+        shown, actual = _domain(visible), _domain(href)
+        if shown and actual and "." in visible and not (actual.endswith(shown) or shown.endswith(actual)):
+            mismatches.append(f"{visible} → {actual}")
+    return mismatches

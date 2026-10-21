@@ -87,15 +87,19 @@ async def automation_status(current_user=Depends(get_current_user)):
     state = get_automation(current_user)
     if state.get("status") in ("running", "stopping") and not premium_runner.is_running(user_id):
         state["status"] = "stopped"
+    quota = quota_status(current_user)
+    template = get_template((current_user.get("profile") or {}).get("template_id"))
+    premium = quota["plan"] == "premium"
+    # General users only see the upgrade card, so skip the database-usage queries for them.
     return {
         "state": state,
-        "quota": quota_status(current_user),
+        "quota": quota,
         "problems": premium_runner.preflight(current_user),
-        "remaining_contacts": remaining_leads(user_id) if quota_status(current_user)["plan"] == "premium" else None,
-        "counts": lead_send_counts(user_id),
-        "history": lead_send_history(user_id),
-        "template": get_template((current_user.get("profile") or {}).get("template_id"))["name"],
-        "writing": "ai" if get_template((current_user.get("profile") or {}).get("template_id")).get("ai") else "template",
+        "remaining_contacts": remaining_leads(user_id) if premium else None,
+        "counts": lead_send_counts(user_id) if premium else {"sent": 0, "failed": 0},
+        "history": lead_send_history(user_id) if premium else [],
+        "template": template["name"],
+        "writing": "ai" if template.get("ai") else "template",
     }
 
 
