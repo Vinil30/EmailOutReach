@@ -24,8 +24,14 @@ services:
         value: 3
       - key: GMAIL_RETRY_BASE_SECONDS
         value: 1
-      - key: AUTOMATED_EMAIL_DELAY_SECONDS
+      - key: SEND_GAP_MIN_SECONDS
         value: 60
+      - key: SEND_GAP_MAX_SECONDS
+        value: 180
+      - key: ADMIN_EMAILS
+        sync: false
+      - key: PREMIUM_URL
+        value: https://srotabase.com/@vmarena/email-automation-premium
       - key: BATCH_PROCESS_START_DELAY_SECONDS
         value: 30
       - key: REJECTED_EMAILS_DIR
@@ -44,6 +50,8 @@ services:
         generateValue: true
       - key: GROQ_API_KEY
         sync: false
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-120b
       - key: search_api_key
         sync: false
       - key: GOOGLE_CLIENT_ID
