@@ -5,7 +5,8 @@
     const $ = id => document.getElementById(id);
     const profile = user.profile || {};
 
-    const state = { source: "file", preview: null, writing: "ai", mode: "review" };
+    const state = { source: "file", preview: null, writing: "template", mode: "review" };
+    const aiAllowed = Boolean(user.is_premium);
 
     // ---- Role-specific copy ----
     if (campaigner) {
@@ -27,7 +28,7 @@
         $("contactsHint").innerHTML = "Columns: <code>company_name</code>, <code>recipient_name</code>, <code>recipient_email</code>, optional <code>details</code>.";
         $("contactsText").placeholder = "company_name,recipient_name,recipient_email,details\nAcme Robotics,Jane Doe,jane@acme.com,Warehouse robotics startup";
         $("studentGoalInput").value = profile.goal || "";
-        $("aiChoiceText").textContent = "Researches each company and picks your most relevant projects.";
+        $("aiChoiceText").textContent = "Researches each company, picks your best-matching project, and drafts a unique email.";
         $("subjectTemplate").placeholder = "Interested in interning at {{company}}";
         $("launchBtn").textContent = "Start outreach";
         OutreachApi.request("/api/profile").then(data => {
@@ -41,6 +42,14 @@
     }
     $("fromInput").value = localStorage.getItem("outreachFrom") || user.email || "";
     $("gmailWarning").hidden = Boolean(user.gmail_connected);
+
+    // AI research and writing are Premium-only; the server enforces this too.
+    if (!aiAllowed) {
+        const aiInput = document.querySelector('#writingMode input[value="ai"]');
+        aiInput.disabled = true;
+        aiInput.closest(".choice").classList.add("locked");
+        aiInput.closest(".choice").addEventListener("click", () => OutreachApi.toast("AI writing is a Premium feature. Templates are free to use.", "error"));
+    }
 
     // ---- Choice cards ----
     function bindChoices(containerId, key, onChange) {
@@ -171,10 +180,11 @@
             const button = event.target.closest("button[data-template]");
             if (button) applyTemplate(usable.find(template => template.id === button.dataset.template));
         });
-        // Job seekers start from the template chosen on the Templates page.
+        // Job seekers start from what they chose on the Templates page.
         const chosen = usable.find(template => template.id === data.selected);
-        if (!campaigner && chosen) {
-            document.querySelector('#writingMode input[value="template"]').click();
+        if (!campaigner && data.selected === "ai" && aiAllowed) {
+            document.querySelector('#writingMode input[value="ai"]').click();
+        } else if (!campaigner && chosen) {
             applyTemplate(chosen);
         }
     }).catch(() => { $("galleryChips").innerHTML = ""; });

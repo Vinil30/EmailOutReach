@@ -13,7 +13,7 @@ from database.fxns import (
 )
 from utils import campaign_runner
 from utils.contacts import normalize_contacts, read_contacts_frame
-from utils.plans import quota_status
+from utils.plans import quota_status, require_ai
 from utils.spam_guard import analyze_email_risk
 from utils.templating import merge_fields, render_template, with_compliance_footer
 
@@ -120,11 +120,13 @@ async def launch_campaign(
     if mode not in MODES:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mode must be 'auto' or 'review'")
     brief = _parse_brief(brief_json)
-    writing_mode = brief.get("writing_mode") or "ai"
+    writing_mode = brief.get("writing_mode") or "template"
     if writing_mode not in WRITING_MODES:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown writing mode")
     if writing_mode == "template" and not (brief.get("subject_template") and brief.get("body_template")):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Template campaigns need a subject and a body")
+    if writing_mode == "ai":
+        require_ai(current_user)
     brief["writing_mode"] = writing_mode
 
     parsed = _load_contacts(current_user, file, contacts_text)

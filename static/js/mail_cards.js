@@ -38,7 +38,7 @@ function renderEmailCard(email, handlers = {}) {
             </div>
             <div class="actions">
                 <button type="button" class="btn primary" data-action="send">Send</button>
-                <button type="button" class="btn secondary" data-action="rewrite" title="Rewrite with AI to fix flagged checks">✦ Fix with AI</button>
+                ${handlers.rewrite ? '<button type="button" class="btn secondary" data-action="rewrite" title="Rewrite with AI to fix flagged checks">✦ Fix with AI</button>' : ""}
                 <button type="button" class="btn ghost" data-action="save">Save draft</button>
                 <span class="spacer"></span>
                 <button type="button" class="btn danger" data-action="reject">Reject</button>

@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css?v=8">
+    <link rel="stylesheet" href="/static/css/style.css?v=9">
 </head>
 <body>
     <div class="shell">
@@ -19,25 +19,50 @@
             <header class="page-head">
                 <div>
                     <span class="eyebrow">Templates</span>
-                    <h1>Choose how your emails read</h1>
-                    <p>Previews are filled in with your own profile and a sample recruiter. Your choice is used by automation and as the starting point when you send to your own list.</p>
+                    <h1>How should your emails be written?</h1>
+                    <p>Used by automation and when you send to your own list. Previews use your profile and a sample recruiter.</p>
                 </div>
             </header>
-            <section class="grid tpl-layout">
-                <div class="tpl-list" id="templateList"><div class="skeleton"></div></div>
-                <div class="card tpl-preview">
-                    <div class="card-head">
-                        <div><h2 id="previewName">Preview</h2><p id="previewDesc"></p></div>
-                        <button class="btn primary" type="button" id="useBtn">Use this template</button>
+
+            <div class="choice-grid writing-choice" id="writingChoice">
+                <button type="button" class="choice" data-writing="template">
+                    <strong>Template</strong>
+                    <span>One email for everyone. Only the name and company change; your featured project stays the same.</span>
+                </button>
+                <button type="button" class="choice" data-writing="ai">
+                    <strong>AI-personalized <span class="badge accent plain">Premium</span></strong>
+                    <span>Researches each company, picks your best-matching project, and drafts a unique email.</span>
+                </button>
+            </div>
+
+            <section id="templatePane" hidden>
+                <div class="card featured-card">
+                    <div class="card-body featured-row">
+                        <div>
+                            <div class="field-label">Featured project</div>
+                            <small class="help">Shown in every template email.</small>
+                        </div>
+                        <select id="featuredSelect"></select>
                     </div>
-                    <div class="card-body stack" id="previewBody"></div>
+                </div>
+                <div class="grid tpl-layout">
+                    <div class="tpl-list" id="templateList"><div class="skeleton"></div></div>
+                    <div class="card tpl-preview">
+                        <div class="card-head">
+                            <div><h2 id="previewName">Preview</h2><p id="previewDesc"></p></div>
+                            <button class="btn primary" type="button" id="useBtn">Use this template</button>
+                        </div>
+                        <div class="card-body stack" id="previewBody"></div>
+                    </div>
                 </div>
             </section>
+
+            <section id="aiPane" hidden></section>
         </main>
     </div>
-    <script src="/static/js/api.js?v=8"></script>
-    <script src="/static/js/layout.js?v=8"></script>
-    <script src="/static/js/risk.js?v=8"></script>
-    <script src="/static/js/templates.js?v=8"></script>
+    <script src="/static/js/api.js?v=9"></script>
+    <script src="/static/js/layout.js?v=9"></script>
+    <script src="/static/js/risk.js?v=9"></script>
+    <script src="/static/js/templates.js?v=9"></script>
 </body>
 </html>

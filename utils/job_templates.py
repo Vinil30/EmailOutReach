@@ -73,8 +73,9 @@ TEMPLATES = [
     {
         "id": "ai",
         "name": "AI-personalized",
-        "description": "Researches each company and writes a unique email around your best-matching projects.",
+        "description": "Premium. Researches each company, picks your best-matching project, and drafts a unique email.",
         "ai": True,
+        "premium": True,
     },
     {
         "id": "custom",
@@ -95,7 +96,7 @@ MERGE_FIELD_HELP = {
     "my_intro": "One-line intro built from your profile",
     "my_skills": "Your skills",
     "goal": "What you're looking for",
-    "project_name": "Best-matching project",
+    "project_name": "Your featured project",
     "project_summary": "That project's description",
     "project_line": "A sentence about that project",
     "resume_link": "Your resume link",
@@ -108,9 +109,14 @@ def get_template(template_id: str | None) -> dict[str, Any]:
     return next((t for t in TEMPLATES if t["id"] == template_id), next(t for t in TEMPLATES if t["id"] == DEFAULT_TEMPLATE_ID))
 
 
-def brief_for_profile(profile: dict[str, Any]) -> dict[str, Any]:
-    """Turn the template chosen on a profile into a campaign brief the pipeline understands."""
+def brief_for_profile(profile: dict[str, Any], ai_allowed: bool) -> dict[str, Any]:
+    """Turn the template chosen on a profile into a campaign brief the pipeline understands.
+
+    AI writing costs money per email, so it's only honoured for Premium; anyone else gets the default template.
+    """
     template = get_template(profile.get("template_id"))
+    if template.get("ai") and not ai_allowed:
+        template = get_template(DEFAULT_TEMPLATE_ID)
     if template.get("ai"):
         return {"writing_mode": "ai", "research": True, "goal": profile.get("goal", "")}
     if template.get("custom"):
@@ -123,17 +129,14 @@ def brief_for_profile(profile: dict[str, Any]) -> dict[str, Any]:
     return {"writing_mode": "template", "drop_empty_lines": True, "subject_template": template["subject"], "body_template": template["body"]}
 
 
-def _words(text: str) -> set[str]:
-    return {word for word in re.findall(r"[a-z0-9]{3,}", (text or "").lower())}
-
-
-def pick_project(catalog: dict[str, str], context: str) -> tuple[str, str]:
-    """Pick the project whose description overlaps most with what we know about the company."""
+def featured_project(catalog: dict[str, str], profile: dict[str, Any]) -> tuple[str, str]:
+    """Templates feature one fixed project for every recipient: the one chosen on the profile, else the first."""
     if not catalog:
         return "", ""
-    context_words = _words(context)
-    best = max(catalog.items(), key=lambda item: len(_words(f"{item[0]} {item[1]}") & context_words))
-    return best
+    name = profile.get("featured_project")
+    if name in catalog:
+        return name, catalog[name]
+    return next(iter(catalog.items()))
 
 
 def _sentence(text: str) -> str:
@@ -149,7 +152,7 @@ def _clean_summary(summary: str) -> str:
     return " ".join(filter(None, [_sentence(core), _sentence(impact.group(1)) if impact else ""]))
 
 
-def profile_variables(profile: dict[str, Any], catalog: dict[str, str], context: str = "") -> dict[str, str]:
+def profile_variables(profile: dict[str, Any], catalog: dict[str, str]) -> dict[str, str]:
     name = (profile.get("full_name") or "").strip()
     headline = (profile.get("headline") or "").strip()
     school = (profile.get("school") or "").strip()
@@ -161,7 +164,7 @@ def profile_variables(profile: dict[str, Any], catalog: dict[str, str], context:
         if school:
             intro += f" at {school}" if not headline else f" ({school})"
         intro += "."
-    project_name, project_summary = pick_project(catalog, context)
+    project_name, project_summary = featured_project(catalog, profile)
     project_summary = _clean_summary(project_summary)
     goal = (profile.get("goal") or "").strip()
     return {

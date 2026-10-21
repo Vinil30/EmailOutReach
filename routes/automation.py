@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from database.admin import get_automation, lead_send_counts, lead_send_history, remaining_leads
-from database.fxns import get_current_user, project_catalog
+from database.fxns import get_current_user, is_premium, project_catalog
 from utils import premium_runner
 from utils.job_templates import MERGE_FIELD_HELP, TEMPLATES, get_template, profile_variables
 from utils.plans import quota_status
@@ -23,9 +23,7 @@ class TemplatePreviewIn(BaseModel):
 
 def _sample_variables(user: dict, contact: dict | None = None) -> dict:
     profile = user.get("profile") or {}
-    contact = contact or SAMPLE_CONTACT
-    context = " ".join(filter(None, [contact.get("company"), contact.get("details")])) or "software engineering"
-    return {**profile_variables(profile, project_catalog(str(user["_id"])), context), **contact}
+    return {**profile_variables(profile, project_catalog(str(user["_id"]))), **(contact or SAMPLE_CONTACT)}
 
 
 def _render_preview(subject: str, body: str, variables: dict, user: dict | None = None, drop: bool = True) -> dict:
@@ -52,7 +50,7 @@ async def templates(current_user=Depends(get_current_user)):
     variables = _sample_variables(current_user)
     rendered = []
     for template in TEMPLATES:
-        item = {key: template.get(key) for key in ("id", "name", "description", "ai", "custom")}
+        item = {key: template.get(key) for key in ("id", "name", "description", "ai", "custom", "premium")}
         source = template
         if template.get("custom"):
             source = {"subject": profile.get("custom_subject") or "", "body": profile.get("custom_body") or ""}
@@ -62,9 +60,16 @@ async def templates(current_user=Depends(get_current_user)):
         if source.get("subject") or source.get("body"):
             item.update(_render_preview(source.get("subject", ""), source.get("body", ""), variables))
         rendered.append(item)
+    ai_allowed = is_premium(current_user)
+    selected = get_template(profile.get("template_id"))
+    if selected.get("ai") and not ai_allowed:
+        selected = get_template(None)
     return {
         "templates": rendered,
-        "selected": get_template(profile.get("template_id"))["id"],
+        "selected": selected["id"],
+        "ai_allowed": ai_allowed,
+        "projects": list(project_catalog(str(current_user["_id"]))),
+        "featured_project": variables.get("project_name", ""),
         "fields": MERGE_FIELD_HELP,
         "sample_contact": SAMPLE_CONTACT,
     }
@@ -90,6 +95,7 @@ async def automation_status(current_user=Depends(get_current_user)):
         "counts": lead_send_counts(user_id),
         "history": lead_send_history(user_id),
         "template": get_template((current_user.get("profile") or {}).get("template_id"))["name"],
+        "writing": "ai" if get_template((current_user.get("profile") or {}).get("template_id")).get("ai") else "template",
     }
 
 

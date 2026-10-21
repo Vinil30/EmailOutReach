@@ -3,6 +3,8 @@ import os
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from fastapi import HTTPException, status
+
 from database.fxns import as_utc, emailsSent, get_user_by_id, is_premium
 
 GENERAL_LIFETIME_LIMIT = int(os.environ.get("GENERAL_LIFETIME_LIMIT", "20"))
@@ -11,8 +13,17 @@ PREMIUM_DAYS = int(os.environ.get("PREMIUM_DAYS", "30"))
 PREMIUM_URL = os.environ.get("PREMIUM_URL", "https://srotabase.com/@vmarena/email-automation-premium")
 
 
+AI_PREMIUM_MESSAGE = "AI writing is a Premium feature. Use a template, or upgrade to Premium."
+
+
 class QuotaExceeded(Exception):
     pass
+
+
+def require_ai(user: dict[str, Any]) -> None:
+    """AI research and writing cost money per email, so only Premium accounts may use them."""
+    if not is_premium(user):
+        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=AI_PREMIUM_MESSAGE)
 
 
 def week_start(now: datetime | None = None) -> datetime:

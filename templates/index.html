@@ -11,8 +11,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css?v=8">
-    <link rel="stylesheet" href="/static/css/landing.css?v=8">
+    <link rel="stylesheet" href="/static/css/style.css?v=9">
+    <link rel="stylesheet" href="/static/css/landing.css?v=9">
 </head>
 <body class="lp">
     <div class="lp-progress" id="scrollProgress"></div>
@@ -99,7 +99,7 @@
                 <article class="lp-step reveal">
                     <span class="n">01</span>
                     <h3>Write</h3>
-                    <p>AI drafts each email from web research plus your projects or your offer. Or write one template and let merge fields fill it per contact.</p>
+                    <p>Pick a template and your featured project; only the name and company change per contact. On Premium, AI researches each company and drafts a unique email instead.</p>
                 </article>
                 <article class="lp-step reveal" style="--d: 80ms">
                     <span class="n">02</span>
@@ -109,7 +109,7 @@
                 <article class="lp-step reveal" style="--d: 160ms">
                     <span class="n">03</span>
                     <h3>Fix</h3>
-                    <p>Anything scoring 4 or more gets one targeted AI rewrite. If it's still risky, it waits in your review queue with the exact reasons.</p>
+                    <p>Anything scoring 4 or more is held in your review queue with the exact reasons and fixes. On Premium, AI drafts get one targeted rewrite first.</p>
                 </article>
                 <article class="lp-step reveal" style="--d: 240ms">
                     <span class="n">04</span>
@@ -247,7 +247,7 @@
         <div class="lp-wrap lp-numbers">
             <div class="reveal"><b data-count="14">0</b><span>spam checks on every email</span></div>
             <div class="reveal" style="--d: 80ms"><b>1–3<small>min</small></b><span>random gap between every email</span></div>
-            <div class="reveal" style="--d: 160ms"><b data-count="1">0</b><span>targeted AI rewrite before holding</span></div>
+            <div class="reveal" style="--d: 160ms"><b data-count="4">0</b><span>ready-made templates, plus your own</span></div>
             <div class="reveal" style="--d: 240ms"><b data-count="0">0</b><span>passwords or inbox access needed</span></div>
         </div>
     </section>
@@ -268,7 +268,7 @@
                         <li><b>20 emails</b> in total</li>
                         <li>Upload your own CSV or Excel list</li>
                         <li>Profile with projects and resume link</li>
-                        <li>Templates and AI personalization</li>
+                        <li>Ready-made templates with your resume and featured project</li>
                         <li>Spam check before every send</li>
                     </ul>
                     <a class="btn secondary lg block" href="/login?mode=signup">Create a free account</a>
@@ -280,6 +280,7 @@
                     <ul>
                         <li><b>100 emails every week</b></li>
                         <li>Access to our curated company &amp; recruiter database</li>
+                        <li>AI-written emails: researches each company and picks your best project</li>
                         <li>One-click automation that resumes where it stopped</li>
                         <li>See every company you've reached</li>
                         <li>Everything in General · 30 days per purchase</li>
@@ -300,7 +301,7 @@
             <div class="lp-faq reveal">
                 <details open><summary>Does a low score guarantee the inbox?</summary><p>No tool can promise that. Inbox placement also depends on your domain's reputation and the recipient's filters. The guard catches the content problems you control, before they cost you.</p></details>
                 <details><summary>Can Mailzen read my email?</summary><p>No. It asks Google only for the <code>gmail.send</code> scope, which can send mail you approve but can't read, search or delete anything.</p></details>
-                <details><summary>Do I need AI to use it?</summary><p>No. Template campaigns with merge fields work end to end without an AI key. AI is used for personalization and for rewriting flagged drafts.</p></details>
+                <details><summary>What's the difference between a template and AI?</summary><p>A template sends the same email to everyone, with only the recipient's name and company swapped in and your featured project kept the same. AI-personalized (Premium) researches each company, picks your best-matching project and drafts a unique email.</p></details>
                 <details><summary>What happens to people who unsubscribe?</summary><p>Add them to your suppression list once and they're skipped in every future campaign.</p></details>
                 <details><summary>How does Premium get activated?</summary><p>After you buy Premium we add it to the email on your account, usually within a day. It lasts 30 days; buy again to renew. Premium users never see the database itself, only the companies they've emailed.</p></details>
                 <details><summary>What if the server restarts mid-campaign?</summary><p>The campaign is marked interrupted, and you can resume it from the contact where it stopped.</p></details>
@@ -330,8 +331,8 @@
         </div>
     </footer>
 
-    <script src="/static/js/api.js?v=8"></script>
-    <script src="/static/js/risk.js?v=8"></script>
-    <script src="/static/js/landing.js?v=8"></script>
+    <script src="/static/js/api.js?v=9"></script>
+    <script src="/static/js/risk.js?v=9"></script>
+    <script src="/static/js/landing.js?v=9"></script>
 </body>
 </html>

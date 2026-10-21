@@ -989,3 +989,13 @@ tbody tr.clickable:hover { background: var(--surface-2); }
 :root[data-theme="light"] input:focus, :root[data-theme="light"] textarea:focus, :root[data-theme="light"] select:focus { border-color: var(--ink-2); box-shadow: 0 0 0 3px rgba(20, 20, 20, 0.06); }
 :root[data-theme="light"] .choice.active, :root[data-theme="light"] .choice:has(input:checked) { border-color: var(--ink); background: var(--surface-2); box-shadow: 0 0 0 1px var(--ink); }
 :root[data-theme="light"] .dropzone.drag, :root[data-theme="light"] .dropzone:hover { border-color: var(--ink-2); background: var(--surface-2); }
+
+/* ---------- Writing choice ---------- */
+.writing-choice { margin-bottom: 20px; }
+.writing-choice .choice strong { font-size: 15px; }
+.featured-card { margin-bottom: 16px; }
+.featured-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.featured-row select { width: auto; min-width: 260px; }
+.ai-pane .card-body { display: grid; gap: 16px; max-width: 680px; }
+.choice.locked { opacity: 0.6; cursor: not-allowed; }
+.choice.locked:hover { border-color: var(--line-strong); }

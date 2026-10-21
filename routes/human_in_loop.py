@@ -15,7 +15,7 @@ from database.fxns import (
 from Graph import EmailDetails
 from utils.EmailerAgent import EmailerAgent
 from utils.GmailAuth import get_valid_gmail_tokens
-from utils.plans import QuotaExceeded, ensure_can_send
+from utils.plans import QuotaExceeded, ensure_can_send, require_ai
 from utils.spam_guard import analyze_email_risk
 
 router = APIRouter(prefix="/human", tags=["human"])
@@ -81,6 +81,7 @@ async def rewrite_draft(payload: MailEditIn, current_user=Depends(get_current_us
     from utils.EmailWriter import EmailWriter
     from utils.templating import with_compliance_footer
 
+    require_ai(current_user)
     user_id = str(current_user["_id"])
     waiting_email, email_details, campaign_type = _load_draft(payload, user_id)
     before = _risk_for(waiting_email, email_details, campaign_type)

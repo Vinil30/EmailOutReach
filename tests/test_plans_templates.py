@@ -1,9 +1,12 @@
 from datetime import datetime, timedelta, timezone
 
+import pytest
+from fastapi import HTTPException
+
 from database.fxns import is_premium
-from utils.job_templates import TEMPLATES, brief_for_profile, get_template, pick_project, profile_variables
+from utils.job_templates import TEMPLATES, brief_for_profile, featured_project, get_template, profile_variables
 from utils.pacing import random_send_gap
-from utils.plans import week_start
+from utils.plans import require_ai, week_start
 from utils.premium_runner import preflight
 from utils.spam_guard import analyze_email_risk
 from utils.templating import render_template
@@ -47,14 +50,15 @@ def test_lines_with_empty_fields_are_dropped():
     assert "{{portfolio_url}}" in render_template(body, {}, drop_empty_lines=False)
 
 
-def test_project_matching_prefers_overlap():
-    assert pick_project(CATALOG, "Zipline drone delivery uses computer vision")[0] == "InfSec"
-    assert pick_project(CATALOG, "Razorpay payments")[0] == "CostIQ"
-    assert pick_project({}, "anything") == ("", "")
+def test_templates_use_one_fixed_featured_project():
+    assert featured_project(CATALOG, {})[0] == "InfSec"
+    assert featured_project(CATALOG, {"featured_project": "CostIQ"})[0] == "CostIQ"
+    assert featured_project(CATALOG, {"featured_project": "Deleted"})[0] == "InfSec"
+    assert featured_project({}, {}) == ("", "")
 
 
 def test_every_builtin_template_renders_clean():
-    variables = {**profile_variables(PROFILE, CATALOG, "payments"), "first_name": "Priya", "company": "Razorpay"}
+    variables = {**profile_variables(PROFILE, CATALOG), "first_name": "Priya", "company": "Razorpay"}
     for template in TEMPLATES:
         if template.get("ai") or template.get("custom"):
             continue
@@ -67,10 +71,20 @@ def test_every_builtin_template_renders_clean():
 
 
 def test_brief_for_profile_modes():
-    assert brief_for_profile({"template_id": "ai"})["writing_mode"] == "ai"
-    custom = brief_for_profile({"template_id": "custom", "custom_subject": "S", "custom_body": "B"})
+    assert brief_for_profile({"template_id": "ai"}, ai_allowed=True)["writing_mode"] == "ai"
+    custom = brief_for_profile({"template_id": "custom", "custom_subject": "S", "custom_body": "B"}, ai_allowed=False)
     assert custom["subject_template"] == "S" and custom["drop_empty_lines"]
-    assert brief_for_profile({})["subject_template"] == get_template("short")["subject"]
+    assert brief_for_profile({}, ai_allowed=False)["subject_template"] == get_template("short")["subject"]
+
+
+def test_ai_is_premium_only():
+    # Without Premium an AI choice silently falls back to the default template.
+    fallback = brief_for_profile({"template_id": "ai"}, ai_allowed=False)
+    assert fallback["writing_mode"] == "template"
+    with pytest.raises(HTTPException) as error:
+        require_ai({"premium_until": None})
+    assert error.value.status_code == 402
+    require_ai({"premium_until": datetime.now(timezone.utc) + timedelta(days=1)})
 
 
 def test_random_gap_between_one_and_three_minutes():

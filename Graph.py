@@ -130,10 +130,9 @@ def email_writer(agent_state: AgentState) -> AgentState:
         from utils.templating import render_template
 
         brief = agent_state.get("brief") or {}
-        context = " ".join(filter(None, [agent_state.get("company_name"), agent_state.get("details")]))
         # Contact columns win over profile-derived fields with the same name.
         variables = {
-            **profile_variables(agent_state.get("profile") or {}, agent_state.get("project_catalog") or {}, context),
+            **profile_variables(agent_state.get("profile") or {}, agent_state.get("project_catalog") or {}),
             **(agent_state.get("variables") or {}),
         }
         drop = bool(brief.get("drop_empty_lines"))

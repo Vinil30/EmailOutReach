@@ -1,5 +1,5 @@
 (async () => {
-    await Layout.init();
+    const user = await Layout.init();
     const $ = id => document.getElementById(id);
     const reviewStatus = $("reviewStatus");
     const reviewList = $("reviewList");
@@ -35,7 +35,7 @@
                 ? `<div class="empty"><strong>Nothing matches this filter</strong><span>Try another filter or campaign.</span></div>`
                 : `<div class="empty"><strong>Your queue is clear</strong><span>Drafts from “Review first” campaigns, and anything the spam guard holds back, show up here.</span><a class="btn primary" href="/campaigns/new">Start a campaign</a></div>`;
         } else {
-            visible.forEach(email => reviewList.appendChild(renderEmailCard(email, { send: sendDraft, reject: rejectDraft, rewrite: rewriteDraft, save: saveDraft })));
+            visible.forEach(email => reviewList.appendChild(renderEmailCard(email, { send: sendDraft, reject: rejectDraft, save: saveDraft, ...(user.is_premium ? { rewrite: rewriteDraft } : {}) })));
         }
         OutreachApi.setStatus(reviewStatus, `${visible.length} of ${emails.length} drafts shown.`);
     }

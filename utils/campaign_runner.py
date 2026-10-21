@@ -3,7 +3,7 @@ import os
 import time
 from typing import Any
 
-from database.fxns import _now, update_campaign
+from database.fxns import _now, get_user_by_id, is_premium, update_campaign
 from Graph import OutreachInput, run_outreach
 from utils.pacing import average_send_gap, random_send_gap
 
@@ -58,6 +58,13 @@ async def _run(campaign: dict[str, Any], user: dict[str, Any], catalog: dict[str
         for index in range(start_index, len(contacts)):
             if campaign_id in _cancelled:
                 break
+            if uses_ai and not is_premium(get_user_by_id(str(user["_id"]))):
+                update_campaign(
+                    campaign_id,
+                    {"status": "quota", "finished_at": _now(), "current_contact": None, "next_send_at": None},
+                    error={"email": None, "reason": "Premium ended, so AI writing stopped. Resend the rest with a template.", "at": _now()},
+                )
+                return
             contact = contacts[index]
             started_at = time.monotonic()
             update_campaign(campaign_id, {"current_contact": contact["recipient_email"], "next_send_at": None})

@@ -14,6 +14,7 @@ from database.fxns import (
     update_user_profile,
 )
 from utils.contacts import EMAIL_PATTERN
+from utils.plans import require_ai
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 
@@ -47,6 +48,8 @@ async def get_profile(current_user=Depends(get_current_user)):
 
 @router.put("")
 async def save_profile(payload: ProfileIn, current_user=Depends(get_current_user)):
+    if payload.profile.get("template_id") == "ai":
+        require_ai(current_user)
     return {"user": update_user_profile(str(current_user["_id"]), payload.role, payload.profile)}
 
 

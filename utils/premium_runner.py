@@ -101,7 +101,7 @@ async def _run(user_id: str) -> None:
                     campaign_id=CAMPAIGN_ID,
                     campaign_name=CAMPAIGN_NAME,
                     profile=profile,
-                    brief=brief_for_profile(profile),
+                    brief=brief_for_profile(profile, ai_allowed=True),
                     project_catalog=project_catalog(user_id),
                     company_name=lead.get("company", ""),
                     recipient_name=lead.get("name", ""),

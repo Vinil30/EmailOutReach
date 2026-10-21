@@ -21,6 +21,7 @@ Every account picks a mode at signup and can switch any time from **Profile**.
 |---|---|---|
 | Emails | 20 in total, for life | 100 per week (resets Monday 00:00 UTC) |
 | Contacts | The user's own uploaded lists | Own lists plus the admin-managed contact database |
+| Writing | Templates only | Templates or AI-personalized (web research, project matching, unique drafts, AI fix-ups) |
 | Duration | Always | 30 days per grant; renewals add on top of time left |
 
 Every sent email counts toward the limit: automated sends, campaign sends and manual sends from the review queue. When the limit is hit, campaigns stop with status `quota` and unsent drafts wait as `QUOTA_REACHED`. A user whose Premium has expired falls back to the General lifetime limit.
@@ -41,7 +42,12 @@ Premium users press **Start** and the server sends their chosen template to data
 
 ## Profiles and templates
 
-Every job seeker has a profile with name, headline, school, skills, goal, a **resume link** (public Drive link) and projects. `/templates` offers built-in templates (Short & direct, Project spotlight, Ask for a referral, Internship request), AI personalization, or a custom template. Each is previewed with the user's own profile and spam-scored. Built-in templates drop any line whose field is empty, such as a missing portfolio link, rather than leaving a placeholder. The best-matching project is picked per company from keyword overlap.
+Every job seeker has a profile with name, headline, school, skills, goal, a **resume link** (public Drive link) and projects. `/templates` asks one question: **Template** or **AI-personalized**.
+
+- **Template** (all plans): one email for everyone. Only the recipient's name and company change, and the user's **featured project** stays the same. Choose from Short & direct, Project spotlight, Ask for a referral, Internship request, or write your own. Lines whose field is empty, such as a missing portfolio link, are dropped rather than left as placeholders.
+- **AI-personalized** (Premium only): researches each company, picks the best-matching project and drafts a unique email; flagged drafts get one AI rewrite.
+
+AI costs money per email, so the server enforces this: launching an AI campaign, saving the AI option, and "Fix with AI" in the review queue all return `402` for non-Premium accounts, and an AI campaign stops if Premium ends mid-run.
 
 ## Architecture
 

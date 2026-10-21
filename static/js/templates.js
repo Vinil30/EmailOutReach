@@ -4,6 +4,8 @@
     const esc = OutreachApi.escapeHtml;
     let data = null;
     let viewing = null;
+    let writing = null;
+    let plan = null;
 
     function scoreBadge(risk) {
         if (!risk) return "";
@@ -11,8 +13,55 @@
         return `<span class="badge ${tone}">Spam score ${Number(risk.score).toFixed(1)}</span>`;
     }
 
+    // ---- Template vs AI ----
+    function renderWriting() {
+        const inUse = data.selected === "ai" ? "ai" : "template";
+        $("writingChoice").querySelectorAll(".choice").forEach(node => {
+            node.classList.toggle("active", node.dataset.writing === writing);
+            node.querySelector(".in-use")?.remove();
+            if (node.dataset.writing === inUse) node.querySelector("strong").insertAdjacentHTML("beforeend", ' <span class="badge ok in-use">In use</span>');
+        });
+        $("templatePane").hidden = writing !== "template";
+        $("aiPane").hidden = writing !== "ai";
+        if (writing === "ai") renderAi();
+    }
+
+    function renderAi() {
+        const inUse = data.selected === "ai";
+        $("aiPane").innerHTML = data.ai_allowed ? `
+            <div class="card ai-pane"><div class="card-body">
+                <p>For every company, Mailzen reads what they do, picks the project of yours that fits best, and drafts a unique email with your resume link. Each draft still passes the spam check before it's sent.</p>
+                <div class="actions"><button class="btn primary" type="button" id="useAiBtn" ${inUse ? "disabled" : ""}>${inUse ? "AI-personalized is in use" : "Use AI-personalized"}</button></div>
+            </div></div>` : `
+            <div class="card ai-pane"><div class="card-body">
+                <span class="eyebrow">Premium feature</span>
+                <p>AI research and writing are included with Premium, along with 100 emails a week and our recruiter database. On the General plan, templates are free to use.</p>
+                <div class="actions">
+                    <a class="btn primary" href="${esc(plan?.premium_url || "#")}" target="_blank" rel="noopener">Buy Premium</a>
+                    <button class="btn secondary" type="button" data-writing-switch="template">Use a template</button>
+                </div>
+            </div></div>`;
+        $("useAiBtn")?.addEventListener("click", async () => {
+            try {
+                await saveSelection("ai");
+                await load();
+            } catch (error) {
+                OutreachApi.toast(error.message, "error");
+            }
+        });
+        $("aiPane").querySelector("[data-writing-switch]")?.addEventListener("click", () => { writing = "template"; renderWriting(); });
+    }
+
+    function renderFeatured() {
+        const select = $("featuredSelect");
+        select.innerHTML = data.projects.length
+            ? data.projects.map(name => `<option value="${esc(name)}" ${name === data.featured_project ? "selected" : ""}>${esc(name)}</option>`).join("")
+            : `<option value="">No projects yet. Add one on your profile.</option>`;
+        select.disabled = !data.projects.length;
+    }
+
     function renderList() {
-        $("templateList").innerHTML = data.templates.map(template => `
+        $("templateList").innerHTML = data.templates.filter(template => !template.ai).map(template => `
             <button type="button" class="tpl-item ${template.id === viewing ? "viewing" : ""}" data-id="${template.id}">
                 <span class="tpl-item-top"><b>${esc(template.name)}</b>${template.id === data.selected ? '<span class="badge ok">In use</span>' : ""}</span>
                 <span>${esc(template.description)}</span>
@@ -26,13 +75,6 @@
         $("useBtn").textContent = template.id === data.selected ? "In use" : "Use this template";
         $("useBtn").disabled = template.id === data.selected && !template.custom;
         const body = $("previewBody");
-
-        if (template.ai) {
-            body.innerHTML = `
-                <div class="banner info" style="margin:0;">Each email is written fresh for its recipient: the app reads about the company, picks your best-matching projects, and includes your resume link. Every draft still passes the spam check before sending.</div>
-                <p class="small muted">Needs an AI key on the server. Slower than templates, and every email is different.</p>`;
-            return;
-        }
 
         const fields = Object.entries(data.fields).map(([field, help]) => `<button type="button" data-field="${field}" title="${esc(help)}">{{${field}}}</button>`).join("");
         body.innerHTML = `
@@ -98,15 +140,35 @@
             profile.custom_body = $("customBody").value;
         }
         await OutreachApi.request("/api/profile", { method: "PUT", json: { profile } });
-        OutreachApi.toast("Template saved.", "ok");
+        OutreachApi.toast(id === "ai" ? "AI-personalized emails are on." : "Template saved.", "ok");
     }
 
     async function load() {
-        data = await OutreachApi.request("/api/templates");
-        if (!viewing) viewing = data.selected;
+        [data, plan] = await Promise.all([OutreachApi.request("/api/templates"), plan || OutreachApi.request("/api/plan")]);
+        if (!viewing) viewing = data.selected === "ai" ? "short" : data.selected;
+        if (!writing) writing = data.selected === "ai" ? "ai" : "template";
+        renderWriting();
+        renderFeatured();
         renderList();
         renderPreview();
     }
+
+    $("writingChoice").addEventListener("click", event => {
+        const choice = event.target.closest(".choice[data-writing]");
+        if (!choice) return;
+        writing = choice.dataset.writing;
+        renderWriting();
+    });
+
+    $("featuredSelect").addEventListener("change", async event => {
+        try {
+            await OutreachApi.request("/api/profile", { method: "PUT", json: { profile: { featured_project: event.target.value } } });
+            OutreachApi.toast("Featured project saved.", "ok");
+            await load();
+        } catch (error) {
+            OutreachApi.toast(error.message, "error");
+        }
+    });
 
     $("templateList").addEventListener("click", event => {
         const button = event.target.closest("button[data-id]");

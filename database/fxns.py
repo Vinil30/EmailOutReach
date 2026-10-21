@@ -50,7 +50,7 @@ ADMIN_EMAILS = {email.strip().lower() for email in os.environ.get("ADMIN_EMAILS"
 
 ROLES = ("student", "campaigner")
 STUDENT_PROFILE_FIELDS = ("full_name", "headline", "school", "skills", "goal", "portfolio_url", "resume_url", "signature")
-TEMPLATE_FIELDS = ("template_id", "custom_subject", "custom_body")
+TEMPLATE_FIELDS = ("template_id", "custom_subject", "custom_body", "featured_project")
 CAMPAIGNER_PROFILE_FIELDS = (
     "full_name",
     "organization",
