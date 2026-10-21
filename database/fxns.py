@@ -40,6 +40,28 @@ db = db_client[DB_NAME]
 users: Collection = db["users"]
 emailsSent: Collection = db["emailsSent"]
 emailsGenerated: Collection = db["emailsHold"]
+projects: Collection = db["projects"]
+campaigns: Collection = db["campaigns"]
+leads: Collection = db["leads"]
+leadSends: Collection = db["leadSends"]
+premiumGrants: Collection = db["premiumGrants"]
+
+ADMIN_EMAILS = {email.strip().lower() for email in os.environ.get("ADMIN_EMAILS", "").split(",") if email.strip()}
+
+ROLES = ("student", "campaigner")
+STUDENT_PROFILE_FIELDS = ("full_name", "headline", "school", "skills", "goal", "portfolio_url", "resume_url", "signature")
+TEMPLATE_FIELDS = ("template_id", "custom_subject", "custom_body")
+CAMPAIGNER_PROFILE_FIELDS = (
+    "full_name",
+    "organization",
+    "website",
+    "offer",
+    "audience",
+    "tone",
+    "physical_address",
+    "unsubscribe_text",
+    "signature",
+)
 REJECTED_DIR = Path(os.environ.get("REJECTED_EMAILS_DIR", "database/rejected"))
 REJECTED_COLUMNS = [
     "rejected_at",
@@ -52,6 +74,7 @@ REJECTED_COLUMNS = [
     "email_subject",
     "email_body",
     "relevant_projects",
+    "campaign_name",
 ]
 
 
@@ -62,6 +85,25 @@ def ensure_indexes() -> None:
         emailsSent.create_index("send_fingerprint", unique=True, sparse=True)
         emailsGenerated.create_index([("user_id", 1), ("email_status", 1), ("created_at", -1)])
         emailsGenerated.create_index([("user_id", 1), ("outreach_status", 1), ("updated_at", -1)])
+        emailsGenerated.create_index([("user_id", 1), ("campaign_id", 1)])
+        emailsSent.create_index([("user_id", 1), ("campaign_id", 1)])
+        projects.create_index([("user_id", 1), ("created_at", -1)])
+        campaigns.create_index([("user_id", 1), ("created_at", -1)])
+        emailsSent.create_index([("user_id", 1), ("sent_at", -1)])
+        leads.create_index("email", unique=True)
+        leads.create_index([("active", 1), ("created_at", 1)])
+        leadSends.create_index([("user_id", 1), ("lead_id", 1)], unique=True)
+        leadSends.create_index([("user_id", 1), ("created_at", -1)])
+        premiumGrants.create_index([("email", 1), ("created_at", -1)])
+        users.update_many(
+            {"automation.status": "running"},
+            {"$set": {"automation.status": "stopped", "automation.message": "Stopped because the server restarted. Press Start to resume."}},
+        )
+        # Background runs die with the process; surface that instead of showing them as running forever.
+        campaigns.update_many(
+            {"status": {"$in": ["queued", "running"]}},
+            {"$set": {"status": "interrupted", "updated_at": _now()}},
+        )
     except PyMongoError as exc:
         if os.environ.get("REQUIRE_MONGO_ON_STARTUP", "false").lower() == "true":
             raise
@@ -124,15 +166,19 @@ def get_user_by_id(user_id: str) -> dict[str, Any] | None:
     return users.find_one({"_id": ObjectId(user_id)})
 
 
-def create_user(email: str, password: str, name: str | None = None) -> dict[str, Any]:
+def create_user(email: str, password: str, name: str | None = None, role: str = "student") -> dict[str, Any]:
     normalized_email = email.lower().strip()
     if get_user_by_email(normalized_email):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already exists")
+    if role not in ROLES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown role")
 
     result = users.insert_one(
         {
             "email": normalized_email,
             "name": name,
+            "role": role,
+            "profile": {"full_name": name or ""},
             "password_hash": _hash_password(password),
             "created_at": _now(),
         }
@@ -161,7 +207,200 @@ def public_user(user: dict[str, Any] | None) -> dict[str, Any]:
     serialized.pop("password_hash", None)
     serialized.pop("gmail_tokens", None)
     serialized["gmail_connected"] = bool(user.get("gmail_tokens", {}).get("refresh_token") or user.get("gmail_tokens", {}).get("access_token"))
+    serialized["role"] = user.get("role") or "student"
+    serialized["profile"] = user.get("profile") or {}
+    serialized["is_admin"] = is_admin(user)
+    premium_until = user.get("premium_until")
+    serialized["premium_until"] = premium_until
+    serialized["is_premium"] = is_premium(user)
+    serialized.pop("automation", None)
+    serialized.pop("suppressed_emails", None)
     return serialized
+
+
+def is_admin(user: dict[str, Any] | None) -> bool:
+    return bool(user) and (user.get("email", "").lower() in ADMIN_EMAILS or bool(user.get("is_admin")))
+
+
+def as_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+
+
+def is_premium(user: dict[str, Any] | None) -> bool:
+    until = as_utc((user or {}).get("premium_until"))
+    return bool(until and until > _now())
+
+
+def update_user_profile(user_id: str, role: str | None, profile: dict[str, Any]) -> dict[str, Any]:
+    user = get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    next_role = role or user.get("role") or "student"
+    if next_role not in ROLES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown role")
+
+    allowed = set(STUDENT_PROFILE_FIELDS) | set(CAMPAIGNER_PROFILE_FIELDS) | set(TEMPLATE_FIELDS)
+    merged = dict(user.get("profile") or {})
+    merged.update({key: str(value or "").strip() for key, value in profile.items() if key in allowed})
+    users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"role": next_role, "profile": merged, "name": merged.get("full_name") or user.get("name")}},
+    )
+    return public_user(users.find_one({"_id": user["_id"]}))
+
+
+def set_suppressed_emails(user_id: str, emails: list[str]) -> None:
+    if ObjectId.is_valid(user_id):
+        users.update_one({"_id": ObjectId(user_id)}, {"$set": {"suppressed_emails": emails}})
+
+
+def list_projects(user_id: str) -> list[dict[str, Any]]:
+    return _serialize_many(projects.find({"user_id": str(user_id)}).sort("created_at", 1))
+
+
+def project_catalog(user_id: str) -> dict[str, str]:
+    """Projects as name -> description, the shape the project selector and writer consume."""
+    catalog = {}
+    for project in projects.find({"user_id": str(user_id)}).sort("created_at", 1):
+        parts = [project.get("summary", "")]
+        if project.get("tech"):
+            parts.append(f"Tech: {project['tech']}.")
+        if project.get("impact"):
+            parts.append(f"Impact: {project['impact']}.")
+        if project.get("link"):
+            parts.append(f"Link: {project['link']}")
+        catalog[project["name"]] = " ".join(part for part in parts if part)
+    return catalog
+
+
+def _clean_project(data: dict[str, Any]) -> dict[str, Any]:
+    cleaned = {key: str(data.get(key) or "").strip() for key in ("name", "summary", "tech", "impact", "link")}
+    if not cleaned["name"] or not cleaned["summary"]:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Project name and summary are required")
+    return cleaned
+
+
+def create_project(user_id: str, data: dict[str, Any]) -> dict[str, Any]:
+    doc = _clean_project(data)
+    doc.update({"user_id": str(user_id), "created_at": _now(), "updated_at": _now()})
+    result = projects.insert_one(doc)
+    return _serialize_doc(projects.find_one({"_id": result.inserted_id}))
+
+
+def update_project(user_id: str, project_id: str, data: dict[str, Any]) -> dict[str, Any]:
+    if not ObjectId.is_valid(project_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+    updated = projects.find_one_and_update(
+        {"_id": ObjectId(project_id), "user_id": str(user_id)},
+        {"$set": {**_clean_project(data), "updated_at": _now()}},
+        return_document=ReturnDocument.AFTER,
+    )
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+    return _serialize_doc(updated)
+
+
+def delete_project(user_id: str, project_id: str) -> None:
+    if ObjectId.is_valid(project_id):
+        projects.delete_one({"_id": ObjectId(project_id), "user_id": str(user_id)})
+
+
+def create_campaign(user_id: str, data: dict[str, Any]) -> dict[str, Any]:
+    doc = dict(data)
+    doc.update(
+        {
+            "user_id": str(user_id),
+            "status": "queued",
+            "processed": 0,
+            "errors": [],
+            "created_at": _now(),
+            "updated_at": _now(),
+        }
+    )
+    result = campaigns.insert_one(doc)
+    return _serialize_doc(campaigns.find_one({"_id": result.inserted_id}))
+
+
+def update_campaign(
+    campaign_id: str,
+    fields: dict[str, Any] | None = None,
+    inc: dict[str, int] | None = None,
+    error: dict[str, Any] | None = None,
+) -> None:
+    update: dict[str, Any] = {"$set": {**(fields or {}), "updated_at": _now()}}
+    if inc:
+        update["$inc"] = inc
+    if error:
+        update["$push"] = {"errors": {"$each": [error], "$slice": -50}}
+    campaigns.update_one({"_id": ObjectId(campaign_id)}, update)
+
+
+def get_campaign_doc(campaign_id: str, user_id: str) -> dict[str, Any] | None:
+    if not ObjectId.is_valid(campaign_id):
+        return None
+    return campaigns.find_one({"_id": ObjectId(campaign_id), "user_id": str(user_id)})
+
+
+def _empty_counts() -> dict[str, int]:
+    return {"sent": 0, "waiting": 0, "flagged": 0, "failed": 0}
+
+
+def _campaign_counts(user_id: str, campaign_ids: list[str]) -> dict[str, dict[str, int]]:
+    counts = {cid: _empty_counts() for cid in campaign_ids}
+    match = {"user_id": str(user_id), "campaign_id": {"$in": campaign_ids}}
+    for row in emailsSent.aggregate([{"$match": match}, {"$group": {"_id": "$campaign_id", "n": {"$sum": 1}}}]):
+        counts.setdefault(row["_id"], _empty_counts())["sent"] = row["n"]
+    pipeline = [{"$match": match}, {"$group": {"_id": {"c": "$campaign_id", "s": "$outreach_status"}, "n": {"$sum": 1}}}]
+    for row in emailsGenerated.aggregate(pipeline):
+        bucket = counts.setdefault(row["_id"]["c"], _empty_counts())
+        state = row["_id"].get("s") or ""
+        if state.startswith("FAILED"):
+            bucket["failed"] += row["n"]
+        elif state == "REGENERATE":
+            bucket["flagged"] += row["n"]
+        bucket["waiting"] += row["n"]
+    return counts
+
+
+def _with_counts(user_id: str, docs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    serialized = _serialize_many(docs)
+    counts = _campaign_counts(user_id, [doc["id"] for doc in serialized])
+    for doc in serialized:
+        doc["counts"] = counts.get(doc["id"], _empty_counts())
+    return serialized
+
+
+def list_campaigns(user_id: str, limit: int = 50) -> list[dict[str, Any]]:
+    docs = list(campaigns.find({"user_id": str(user_id)}, {"contacts": 0}).sort("created_at", -1).limit(limit))
+    return _with_counts(user_id, docs)
+
+
+def get_campaign(campaign_id: str, user_id: str) -> dict[str, Any] | None:
+    doc = get_campaign_doc(campaign_id, user_id)
+    return _with_counts(user_id, [doc])[0] if doc else None
+
+
+def get_overview_stats(user_id: str) -> dict[str, Any]:
+    uid = str(user_id)
+    sent = list(
+        emailsSent.aggregate(
+            [
+                {"$match": {"user_id": uid}},
+                {"$group": {"_id": None, "avg": {"$avg": "$deliverability_risk.score"}, "n": {"$sum": 1}}},
+            ]
+        )
+    )
+    return {
+        "sent": sent[0]["n"] if sent else 0,
+        "avg_sent_risk": round(sent[0]["avg"] or 0, 2) if sent else 0,
+        "waiting": emailsGenerated.count_documents({"user_id": uid, "email_status": False}),
+        "flagged": emailsGenerated.count_documents({"user_id": uid, "outreach_status": "REGENERATE"}),
+        "failed": emailsGenerated.count_documents({"user_id": uid, "outreach_status": {"$regex": "^FAILED"}}),
+        "campaigns": campaigns.count_documents({"user_id": uid}),
+        "projects": projects.count_documents({"user_id": uid}),
+    }
 
 
 def save_gmail_tokens(user_id: str, token_payload: dict[str, Any]) -> None:
@@ -220,8 +459,16 @@ def save_email(
     outreach_status: str | None = None,
     send_fingerprint: str | None = None,
     send_attempts: list[dict[str, Any]] | None = None,
+    campaign_id: str | None = None,
+    campaign_name: str | None = None,
+    campaign_type: str | None = None,
+    failure_reason: str | None = None,
 ):
     data = {
+        "campaign_id": campaign_id,
+        "campaign_name": campaign_name,
+        "campaign_type": campaign_type,
+        "failure_reason": failure_reason,
         "user_id": str(user_id),
         "relevant_projects": projects or [],
         "written_email_details": written_email_details.model_dump(),
@@ -255,14 +502,18 @@ def make_send_fingerprint(user_id: str, recipient_email: str, email_subject: str
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
 
-def get_waiting_emails(user_id: str) -> list[dict[str, Any]]:
-    docs = emailsGenerated.find({"user_id": str(user_id), "email_status": False}).sort("created_at", -1)
-    return _serialize_many(docs)
+def get_waiting_emails(user_id: str, campaign_id: str | None = None) -> list[dict[str, Any]]:
+    query: dict[str, Any] = {"user_id": str(user_id), "email_status": False}
+    if campaign_id:
+        query["campaign_id"] = campaign_id
+    return _serialize_many(emailsGenerated.find(query).sort("created_at", -1))
 
 
-def get_sent_emails(user_id: str) -> list[dict[str, Any]]:
-    docs = emailsSent.find({"user_id": str(user_id), "email_status": True}).sort("created_at", -1)
-    return _serialize_many(docs)
+def get_sent_emails(user_id: str, campaign_id: str | None = None, limit: int = 500) -> list[dict[str, Any]]:
+    query: dict[str, Any] = {"user_id": str(user_id), "email_status": True}
+    if campaign_id:
+        query["campaign_id"] = campaign_id
+    return _serialize_many(emailsSent.find(query).sort("updated_at", -1).limit(limit))
 
 
 def get_waiting_email(mail_id: str, user_id: str) -> dict[str, Any] | None:
@@ -271,27 +522,13 @@ def get_waiting_email(mail_id: str, user_id: str) -> dict[str, Any] | None:
     return emailsGenerated.find_one({"_id": ObjectId(mail_id), "user_id": str(user_id), "email_status": False})
 
 
-def mark_generated_email_sent(mail_id: str, user_id: str, email_response: dict[str, Any] | None = None) -> dict[str, Any]:
-    generated = get_waiting_email(mail_id, user_id)
-    if not generated:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Waiting email not found")
-
-    generated.pop("_id", None)
-    generated["email_status"] = True
-    generated["email_response"] = email_response
-    generated["updated_at"] = _now()
-    sent_result = emailsSent.insert_one(generated)
-    emailsGenerated.delete_one({"_id": ObjectId(mail_id), "user_id": str(user_id)})
-    sent_doc = emailsSent.find_one({"_id": sent_result.inserted_id})
-    return _serialize_doc(sent_doc)
-
-
 def update_generated_email_details(
     mail_id: str,
     user_id: str,
     email_subject: str,
     email_body: str,
     deliverability_risk: dict[str, Any] | None = None,
+    outreach_status: str = "REVIEW_APPROVED",
 ) -> dict[str, Any]:
     if not ObjectId.is_valid(mail_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Waiting email not found")
@@ -301,7 +538,7 @@ def update_generated_email_details(
             "$set": {
                 "written_email_details": {"email_subject": email_subject, "email_body": email_body},
                 "deliverability_risk": deliverability_risk,
-                "outreach_status": "REVIEW_APPROVED",
+                "outreach_status": outreach_status,
                 "updated_at": _now(),
             }
         },
@@ -351,6 +588,7 @@ def record_generated_send_result(
     if send_result.get("status") == "SENT":
         generated["email_status"] = True
         generated["outreach_status"] = "SENT"
+        generated["sent_at"] = _now()
         sent_result = emailsSent.insert_one(generated)
         emailsGenerated.delete_one({"_id": ObjectId(mail_id), "user_id": str(user_id)})
         return _serialize_doc(emailsSent.find_one({"_id": sent_result.inserted_id}))
@@ -388,6 +626,7 @@ def reject_generated_email(
         "email_subject": email_subject or stored_details.get("email_subject", ""),
         "email_body": email_body or stored_details.get("email_body", ""),
         "relevant_projects": json.dumps(generated.get("relevant_projects", [])),
+        "campaign_name": generated.get("campaign_name") or "",
     }
 
     path = ensure_rejected_csv(user_id)
