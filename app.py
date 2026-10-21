@@ -16,7 +16,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Outreach Desk", lifespan=lifespan)
+app = FastAPI(title="Mailzen", lifespan=lifespan)
 
 cors_origins = [
     origin.strip()
@@ -75,7 +75,7 @@ def _page_route(template: str):
 
 @app.get("/favicon.ico", include_in_schema=False)
 def favicon():
-    return FileResponse("static/img/favicon.svg", media_type="image/svg+xml")
+    return FileResponse("static/img/favicon.png", media_type="image/png")
 
 
 for _path, _template in PAGES.items():

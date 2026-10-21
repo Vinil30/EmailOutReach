@@ -4,19 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script>try{if(localStorage.getItem("odTheme")==="light")document.documentElement.dataset.theme="light"}catch(e){}</script>
-    <title>Log in · Outreach Desk</title>
-    <link rel="icon" href="/static/img/favicon.svg">
+    <title>Log in · Mailzen</title>
+    <link rel="icon" type="image/png" href="/static/img/favicon.png">
+    <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css?v=7">
+    <link rel="stylesheet" href="/static/css/style.css?v=8">
 </head>
 <body>
     <div class="auth-wrap">
         <aside class="auth-art">
             <a class="brand" href="/">
-                <div class="brand-mark">Od</div>
-                <div><div class="brand-name">Outreach Desk</div><div class="brand-sub">Write · Check · Send</div></div>
+                <div class="brand-mark" aria-hidden="true"></div>
+                <div><div class="brand-name">Mailzen</div><div class="brand-sub">Write · Check · Send</div></div>
             </a>
             <h2>Write once. Check every word. Send with confidence.</h2>
             <p class="quote">Every draft gets a spam score and a list of exact fixes before a send button ever appears.</p>
@@ -35,7 +36,7 @@
                 </div>
                 <form id="authForm" class="form">
                     <div id="roleField" class="field" hidden>
-                        <span>I'm using Outreach Desk for</span>
+                        <span>I'm using Mailzen for</span>
                         <div class="choice-grid" id="roleChoice" style="grid-template-columns:1fr 1fr;">
                             <label class="choice active"><input type="radio" name="role" value="student" checked><strong>🎓 Student outreach</strong><span>Internships & jobs</span></label>
                             <label class="choice"><input type="radio" name="role" value="campaigner"><strong>📣 Campaigns</strong><span>Marketing & sales</span></label>
@@ -51,7 +52,7 @@
             </div>
         </div>
     </div>
-    <script src="/static/js/api.js?v=7"></script>
-    <script src="/static/js/login.js?v=7"></script>
+    <script src="/static/js/api.js?v=8"></script>
+    <script src="/static/js/login.js?v=8"></script>
 </body>
 </html>

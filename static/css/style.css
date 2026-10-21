@@ -1,4 +1,4 @@
-/* Outreach Desk — shared design system. Dark is the default theme; light is opt-in via data-theme="light". */
+/* Mailzen — shared design system. Dark is the default theme; light is opt-in via data-theme="light". */
 :root {
     color-scheme: dark;
     --bg: #0e1014;
@@ -80,7 +80,6 @@
 /* Light mode stays monochrome: black primary actions, colour only for status. */
 :root[data-theme="light"] .btn.primary { background: var(--ink); color: #fff; }
 :root[data-theme="light"] .btn.primary:hover:not(:disabled) { background: #2b2b2e; }
-:root[data-theme="light"] .brand-mark { background: var(--ink); }
 :root[data-theme="light"] .nav a.active svg { color: var(--ink); }
 :root[data-theme="light"] .nav .count { background: var(--ink); }
 :root[data-theme="light"] .sidebar { border-right-color: var(--line); }
@@ -136,18 +135,14 @@ p { margin: 0; }
     text-decoration: none;
 }
 
+/* The Mailzen mark is a transparent PNG used as a mask, so it takes the surrounding text colour in either theme. */
 .brand-mark {
-    display: grid;
-    place-items: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 9px;
-    background: var(--accent);
-    color: #fff;
-    font-family: var(--serif);
-    font-weight: 600;
-    font-size: 15px;
-    letter-spacing: -0.02em;
+    flex: none;
+    width: 30px;
+    height: 30px;
+    background-color: currentColor;
+    -webkit-mask: url("/static/img/mailzen-mark.png") center / contain no-repeat;
+    mask: url("/static/img/mailzen-mark.png") center / contain no-repeat;
 }
 
 .brand-name { font-weight: 600; font-size: 15px; letter-spacing: -0.01em; }

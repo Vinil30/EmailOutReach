@@ -1,4 +1,4 @@
-# Outreach Desk
+# Mailzen
 
 Personalized email outreach and campaigns that are spam-checked before every send and delivered from the user's own Gmail.
 

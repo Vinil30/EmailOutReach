@@ -4,14 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script>try{if(localStorage.getItem("odTheme")==="light")document.documentElement.dataset.theme="light"}catch(e){}</script>
-    <title>Outreach Desk — email outreach that passes the spam check</title>
+    <title>Mailzen — email outreach that passes the spam check</title>
     <meta name="description" content="Personalized student outreach and email campaigns, scored for spam risk before every send and delivered from your own Gmail.">
-    <link rel="icon" href="/static/img/favicon.svg">
+    <link rel="icon" type="image/png" href="/static/img/favicon.png">
+    <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css?v=7">
-    <link rel="stylesheet" href="/static/css/landing.css?v=7">
+    <link rel="stylesheet" href="/static/css/style.css?v=8">
+    <link rel="stylesheet" href="/static/css/landing.css?v=8">
 </head>
 <body class="lp">
     <div class="lp-progress" id="scrollProgress"></div>
@@ -20,8 +21,8 @@
     <header class="lp-nav" id="nav">
         <div class="lp-wrap lp-nav-inner">
             <a class="brand" href="/">
-                <div class="brand-mark">Od</div>
-                <div class="brand-name">Outreach Desk</div>
+                <div class="brand-mark" aria-hidden="true"></div>
+                <div class="brand-name">Mailzen</div>
             </a>
             <nav class="lp-links" aria-label="Sections">
                 <a href="#guard">How it works</a>
@@ -45,7 +46,7 @@
             <span class="lp-pill"><span class="dot"></span>For students &amp; email campaigns</span>
             <h1>Every email gets checked <em>before it's sent.</em></h1>
             <p class="lp-lead">
-                Outreach Desk writes personalized outreach from your projects or your offer, scores every message
+                Mailzen writes personalized outreach from your projects or your offer, scores every message
                 on 14 spam checks, rewrites what's risky, and sends only what passes — from your own Gmail.
             </p>
             <div class="lp-cta">
@@ -298,7 +299,7 @@
             </div>
             <div class="lp-faq reveal">
                 <details open><summary>Does a low score guarantee the inbox?</summary><p>No tool can promise that. Inbox placement also depends on your domain's reputation and the recipient's filters. The guard catches the content problems you control, before they cost you.</p></details>
-                <details><summary>Can Outreach Desk read my email?</summary><p>No. It asks Google only for the <code>gmail.send</code> scope, which can send mail you approve but can't read, search or delete anything.</p></details>
+                <details><summary>Can Mailzen read my email?</summary><p>No. It asks Google only for the <code>gmail.send</code> scope, which can send mail you approve but can't read, search or delete anything.</p></details>
                 <details><summary>Do I need AI to use it?</summary><p>No. Template campaigns with merge fields work end to end without an AI key. AI is used for personalization and for rewriting flagged drafts.</p></details>
                 <details><summary>What happens to people who unsubscribe?</summary><p>Add them to your suppression list once and they're skipped in every future campaign.</p></details>
                 <details><summary>How does Premium get activated?</summary><p>After you buy Premium we add it to the email on your account, usually within a day. It lasts 30 days; buy again to renew. Premium users never see the database itself, only the companies they've emailed.</p></details>
@@ -323,14 +324,14 @@
 
     <footer class="lp-footer">
         <div class="lp-wrap lp-footer-inner">
-            <a class="brand" href="/"><div class="brand-mark">Od</div><div class="brand-name">Outreach Desk</div></a>
+            <a class="brand" href="/"><div class="brand-mark" aria-hidden="true"></div><div class="brand-name">Mailzen</div></a>
             <span class="small muted">Spam scoring is a pre-send heuristic; it can't guarantee inbox placement.</span>
             <span class="small"><a href="/privacy">Privacy</a> · <a href="/login">Log in</a></span>
         </div>
     </footer>
 
-    <script src="/static/js/api.js?v=7"></script>
-    <script src="/static/js/risk.js?v=7"></script>
-    <script src="/static/js/landing.js?v=7"></script>
+    <script src="/static/js/api.js?v=8"></script>
+    <script src="/static/js/risk.js?v=8"></script>
+    <script src="/static/js/landing.js?v=8"></script>
 </body>
 </html>

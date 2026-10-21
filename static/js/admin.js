@@ -3,7 +3,7 @@
     const $ = id => document.getElementById(id);
     const esc = OutreachApi.escapeHtml;
     if (!user.is_admin) {
-        document.querySelector(".main").innerHTML = `<div class="empty"><strong>Admins only</strong><span>This page is for the Outreach Desk team.</span><a class="btn primary" href="/dashboard">Back home</a></div>`;
+        document.querySelector(".main").innerHTML = `<div class="empty"><strong>Admins only</strong><span>This page is for the Mailzen team.</span><a class="btn primary" href="/dashboard">Back home</a></div>`;
         return;
     }
 

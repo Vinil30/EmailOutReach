@@ -67,9 +67,9 @@ const Layout = (() => {
 
         sidebar.innerHTML = `
             <a class="brand" href="/dashboard">
-                <div class="brand-mark">Od</div>
+                <div class="brand-mark" aria-hidden="true"></div>
                 <div>
-                    <div class="brand-name">Outreach Desk</div>
+                    <div class="brand-name">Mailzen</div>
                     <div class="brand-sub">Write · Check · Send</div>
                 </div>
             </a>
@@ -87,7 +87,7 @@ const Layout = (() => {
         if (!document.querySelector(".mobile-bar")) {
             const bar = document.createElement("div");
             bar.className = "mobile-bar";
-            bar.innerHTML = `<div class="brand"><div class="brand-mark">Od</div><div class="brand-name">Outreach Desk</div></div><button type="button" aria-label="Open menu">${icon("menu")}</button>`;
+            bar.innerHTML = `<div class="brand"><div class="brand-mark" aria-hidden="true"></div><div class="brand-name">Mailzen</div></div><button type="button" aria-label="Open menu">${icon("menu")}</button>`;
             bar.querySelector("button").addEventListener("click", () => document.body.classList.toggle("nav-open"));
             document.body.prepend(bar);
             document.querySelector(".main")?.addEventListener("click", () => document.body.classList.remove("nav-open"));
