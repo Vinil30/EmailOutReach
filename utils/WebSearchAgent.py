@@ -1,6 +1,5 @@
 from tavily import TavilyClient
 import os
-from dotenv import load_dotenv
 
 class WebSearchAgent:
     def __init__(self, query):
