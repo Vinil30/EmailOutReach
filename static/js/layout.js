@@ -1,0 +1,153 @@
+// Shared app chrome: auth guard, role-aware sidebar, Gmail state and review badge.
+const Layout = (() => {
+    const ICONS = {
+        home: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+        plus: '<path d="M12 5v14M5 12h14"/>',
+        layers: '<path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/>',
+        inbox: '<path d="M3 13h5l1.5 3h5L16 13h5"/><path d="M5 5h14l2 8v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6z"/>',
+        send: '<path d="M21 3 10 14"/><path d="M21 3 14 21l-4-7-7-4z"/>',
+        shield: '<path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/>',
+        folder: '<path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/>',
+        user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/>',
+        menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+        bolt: '<path d="M13 3 4 14h7l-1 7 9-11h-7z"/>',
+        doc: '<path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
+        key: '<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3"/>'
+    };
+
+    function icon(name) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
+    }
+
+    function navItems(user) {
+        const campaigner = OutreachApi.isCampaigner(user);
+        const items = [
+            { href: "/dashboard", label: "Home", icon: "home" },
+            { href: "/automate", label: "Automate", icon: "bolt", tag: user?.is_premium ? "" : "Premium" },
+            { href: "/campaigns/new", label: "Send to my list", icon: "plus" },
+            { href: "/campaigns", label: "My lists", icon: "layers" },
+            { href: "/waiting-mails", label: "Review", icon: "inbox", badge: "reviewCount" },
+            { href: "/sent-mails", label: "Sent", icon: "send" },
+            { section: "Setup" },
+            { href: "/profile", label: campaigner ? "Profile & brand" : "Profile & resume", icon: "user" },
+            { href: "/templates", label: "Templates", icon: "doc" },
+            { href: "/spam-check", label: "Spam check", icon: "shield" }
+        ];
+        if (user?.is_admin) items.push({ section: "Admin" }, { href: "/admin", label: "Admin panel", icon: "key" });
+        return items;
+    }
+
+    function planChip(plan) {
+        if (!plan) return "";
+        const premium = plan.plan === "premium";
+        const until = OutreachApi.parseDate(plan.premium_until);
+        const daysLeft = until ? Math.max(0, Math.ceil((until - Date.now()) / 86400000)) : 0;
+        const pct = Math.min(100, (plan.used / Math.max(1, plan.limit)) * 100);
+        return `
+            <div class="plan-chip ${premium ? "premium" : ""}">
+                <div class="plan-chip-top"><strong>${premium ? "Premium" : "General"}</strong><span>${plan.used}/${plan.limit}${premium ? " this week" : " used"}</span></div>
+                <div class="plan-meter"><span style="width:${pct}%"></span></div>
+                <div class="plan-chip-sub">${premium ? `${daysLeft} day${daysLeft === 1 ? "" : "s"} left` : plan.premium_expired ? "Premium expired" : "Free plan · lifetime limit"}</div>
+                ${premium && daysLeft > 5 ? "" : `<a class="btn primary sm block" href="${plan.premium_url}" target="_blank" rel="noopener">${premium ? "Renew Premium" : "Buy Premium"}</a>`}
+            </div>`;
+    }
+
+    function renderSidebar(user) {
+        const sidebar = document.getElementById("sidebar");
+        if (!sidebar) return;
+        const path = window.location.pathname;
+        const campaigner = OutreachApi.isCampaigner(user);
+        const links = navItems(user).map(item => {
+            if (item.section) return `<div class="nav-label">${item.section}</div>`;
+            const active = path === item.href ? "active" : "";
+            const badge = item.badge ? `<span class="count" id="${item.badge}" hidden></span>` : "";
+            const tag = item.tag ? `<span class="nav-tag">${item.tag}</span>` : "";
+            return `<a class="${active}" href="${item.href}">${icon(item.icon)}<span>${item.label}</span>${badge}${tag}</a>`;
+        }).join("");
+
+        sidebar.innerHTML = `
+            <a class="brand" href="/dashboard">
+                <div class="brand-mark">Od</div>
+                <div>
+                    <div class="brand-name">Outreach Desk</div>
+                    <div class="brand-sub">Write · Check · Send</div>
+                </div>
+            </a>
+            <nav class="nav">${links}</nav>
+            <div id="planChip">${planChip(currentPlan)}</div>
+            <div class="sidebar-foot">
+                <div class="who" title="${OutreachApi.escapeAttr(user?.email || "")}">${OutreachApi.escapeHtml(user?.profile?.full_name || user?.name || user?.email || "")}<span class="muted small"> · ${campaigner ? "Campaigns" : "Job seeker"}</span></div>
+                <div class="gmail ${user?.gmail_connected ? "on" : ""}" id="gmailState"><span class="dot"></span>${user?.gmail_connected ? "Gmail connected" : "Gmail not connected"}</div>
+                <button type="button" class="theme-toggle" data-theme-toggle><span data-theme-label></span></button>
+                <button type="button" id="logoutBtn">Sign out</button>
+            </div>`;
+        OutreachApi.bindLogout();
+        OutreachApi.bindThemeToggles(sidebar);
+
+        if (!document.querySelector(".mobile-bar")) {
+            const bar = document.createElement("div");
+            bar.className = "mobile-bar";
+            bar.innerHTML = `<div class="brand"><div class="brand-mark">Od</div><div class="brand-name">Outreach Desk</div></div><button type="button" aria-label="Open menu">${icon("menu")}</button>`;
+            bar.querySelector("button").addEventListener("click", () => document.body.classList.toggle("nav-open"));
+            document.body.prepend(bar);
+            document.querySelector(".main")?.addEventListener("click", () => document.body.classList.remove("nav-open"));
+        }
+    }
+
+    let currentPlan = null;
+
+    async function refreshPlan() {
+        try {
+            currentPlan = await OutreachApi.request("/api/plan");
+            const node = document.getElementById("planChip");
+            if (node) node.innerHTML = planChip(currentPlan);
+        } catch {
+            currentPlan = null;
+        }
+        return currentPlan;
+    }
+
+    async function refreshUser() {
+        try {
+            const user = await OutreachApi.request("/auth/me");
+            OutreachApi.setUser(user);
+            return user;
+        } catch {
+            return OutreachApi.getUser();
+        }
+    }
+
+    async function refreshReviewCount() {
+        try {
+            const stats = await OutreachApi.request("/api/campaigns/stats");
+            const node = document.getElementById("reviewCount");
+            if (node) {
+                node.textContent = stats.waiting;
+                node.hidden = !stats.waiting;
+            }
+            return stats;
+        } catch {
+            return null;
+        }
+    }
+
+    // Resolves with the fresh user so pages can render role-specific content.
+    async function init() {
+        if (!OutreachApi.requireAuth()) {
+            throw new Error("Authentication required");
+        }
+        renderSidebar(OutreachApi.getUser());
+        const user = await refreshUser();
+        renderSidebar(user);
+        refreshReviewCount();
+        refreshPlan();
+        return user;
+    }
+
+    async function connectGmail() {
+        const data = await OutreachApi.request("/gmail/connect");
+        window.location.href = data.authorization_url;
+    }
+
+    return { connectGmail, icon, init, refreshPlan, refreshReviewCount, renderSidebar };
+})();
