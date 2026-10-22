@@ -17,6 +17,8 @@ from pymongo.errors import PyMongoError
 from pymongo.collection import Collection
 from pymongo import ReturnDocument
 
+from utils.legal import clean_signature, legal_status, signature_records
+
 load_dotenv()
 
 MONGO_URI = os.environ.get("MONGO_URI") or "mongodb://localhost:27017"
@@ -45,6 +47,7 @@ campaigns: Collection = db["campaigns"]
 leads: Collection = db["leads"]
 leadSends: Collection = db["leadSends"]
 premiumGrants: Collection = db["premiumGrants"]
+legalSignatures: Collection = db["legalSignatures"]
 
 ADMIN_EMAILS = {email.strip().lower() for email in os.environ.get("ADMIN_EMAILS", "").split(",") if email.strip()}
 
@@ -95,6 +98,7 @@ def ensure_indexes() -> None:
         leadSends.create_index([("user_id", 1), ("lead_id", 1)], unique=True)
         leadSends.create_index([("user_id", 1), ("created_at", -1)])
         premiumGrants.create_index([("email", 1), ("created_at", -1)])
+        legalSignatures.create_index([("user_id", 1), ("signed_at", -1)])
         users.update_many(
             {"automation.status": "running"},
             {"$set": {"automation.status": "stopped", "automation.message": "Stopped because the server restarted. Press Start to resume."}},
@@ -215,6 +219,7 @@ def public_user(user: dict[str, Any] | None) -> dict[str, Any]:
     serialized["is_premium"] = is_premium(user)
     serialized.pop("automation", None)
     serialized.pop("suppressed_emails", None)
+    serialized["legal"] = legal_status(user)
     return serialized
 
 
@@ -231,6 +236,25 @@ def as_utc(value: datetime | None) -> datetime | None:
 def is_premium(user: dict[str, Any] | None) -> bool:
     until = as_utc((user or {}).get("premium_until"))
     return bool(until and until > _now())
+
+
+def sign_legal_documents(user_id: str, signature: str, ip: str | None = None, user_agent: str | None = None) -> dict[str, Any]:
+    """Record a typed-name signature for every document the account's role requires.
+
+    The user document keeps the latest signature per document; legalSignatures keeps an append-only audit trail."""
+    user = get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    name = clean_signature(signature)
+    signed_at = _now()
+    records = signature_records(user.get("role"), name, signed_at)
+    users.update_one({"_id": user["_id"]}, {"$set": {f"legal.{doc_id}": record for doc_id, record in records.items()}})
+    legalSignatures.insert_one({
+        "user_id": user_id, "email": user["email"], "role": user.get("role") or "student", "signature": name,
+        "documents": {doc_id: {"version": record["version"], "sha256": record["sha256"]} for doc_id, record in records.items()},
+        "ip": ip, "user_agent": (user_agent or "")[:300], "method": "typed-name", "signed_at": signed_at,
+    })
+    return public_user(users.find_one({"_id": user["_id"]}))
 
 
 def update_user_profile(user_id: str, role: str | None, profile: dict[str, Any]) -> dict[str, Any]:

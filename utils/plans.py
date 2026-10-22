@@ -6,6 +6,7 @@ from typing import Any
 from fastapi import HTTPException, status
 
 from database.fxns import as_utc, emailsSent, get_user_by_id, is_premium
+from utils.legal import UNSIGNED_MESSAGE, legal_status
 
 GENERAL_LIFETIME_LIMIT = int(os.environ.get("GENERAL_LIFETIME_LIMIT", "20"))
 PREMIUM_WEEKLY_LIMIT = int(os.environ.get("PREMIUM_WEEKLY_LIMIT", "100"))
@@ -65,6 +66,8 @@ def ensure_can_send(user_id: str) -> dict[str, Any]:
     user = get_user_by_id(user_id)
     if not user:
         raise QuotaExceeded("Account not found")
+    if not legal_status(user)["signed"]:
+        raise QuotaExceeded(UNSIGNED_MESSAGE)
     quota = quota_status(user)
     if quota["remaining"] <= 0:
         if quota["plan"] == "premium":

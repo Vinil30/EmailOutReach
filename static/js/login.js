@@ -10,12 +10,19 @@ const authIntro = document.getElementById("authIntro");
 const nameLabel = document.getElementById("nameLabel");
 const roleField = document.getElementById("roleField");
 const roleChoice = document.getElementById("roleChoice");
+const signField = document.getElementById("signField");
+const nameInput = document.getElementById("nameInput");
 const params = new URLSearchParams(window.location.search);
 let authMode = params.get("mode") === "signup" ? "register" : "login";
 
 if (params.get("role") === "campaigner") {
     roleChoice.querySelector('input[value="campaigner"]').checked = true;
 }
+
+const selectedRole = () => roleChoice.querySelector("input:checked").value;
+signField.innerHTML = OutreachApi.signatureBlock(selectedRole());
+const signature = OutreachApi.bindSignature(signField);
+nameInput.addEventListener("input", () => signature.follow(nameInput.value));
 
 function syncRoleCards() {
     roleChoice.querySelectorAll(".choice").forEach(node => node.classList.toggle("active", node.querySelector("input").checked));
@@ -30,6 +37,7 @@ function renderAuthMode() {
     loginBtn.textContent = isSignup ? "Create account" : "Log in";
     nameLabel.hidden = !isSignup;
     roleField.hidden = !isSignup;
+    signField.hidden = !isSignup;
     document.getElementById("passwordInput").autocomplete = isSignup ? "new-password" : "current-password";
     loginTab.classList.toggle("active", !isSignup);
     signupTab.classList.toggle("active", isSignup);
@@ -42,8 +50,15 @@ async function submitAuth(mode) {
         password: document.getElementById("passwordInput").value
     };
     if (mode === "register") {
-        payload.name = document.getElementById("nameInput").value || null;
-        payload.role = roleChoice.querySelector("input:checked").value;
+        try {
+            payload.signature = signature.value();
+        } catch (error) {
+            OutreachApi.setStatus(authStatus, error.message, "error");
+            return;
+        }
+        payload.accept_terms = true;
+        payload.name = nameInput.value || payload.signature;
+        payload.role = selectedRole();
     }
 
     loginBtn.disabled = true;
@@ -70,7 +85,10 @@ authForm.addEventListener("submit", event => {
     event.preventDefault();
     submitAuth(authMode);
 });
-roleChoice.addEventListener("change", syncRoleCards);
+roleChoice.addEventListener("change", () => {
+    syncRoleCards();
+    signature.setRole(selectedRole());
+});
 loginTab.addEventListener("click", () => setMode("login"));
 signupTab.addEventListener("click", () => setMode("register"));
 

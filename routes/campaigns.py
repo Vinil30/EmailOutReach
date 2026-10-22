@@ -13,6 +13,7 @@ from database.fxns import (
 )
 from utils import campaign_runner
 from utils.contacts import normalize_contacts, read_contacts_frame
+from utils.legal import require_signed
 from utils.plans import quota_status, require_ai
 from utils.spam_guard import analyze_email_risk
 from utils.templating import merge_fields, render_template, with_compliance_footer
@@ -117,6 +118,7 @@ async def launch_campaign(
     brief_json: str | None = Form(None),
     current_user=Depends(get_current_user),
 ):
+    require_signed(current_user)
     if mode not in MODES:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mode must be 'auto' or 'review'")
     brief = _parse_brief(brief_json)

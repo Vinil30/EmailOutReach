@@ -245,8 +245,64 @@ const OutreachApi = (() => {
         return user?.role === "campaigner";
     }
 
+    // Legal documents an account signs, matching utils/legal.py.
+    function legalDocuments(role) {
+        return [
+            { title: "Privacy Policy", url: "/privacy" },
+            role === "campaigner"
+                ? { title: "Terms for Campaigns & Businesses", url: "/terms/campaigners" }
+                : { title: "Terms for Students & Job Seekers", url: "/terms/students" }
+        ];
+    }
+
+    function loadSignatureFont() {
+        if (document.getElementById("signatureFont")) return;
+        const link = document.createElement("link");
+        link.id = "signatureFont";
+        link.rel = "stylesheet";
+        link.href = "https://fonts.googleapis.com/css2?family=Caveat:wght@500&display=swap";
+        document.head.appendChild(link);
+    }
+
+    // Typed-name signature block: document links, a live signature preview and the agreement box.
+    function signatureBlock(role, name = "") {
+        loadSignatureFont();
+        const docs = legalDocuments(role);
+        return `
+            <div class="sign-docs" data-sign-docs>${docs.map(doc => `<a href="${doc.url}" target="_blank" rel="noopener">${escapeHtml(doc.title)}<span>Read ↗</span></a>`).join("")}</div>
+            <label class="field"><span>Type your full name to sign</span><input data-signature type="text" autocomplete="name" maxlength="120" value="${escapeAttr(name)}" placeholder="e.g. Ananya Rao"></label>
+            <div class="sign-pad" aria-hidden="true"><output data-signature-preview>${escapeHtml(name)}</output></div>
+            <label class="sign-check"><input type="checkbox" data-agree><span>I have read and agree to the ${docs.map(doc => `<a href="${doc.url}" target="_blank" rel="noopener">${escapeHtml(doc.title)}</a>`).join(" and the ")}, and I sign them electronically with the name above.</span></label>`;
+    }
+
+    function bindSignature(root) {
+        const input = root.querySelector("[data-signature]");
+        const preview = root.querySelector("[data-signature-preview]");
+        input.addEventListener("input", () => { preview.textContent = input.value; input.dataset.touched = "1"; });
+        return {
+            setRole(role) {
+                const docs = legalDocuments(role);
+                root.querySelectorAll("[data-sign-docs] a").forEach((link, i) => { link.href = docs[i].url; link.firstChild.textContent = docs[i].title; });
+                root.querySelectorAll(".sign-check a").forEach((link, i) => { link.href = docs[i].url; link.textContent = docs[i].title; });
+            },
+            // Mirrors another name field until the user edits the signature directly.
+            follow(value) {
+                if (input.dataset.touched) return;
+                input.value = value;
+                preview.textContent = value;
+            },
+            value() {
+                const signature = input.value.trim().replace(/\s+/g, " ");
+                if (signature.length < 3) throw new Error("Type your full name to sign");
+                if (!root.querySelector("[data-agree]").checked) throw new Error("Tick the box to agree to the Terms and Privacy Policy");
+                return signature;
+            }
+        };
+    }
+
     return {
         bindLogout,
+        bindSignature,
         bindThemeToggles,
         cachedGet,
         clearSession,
@@ -258,6 +314,7 @@ const OutreachApi = (() => {
         getToken,
         getUser,
         isCampaigner,
+        legalDocuments,
         logout,
         parseDate,
         redirectIfLoggedIn,
@@ -268,6 +325,7 @@ const OutreachApi = (() => {
         setStatus,
         setTheme,
         setUser,
+        signatureBlock,
         statusBadge,
         timeAgo,
         toast

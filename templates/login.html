@@ -45,10 +45,11 @@
                     <label class="field" id="nameLabel" hidden><span>Name</span><input id="nameInput" type="text" autocomplete="name" placeholder="Your name"></label>
                     <label class="field"><span>Email</span><input id="emailInput" type="email" autocomplete="email" required placeholder="you@example.com"></label>
                     <label class="field"><span>Password</span><input id="passwordInput" type="password" required minlength="8" placeholder="At least 8 characters"></label>
+                    <div class="sign-box" id="signField" hidden></div>
                     <button class="btn primary lg block" id="loginBtn" type="submit">Log in</button>
                     <div id="authStatus" class="status" style="text-align:center;"></div>
                 </form>
-                <p class="small muted" style="text-align:center;">By continuing you agree to our <a href="/privacy">privacy policy</a>.</p>
+                <p class="small muted" style="text-align:center;" id="legalNote"><a href="/terms">Terms</a> · <a href="/privacy">Privacy Policy</a></p>
             </div>
         </div>
     </div>

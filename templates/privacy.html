@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script>try{if(localStorage.getItem("odTheme")!=="dark")document.documentElement.dataset.theme="light"}catch(e){document.documentElement.dataset.theme="light"}</script>
-    <title>Privacy · Mailzen</title>
+    <title>Privacy Policy · Mailzen</title>
+    <meta name="description" content="How Mailzen collects, uses, shares and protects your data, including Gmail data received through Google APIs.">
     <link rel="icon" type="image/png" href="/static/img/favicon.png">
     <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,14 +18,110 @@
         <a class="brand" href="/"><div class="brand-mark" aria-hidden="true"></div><div><div class="brand-name">Mailzen</div></div></a>
         <div class="actions"><button type="button" class="theme-toggle" data-theme-toggle></button><a class="btn secondary" href="/login">Log in</a></div>
     </nav>
-    <main class="section" style="max-width:760px;">
-        <h2>Privacy</h2>
-        <div class="stack" style="margin-top:20px;color:var(--ink-2);">
-            <p>We use your data only to provide email outreach features and do not sell it.</p>
-            <p><strong>What we store:</strong> your account email and hashed password, the profile, projects and campaign settings you enter, the contact lists you upload for campaigns, generated drafts, send results, and Gmail OAuth tokens.</p>
-            <p><strong>Gmail access:</strong> we request only the <code>gmail.send</code> scope, which lets the app send mail you approve. It cannot read, search or delete messages in your inbox. You can disconnect at any time from your profile, or revoke access in your Google account.</p>
-            <p><strong>Third parties:</strong> when AI writing or company research is enabled, recipient and company details are sent to the configured LLM (Groq) and search (Tavily) providers to generate the email.</p>
-            <p><strong>Recipients:</strong> campaign emails include an opt-out line. Add anyone who asks to stop to your suppression list and they're skipped in every future campaign.</p>
+    <main class="legal">
+        <header class="legal-head">
+            <span class="eyebrow">Legal</span>
+            <h1>Privacy Policy</h1>
+            <div class="meta"><span>Effective 22 October 2026</span><span>Version 2026-10-22</span><span>Questions: <a href="mailto:rapellysaivinil30@gmail.com">rapellysaivinil30@gmail.com</a></span></div>
+        </header>
+        <div class="legal-body">
+            <nav class="legal-toc" aria-label="On this page">
+                <strong>On this page</strong>
+                <a href="#who-we-are">1. Who we are</a>
+                <a href="#data-we-collect">2. Data we collect</a>
+                <a href="#how-we-use-data">3. How we use data</a>
+                <a href="#google-user-data">4. Google user data</a>
+                <a href="#who-we-share-data-with">5. Who we share data with</a>
+                <a href="#contacts-and-recipients">6. Contacts and recipients</a>
+                <a href="#how-long-we-keep-data">7. How long we keep data</a>
+                <a href="#security">8. Security</a>
+                <a href="#your-rights-and-choices">9. Your rights and choices</a>
+                <a href="#cookies-and-local-storage">10. Cookies and local storage</a>
+                <a href="#children">11. Children</a>
+                <a href="#changes-to-this-policy">12. Changes to this policy</a>
+            </nav>
+            <article class="legal-article">
+                <p>This policy explains what data Mailzen (“Mailzen”, “we”, “us”) collects when you use the website and app at this address, why we collect it, who we share it with and the choices you have. It applies to every account type: students and job seekers, and people running email campaigns.</p>
+                <div class="legal-summary" style="margin-top:20px;">
+                    <h2>The short version</h2>
+                    <ul><li>We use your data only to run Mailzen for you. We never sell it and never use it for advertising.</li><li>Gmail access is limited to <strong>sending</strong> email you start. Mailzen cannot read, search or delete anything in your inbox.</li><li>Some features send recipient and company details to AI and search providers to write emails.</li><li>You can disconnect Gmail at any time and ask us to delete your account and data.</li></ul>
+                    <p class="small muted" style="margin-top:10px;">This summary is for convenience. The full text below is what applies.</p>
+                </div>
+                <section id="who-we-are">
+                    <h2>1. Who we are</h2>
+                    <p>Mailzen is an email outreach tool operated from India. For any privacy question or request, email <a href="mailto:rapellysaivinil30@gmail.com">rapellysaivinil30@gmail.com</a>. We act as the party responsible for your account data. For contact lists you upload, you decide who is on them and why, and we process that data on your instructions (see section 6).</p>
+                </section>
+                <section id="data-we-collect">
+                    <h2>2. Data we collect</h2>
+                    <h3>Data you give us</h3>
+                    <ul><li><strong>Account:</strong> name, email address, a hashed password (we never store it in readable form) and the account type you pick.</li><li><strong>Profile:</strong> for students, things like your school, skills, goal, resume link, portfolio link, projects and email signature; for campaigners, organisation, website, offer, audience, postal address and opt-out wording.</li><li><strong>Email content:</strong> templates, drafts, subjects and bodies you write or that Mailzen writes for you.</li><li><strong>Contact lists:</strong> names, email addresses, companies and any other columns in files you upload, paste or type in.</li><li><strong>Signature records:</strong> when you agree to our terms we store the name you typed, the document versions and their fingerprints, the time, your IP address and your browser’s user-agent, as proof of agreement.</li></ul>
+                    <h3>Data created while you use Mailzen</h3>
+                    <ul><li>Send history: who was emailed, when, delivery status, spam-check scores and replies counted by your plan.</li><li>Plan and usage data, such as how many emails you have sent this week.</li><li>Basic technical logs (IP address, request time, errors) kept by our hosting provider for security and debugging.</li></ul>
+                    <h3>Data from Google</h3>
+                    <p>If you connect Gmail, Google gives us OAuth tokens for the <code>gmail.send</code> permission and confirms the address you connected. See section 4.</p>
+                </section>
+                <section id="how-we-use-data">
+                    <h2>3. How we use data</h2>
+                    <ul><li>To create and secure your account and keep you signed in.</li><li>To write, spam-check, queue and send the emails you ask for, from your own Gmail account.</li><li>To enforce plan limits, pace sends 1–3 minutes apart and avoid emailing the same person twice.</li><li>To show your history, scores and progress.</li><li>To respond to support requests and keep the service safe (for example, stopping abuse).</li><li>To keep records needed by law or to prove agreement to our terms.</li></ul>
+                    <p>We do not use your data to train AI models, build advertising profiles or market other products to your contacts.</p>
+                </section>
+                <section id="google-user-data">
+                    <h2>4. Google user data</h2>
+                    <p>Mailzen asks for one Gmail permission: <code>https://www.googleapis.com/auth/gmail.send</code>. It lets Mailzen send an email from your Gmail account when you start a send. It does not allow reading, searching, labelling or deleting messages, and we never access your inbox or contacts.</p>
+                    <p>We use the tokens only to send emails you have approved or set to send automatically. We store them encrypted in transit and at rest with our database provider, never show them to other users and never transfer them to anyone except as needed to send the email through Google.</p>
+                    <p><strong>Mailzen’s use and transfer to any other app of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Google API Services User Data Policy</a>, including the Limited Use requirements.</strong> No human at Mailzen reads email content you send through Gmail, except when you ask us for help with a specific message, when needed for security, or when the law requires it.</p>
+                    <p>You can disconnect Gmail from your profile at any time, or revoke access at <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">myaccount.google.com/permissions</a>. Disconnecting deletes the stored tokens.</p>
+                </section>
+                <section id="who-we-share-data-with">
+                    <h2>5. Who we share data with</h2>
+                    <p>We share only what each provider needs to do its job:</p>
+                    <table class="legal-table">
+                        <tr><th>Provider</th><th>Purpose</th><th>Data involved</th></tr>
+                        <tr><td>Google (Gmail API)</td><td>Sending your emails</td><td>Recipient, subject, body, your OAuth token</td></tr>
+                        <tr><td>Groq (AI model)</td><td>Writing and fixing emails, when AI writing is used</td><td>Your profile and projects, recipient name and company, draft text</td></tr>
+                        <tr><td>Tavily (web search)</td><td>Researching a company before AI writes an email</td><td>Company name and website</td></tr>
+                        <tr><td>MongoDB Atlas</td><td>Database hosting</td><td>All account data</td></tr>
+                        <tr><td>Render</td><td>Website hosting</td><td>Requests and technical logs</td></tr>
+                        <tr><td>Checkout partner</td><td>Processing paid upgrades</td><td>What you give them at checkout; we receive only your email to activate the upgrade</td></tr>
+                    </table>
+                    <p>These providers may process data outside India. We may also disclose data if the law requires it, to protect people from harm, or as part of a merger or sale of the service (you would be told first). We never sell personal data.</p>
+                </section>
+                <section id="contacts-and-recipients">
+                    <h2>6. Contacts and recipients</h2>
+                    <p>If you upload a list, you are responsible for having a lawful reason to email the people on it (our Terms explain this). We use list data only to send your emails and keep your history, and we never contact your recipients for our own purposes.</p>
+                    <p>Mailzen also keeps a database of professional recruiter contacts, gathered from public, business-facing sources, that some accounts can email through automation. Account holders never see or download this database. If you are a recipient and want to stop receiving emails sent through Mailzen, or want your details removed from our recruiter database, email us. We will deactivate your details in the recruiter database so no automated outreach reaches you again, and pass your request on to anyone who emailed you from their own list.</p>
+                </section>
+                <section id="how-long-we-keep-data">
+                    <h2>7. How long we keep data</h2>
+                    <ul><li>Account, profile and history: while your account is open.</li><li>After you ask us to delete your account: removed within 30 days, except for signature records and minimal send logs we must keep to prove agreement or handle a legal claim (kept up to 3 years).</li><li>Gmail tokens: deleted as soon as you disconnect.</li><li>Hosting logs: kept by our provider for a short period, usually under 30 days.</li></ul>
+                </section>
+                <section id="security">
+                    <h2>8. Security</h2>
+                    <p>Passwords are hashed, connections use HTTPS, and access to the database is restricted. No system is perfectly secure; if a breach affects your data, we will tell you and the relevant authorities as the law requires.</p>
+                </section>
+                <section id="your-rights-and-choices">
+                    <h2>9. Your rights and choices</h2>
+                    <p>Depending on where you live, including under India’s Digital Personal Data Protection Act 2023 and the GDPR, you can ask us to:</p>
+                    <ul><li>see the personal data we hold about you, or get a copy of it;</li><li>correct anything that is wrong (most of it you can edit in your profile);</li><li>delete your account and data;</li><li>withdraw consent, for example by disconnecting Gmail;</li><li>nominate someone to act for you, and complain to a data protection authority.</li></ul>
+                    <p>Email <a href="mailto:rapellysaivinil30@gmail.com">rapellysaivinil30@gmail.com</a> from your account address. We reply within 30 days.</p>
+                </section>
+                <section id="cookies-and-local-storage">
+                    <h2>10. Cookies and local storage</h2>
+                    <p>Mailzen does not use advertising or tracking cookies. Your browser’s local storage keeps your sign-in session and your light or dark theme. Google Fonts serves the site’s fonts, which means your browser contacts Google to load them.</p>
+                </section>
+                <section id="children">
+                    <h2>11. Children</h2>
+                    <p>Mailzen is for people aged 18 or older. If you are under 18, you may use it only with the consent of a parent or guardian, who agrees to these documents for you. We do not knowingly collect data from children under 13; if we learn of it, we delete it.</p>
+                </section>
+                <section id="changes-to-this-policy">
+                    <h2>12. Changes to this policy</h2>
+                    <p>If we change this policy, we will update the version and date above. For important changes, the app will ask you to read and sign the new version before you can keep sending.</p>
+                </section>
+                <section>
+                    <h2>Related documents</h2>
+                    <div class="legal-related"><a class="btn secondary sm" href="/terms/students">Terms for Students & Job Seekers</a><a class="btn secondary sm" href="/terms/campaigners">Terms for Campaigns & Businesses</a></div>
+                </section>
+            </article>
         </div>
     </main>
     <script src="/static/js/api.js?v=9"></script>

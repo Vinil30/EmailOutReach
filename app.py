@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from database.fxns import ensure_indexes
-from routes import admin, auth, automated, automation, campaigns, gmail, human_in_loop, profile, spam
+from routes import admin, auth, automated, automation, campaigns, gmail, human_in_loop, legal, profile, spam
 
 
 @asynccontextmanager
@@ -44,6 +44,7 @@ app.include_router(profile.router)
 app.include_router(spam.router)
 app.include_router(automation.router)
 app.include_router(admin.router)
+app.include_router(legal.router)
 app.add_middleware(GZipMiddleware, minimum_size=800)
 
 
@@ -81,6 +82,9 @@ PAGES = {
     "/templates": "templates.html",
     "/admin": "admin.html",
     "/privacy": "privacy.html",
+    "/terms": "terms.html",
+    "/terms/students": "terms_students.html",
+    "/terms/campaigners": "terms_campaigners.html",
 }
 
 

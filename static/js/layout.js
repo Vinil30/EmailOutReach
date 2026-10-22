@@ -80,6 +80,7 @@ const Layout = (() => {
                 <div class="gmail ${user?.gmail_connected ? "on" : ""}" id="gmailState"><span class="dot"></span>${user?.gmail_connected ? "Gmail connected" : "Gmail not connected"}</div>
                 <button type="button" class="theme-toggle" data-theme-toggle><span data-theme-label></span></button>
                 <button type="button" id="logoutBtn">Sign out</button>
+                <div class="legal-links"><a href="/terms">Terms</a><a href="/privacy">Privacy</a></div>
             </div>`;
         OutreachApi.bindLogout();
         OutreachApi.bindThemeToggles(sidebar);
@@ -131,6 +132,46 @@ const Layout = (() => {
         }
     }
 
+    // Accounts must sign the current Terms and Privacy Policy for their role; this blocks the app until they do.
+    function requireSignature(user) {
+        if (!user?.legal || user.legal.signed || document.getElementById("signModal")) return;
+        const updated = user.legal.documents.some(doc => doc.signed_at);
+        const backdrop = document.createElement("div");
+        backdrop.className = "modal-backdrop";
+        backdrop.id = "signModal";
+        backdrop.innerHTML = `
+            <div class="modal card sign-modal" role="dialog" aria-modal="true" aria-labelledby="signTitle">
+                <div class="card-head"><div><span class="eyebrow">${updated ? "Updated terms" : "One last step"}</span><h3 id="signTitle">${updated ? "Please review and sign the updated terms" : "Review and sign to continue"}</h3><p>${updated ? "We've changed our terms or your account type. Sign the current versions to keep sending." : "Mailzen sends email from your Gmail account, so every account signs the Terms and Privacy Policy first."}</p></div></div>
+                <div class="card-body">
+                    <div class="sign-box">${OutreachApi.signatureBlock(user.role, user.profile?.full_name || user.name || "")}</div>
+                    <div class="status small" id="signStatus"></div>
+                    <div class="actions" style="justify-content:space-between;">
+                        <button type="button" class="btn ghost sm" data-sign-out>Sign out</button>
+                        <button type="button" class="btn primary" data-sign>Sign and continue</button>
+                    </div>
+                </div>
+            </div>`;
+        document.body.appendChild(backdrop);
+        const signature = OutreachApi.bindSignature(backdrop);
+        const status = backdrop.querySelector("#signStatus");
+        backdrop.querySelector("[data-sign-out]").addEventListener("click", OutreachApi.logout);
+        backdrop.querySelector("[data-sign]").addEventListener("click", async event => {
+            const button = event.currentTarget;
+            try {
+                const value = signature.value();
+                button.disabled = true;
+                OutreachApi.setStatus(status, "Signing…");
+                const data = await OutreachApi.request("/api/legal/sign", { method: "POST", json: { signature: value, agree: true } });
+                OutreachApi.setUser(data.user);
+                backdrop.remove();
+                OutreachApi.toast("Signed. Thanks!", "ok");
+            } catch (error) {
+                OutreachApi.setStatus(status, error.message, "error");
+                button.disabled = false;
+            }
+        });
+    }
+
     // Resolves with the fresh user so pages can render role-specific content.
     async function init() {
         if (!OutreachApi.requireAuth()) {
@@ -142,6 +183,7 @@ const Layout = (() => {
         refreshPlan({ fresh: false });
         const user = await refreshUser();
         renderSidebar(user);
+        requireSignature(user);
         // Re-rendering the sidebar resets the review badge, so re-apply the (already shared) stats.
         OutreachApi.cachedGet("/api/campaigns/stats").then(stats => {
             const badge = document.getElementById("reviewCount");
@@ -155,5 +197,5 @@ const Layout = (() => {
         window.location.href = data.authorization_url;
     }
 
-    return { connectGmail, icon, init, refreshPlan, refreshReviewCount, renderSidebar };
+    return { connectGmail, icon, init, refreshPlan, refreshReviewCount, renderSidebar, requireSignature };
 })();

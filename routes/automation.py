@@ -5,6 +5,7 @@ from database.admin import get_automation, lead_send_counts, lead_send_history, 
 from database.fxns import get_current_user, is_premium, project_catalog
 from utils import premium_runner
 from utils.job_templates import MERGE_FIELD_HELP, TEMPLATES, get_template, profile_variables
+from utils.legal import require_signed
 from utils.plans import quota_status
 from utils.spam_guard import analyze_email_risk
 from utils.templating import render_template, with_compliance_footer
@@ -105,6 +106,7 @@ async def automation_status(current_user=Depends(get_current_user)):
 
 @router.post("/automation/start")
 async def automation_start(current_user=Depends(get_current_user)):
+    require_signed(current_user)
     problems = premium_runner.preflight(current_user)
     if problems:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=problems[0])

@@ -71,6 +71,8 @@
         user = data.user;
         OutreachApi.setUser(user);
         Layout.renderSidebar(user);
+        // Switching account type means signing that type's terms.
+        Layout.requireSignature(user);
         return user;
     }
 

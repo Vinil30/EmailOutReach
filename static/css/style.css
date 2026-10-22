@@ -1038,3 +1038,59 @@ tbody tr.clickable:hover { background: var(--surface-2); }
 @media (max-width: 860px) {
     .contact-form-row { grid-template-columns: 1fr 1fr; grid-template-areas: "email email" "name company" "role role" "details details" "remove remove"; }
 }
+
+/* ---------- Legal pages ---------- */
+.legal { max-width: 1080px; margin: 0 auto; padding: 24px 24px 80px; }
+.legal-head { padding: 28px 0 30px; border-bottom: 1px solid var(--line); }
+.legal-head h1 { margin-top: 10px; font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 5vw, 50px); line-height: 1.05; letter-spacing: -0.025em; }
+.legal-head .meta { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--muted); font-size: 13px; }
+.legal-body { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 56px; padding-top: 36px; }
+.legal-toc { position: sticky; top: 24px; align-self: start; display: grid; gap: 2px; font-size: 13px; }
+.legal-toc strong { margin-bottom: 8px; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.legal-toc a { padding: 5px 10px; border-radius: 6px; color: var(--ink-2); }
+.legal-toc a:hover { background: var(--surface-3); color: var(--ink); }
+.legal-article { max-width: 720px; color: var(--ink-2); font-size: 15px; line-height: 1.7; }
+.legal-article section { padding-bottom: 30px; scroll-margin-top: 20px; }
+.legal-article h2 { margin-bottom: 10px; font-family: var(--serif); font-weight: 500; font-size: 23px; letter-spacing: -0.01em; color: var(--ink); }
+.legal-article h3 { margin: 16px 0 6px; font-size: 15px; font-weight: 600; color: var(--ink); }
+.legal-article p + p, .legal-article p + ul, .legal-article ul + p { margin-top: 10px; }
+.legal-article ul { padding-left: 20px; display: grid; gap: 6px; }
+.legal-article a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.legal-summary { margin-bottom: 34px; padding: 20px 22px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.legal-summary h2 { font-size: 18px; }
+.legal-summary ul { margin-top: 8px; }
+.legal-table { width: 100%; margin-top: 10px; border-collapse: collapse; font-size: 14px; }
+.legal-table th, .legal-table td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.legal-table th { color: var(--ink); font-weight: 600; }
+.legal-related { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.legal-choice { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 30px; }
+.legal-choice a { display: grid; gap: 8px; padding: 24px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); transition: border-color .2s, transform .2s; }
+.legal-choice a:hover { border-color: var(--line-strong); transform: translateY(-2px); }
+.legal-choice strong { font-family: var(--serif); font-size: 22px; font-weight: 500; color: var(--ink); }
+.legal-choice span { color: var(--muted); font-size: 14px; }
+@media (max-width: 860px) {
+    .legal-body { grid-template-columns: 1fr; gap: 24px; }
+    .legal-toc { position: static; grid-template-columns: 1fr 1fr; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
+    .legal-toc strong { grid-column: 1 / -1; }
+    .legal-choice { grid-template-columns: 1fr; }
+}
+
+/* ---------- Signing ---------- */
+.sign-box { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); }
+.sign-docs { display: grid; gap: 6px; font-size: 13.5px; }
+.sign-docs a { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); }
+.sign-docs a:hover { border-color: var(--line-strong); }
+.sign-docs a span { color: var(--muted); font-size: 12px; }
+.sign-pad { position: relative; display: grid; align-items: end; min-height: 74px; padding: 8px 14px 10px; border: 1px dashed var(--line-strong); border-radius: var(--radius-sm); background: var(--surface); }
+.sign-pad::before { content: "Signature"; position: absolute; top: 7px; left: 12px; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.sign-pad::after { content: ""; position: absolute; left: 14px; right: 14px; bottom: 14px; border-bottom: 1px solid var(--line-strong); }
+.sign-pad output { position: relative; z-index: 1; min-height: 40px; font-family: "Caveat", "Segoe Script", cursive; font-size: 34px; line-height: 1.1; color: var(--ink); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.sign-pad output:empty::before { content: "Your signature appears here"; font-family: var(--font); font-size: 13px; color: var(--faint); }
+.sign-check { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--ink-2); line-height: 1.5; }
+.sign-check input { margin-top: 3px; accent-color: var(--ink); }
+.sign-check a, .sign-modal a.inline { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.sign-modal { width: min(520px, 100%); }
+.sign-modal .card-body { display: grid; gap: 14px; }
+.legal-links { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11.5px; }
+.legal-links a { color: var(--side-muted); }
+.legal-links a:hover { color: var(--side-ink); }
