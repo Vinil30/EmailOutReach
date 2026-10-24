@@ -50,7 +50,7 @@
         const aiInput = document.querySelector('#writingMode input[value="ai"]');
         aiInput.disabled = true;
         aiInput.closest(".choice").classList.add("locked");
-        aiInput.closest(".choice").addEventListener("click", () => OutreachApi.toast("AI writing is a Premium feature. Templates are free to use.", "error"));
+        aiInput.closest(".choice").addEventListener("click", () => OutreachApi.openUpgrade());
     }
 
     // ---- Choice cards ----

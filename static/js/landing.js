@@ -94,8 +94,13 @@
         $("consoleBadge").className = `badge ${running ? "ok live" : "plain"}`;
         $("consoleToggle").textContent = running ? "Stop" : "Start";
         $("consoleUsed").textContent = used;
-        $("consoleBar").style.width = `${used}%`;
+        $("consoleBar").style.width = `${Math.min(100, (used / dailyCap()) * 100)}%`;
         consoleEl.classList.toggle("paused", !running);
+    }
+
+    // The demo meter follows the real daily cap, which the admin can change.
+    function dailyCap() {
+        return Number(consoleEl.querySelector("[data-daily-cap]")?.textContent) || 100;
     }
 
     for (let i = 0; i < 3; i++) addFeedItem(false);
@@ -108,7 +113,7 @@
         countdown -= 30;
         if (countdown <= 0) {
             addFeedItem();
-            used = used >= 100 ? 37 : used + 1;
+            used = used >= dailyCap() ? Math.round(dailyCap() * 0.37) : used + 1;
             countdown = 60 + Math.floor(Math.random() * 120);
         }
         paintConsole();

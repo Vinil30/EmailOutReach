@@ -300,22 +300,126 @@ const OutreachApi = (() => {
         };
     }
 
+    // ---- Plans: live prices/limits (admin-editable) and the upgrade card ----
+    const PLAN_NAMES = { free: "Free", pro: "Pro", premium: "Premium" };
+
+    function getPricing() {
+        return cachedGet("/api/pricing");
+    }
+
+    function forgetPricing() {
+        getCache.delete("/api/pricing");
+    }
+
+    function formatPrice(pricing, value) {
+        const amount = Number(value);
+        return `${pricing.currency}${Number.isInteger(amount) ? amount : amount.toFixed(2)}`;
+    }
+
+    // Fills [data-price="pro"], [data-contacts="premium"], [data-free-emails], [data-daily-cap] and [data-plan-days].
+    async function applyPricing(root = document) {
+        if (!root.querySelector("[data-price], [data-contacts], [data-free-emails], [data-daily-cap], [data-plan-days]")) return null;
+        const pricing = await getPricing();
+        root.querySelectorAll("[data-price]").forEach(node => { node.textContent = formatPrice(pricing, pricing[node.dataset.price].price); });
+        root.querySelectorAll("[data-contacts]").forEach(node => { node.textContent = pricing[node.dataset.contacts].contacts; });
+        root.querySelectorAll("[data-free-emails]").forEach(node => { node.textContent = pricing.free_emails; });
+        root.querySelectorAll("[data-daily-cap]").forEach(node => { node.textContent = pricing.daily_cap; });
+        root.querySelectorAll("[data-plan-days]").forEach(node => { node.textContent = pricing.days; });
+        return pricing;
+    }
+
+    function planFeatures(pricing) {
+        const cap = `Unlimited emails, up to ${pricing.daily_cap} a day*`;
+        return {
+            free: [`${pricing.free_emails} emails in total`, "Send to your own contact lists", "Ready-made templates", "Spam check before every send", "Sends from your own Gmail"],
+            pro: [cap, `${pricing.pro.contacts} new recruiters from our database per purchase`, "One-click automation: press Start, it sends", "Ready-made templates with names filled in", "Every company you reach, tracked"],
+            premium: [cap, `${pricing.premium.contacts} new recruiters from our database per purchase`, "One-click automation: press Start, it sends", "AI researches each company and writes a unique email", "AI picks your best-matching project", "AI fixes risky drafts before they send"]
+        };
+    }
+
+    function closeUpgrade() {
+        document.getElementById("upgradeCard")?.remove();
+        document.removeEventListener("keydown", upgradeEscape);
+    }
+
+    function upgradeEscape(event) {
+        if (event.key === "Escape") closeUpgrade();
+    }
+
+    // The plans card that every "Upgrade" control opens, pinned to the top of the screen.
+    async function openUpgrade() {
+        if (document.getElementById("upgradeCard")) return;
+        let pricing;
+        try {
+            pricing = await getPricing();
+        } catch (error) {
+            toast(error.message, "error");
+            return;
+        }
+        const user = getUser();
+        const current = user ? (user.plan || "free") : null;
+        const features = planFeatures(pricing);
+        const tier = id => {
+            const paid = id !== "free";
+            const isCurrent = current === id;
+            const action = !paid
+                ? (user ? "" : `<a class="btn secondary block" href="/login?mode=signup">Start free</a>`)
+                : `<a class="btn ${id === "premium" ? "primary" : "secondary"} block" href="${escapeAttr(pricing[id].url)}" target="_blank" rel="noopener">${isCurrent ? `Renew ${PLAN_NAMES[id]}` : `Get ${PLAN_NAMES[id]}`}</a>`;
+            return `
+                <div class="upgrade-tier ${id === "premium" ? "featured" : ""} ${isCurrent ? "current" : ""}">
+                    <div class="upgrade-tier-head">
+                        <strong>${PLAN_NAMES[id]}</strong>
+                        ${isCurrent ? '<span class="badge plain">Your plan</span>' : id === "premium" ? '<span class="badge accent plain">Most complete</span>' : ""}
+                    </div>
+                    <div class="upgrade-price">${paid ? `${formatPrice(pricing, pricing[id].price)}<small> / ${pricing.days} days</small>` : `${pricing.currency}0<small> forever</small>`}</div>
+                    <ul>${features[id].map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+                    ${action}
+                </div>`;
+        };
+        const backdrop = document.createElement("div");
+        backdrop.className = "modal-backdrop upgrade-backdrop";
+        backdrop.id = "upgradeCard";
+        backdrop.innerHTML = `
+            <div class="modal card upgrade-card" role="dialog" aria-modal="true" aria-labelledby="upgradeTitle">
+                <div class="card-head">
+                    <div><span class="eyebrow">Upgrade</span><h3 id="upgradeTitle">Pick the plan that fits your job hunt</h3><p>Any paid plan gives unlimited sending. Plans differ in how many recruiters we provide and whether AI writes your emails.</p></div>
+                    <button type="button" class="btn ghost sm" data-upgrade-close aria-label="Close">Close</button>
+                </div>
+                <div class="card-body">
+                    <div class="upgrade-tiers">${tier("free")}${tier("pro")}${tier("premium")}</div>
+                    <p class="small muted upgrade-note">*Sending is capped at ${pricing.daily_cap} emails a day because Google may suspend Gmail accounts that send too many emails in a day. It's for your account's safety. Every purchase gives a fresh batch of recruiters you haven't emailed before.</p>
+                    <p class="small muted upgrade-note">${user ? `Buy with <b>${escapeHtml(user.email)}</b>, the email on your Mailzen account.` : "Buy with the same email you use for your Mailzen account."} We activate it on that account, usually within a day.</p>
+                </div>
+            </div>`;
+        backdrop.addEventListener("click", event => {
+            if (event.target === backdrop || event.target.closest("[data-upgrade-close]")) closeUpgrade();
+        });
+        document.addEventListener("keydown", upgradeEscape);
+        document.body.appendChild(backdrop);
+    }
+
     return {
         bindLogout,
         bindSignature,
         bindThemeToggles,
         cachedGet,
+        applyPricing,
         clearSession,
+        closeUpgrade,
         currentTheme,
         duration,
         escapeAttr,
         escapeHtml,
+        forgetPricing,
         formatDate,
+        formatPrice,
+        getPricing,
         getToken,
         getUser,
         isCampaigner,
         legalDocuments,
         logout,
+        openUpgrade,
         parseDate,
         redirectIfLoggedIn,
         renderEmailPreview,
@@ -332,4 +436,15 @@ const OutreachApi = (() => {
     };
 })();
 
-document.addEventListener("DOMContentLoaded", () => OutreachApi.bindThemeToggles());
+document.addEventListener("DOMContentLoaded", () => {
+    OutreachApi.bindThemeToggles();
+    OutreachApi.applyPricing().catch(() => {});
+});
+
+// Any element marked data-upgrade opens the plans card instead of navigating.
+document.addEventListener("click", event => {
+    const trigger = event.target.closest("[data-upgrade]");
+    if (!trigger) return;
+    event.preventDefault();
+    OutreachApi.openUpgrade();
+});

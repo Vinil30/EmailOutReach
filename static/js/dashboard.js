@@ -25,33 +25,36 @@
 
     // ---- Plan ----
     if (plan) {
-        const premium = plan.plan === "premium";
+        const paid = plan.plan !== "free";
         const pct = Math.min(100, (plan.used / Math.max(1, plan.limit)) * 100);
-        const until = OutreachApi.formatDate(plan.premium_until);
-        const resets = OutreachApi.formatDate(plan.resets_at);
-        const daysLeft = plan.premium_until ? Math.ceil((OutreachApi.parseDate(plan.premium_until) - Date.now()) / 86400000) : 0;
-        const showBuy = !premium || daysLeft <= 5;
+        const until = OutreachApi.formatDate(plan.plan_until);
+        const daysLeft = plan.plan_until ? Math.ceil((OutreachApi.parseDate(plan.plan_until) - Date.now()) / 86400000) : 0;
+        const upgradeLabel = !paid ? "Upgrade" : daysLeft <= 5 ? "Renew" : plan.plan === "pro" ? "Upgrade" : "";
+        const pricing = plan.pricing;
+        const db = plan.database;
         $("planCard").innerHTML = `
             <div class="card-body">
                 <div class="plan-row">
                     <div>
-                        <span class="eyebrow">${premium ? "Premium plan" : "General plan"}</span>
-                        <div class="plan-title">${plan.remaining} email${plan.remaining === 1 ? "" : "s"} left ${premium ? "this week" : ""}</div>
+                        <span class="eyebrow">${esc(plan.plan_name)} plan</span>
+                        <div class="plan-title">${paid ? `Unlimited emails · ${plan.remaining} left today` : `${plan.remaining} email${plan.remaining === 1 ? "" : "s"} left`}</div>
                         <p class="small muted" style="margin-top:4px;">
-                            ${premium
-                                ? `${plan.used} of ${plan.limit} sent this week · resets ${esc(resets)} · Premium until ${esc(until)}`
-                                : `${plan.used} of ${plan.limit} lifetime emails used${plan.premium_expired ? ` · Premium ended ${esc(until)}` : ""}`}
+                            ${paid
+                                ? `${plan.used} of ${plan.limit} sent today (daily safety cap) · ${db.remaining} of ${db.limit} recruiters left · ${esc(plan.plan_name)} until ${esc(until)}`
+                                : `${plan.used} of ${plan.limit} lifetime emails used${plan.plan_expired ? ` · ${esc(plan.expired_plan_name)} ended` : ""}`}
                         </p>
                     </div>
                     <div class="actions">
-                        ${premium ? `<a class="btn primary" href="/automate">Open automation</a>` : ""}
-                        ${showBuy ? `<a class="btn ${premium ? "secondary" : "primary"}" href="${esc(plan.premium_url)}" target="_blank" rel="noopener">${premium ? "Renew Premium" : "Buy Premium"}</a>` : ""}
+                        ${paid ? `<a class="btn primary" href="/automate">Open automation</a>` : ""}
+                        ${upgradeLabel ? `<button type="button" class="btn ${paid ? "secondary" : "primary"}" data-upgrade>${upgradeLabel}</button>` : ""}
                     </div>
                 </div>
                 <div class="plan-meter-lg ${plan.remaining ? "" : "full"}"><span style="width:${pct}%"></span></div>
-                ${premium ? "" : `<p class="small muted">Premium gives you 100 emails every week and our recruiter database, sent automatically. After you buy, we activate it on <b>${esc(user.email)}</b>, usually within a day.</p>`}
+                ${paid
+                    ? `<p class="small muted">${esc(plan.daily_cap_reason)}</p>`
+                    : `<p class="small muted">Pro and Premium give you unlimited sending (up to ${pricing.daily_cap} a day) and ${pricing.pro.contacts} or ${pricing.premium.contacts} new recruiters from our database, sent automatically. After you buy, we activate it on <b>${esc(user.email)}</b>, usually within a day.</p>`}
             </div>`;
-        if (!premium) $("automateGo").textContent = "Premium feature →";
+        if (!paid) $("automateGo").textContent = "Pro & Premium →";
     }
 
     // ---- Banners ----

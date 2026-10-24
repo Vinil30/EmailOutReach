@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script>try{if(localStorage.getItem("odTheme")!=="dark")document.documentElement.dataset.theme="light"}catch(e){document.documentElement.dataset.theme="light"}</script>
     <title>Mailzen — your job outreach, on autopilot</title>
-    <meta name="description" content="Mailzen emails recruiters for you from your own Gmail, with your resume and best project. Premium adds our recruiter database, AI-written emails and one-click automation.">
+    <meta name="description" content="Mailzen emails recruiters for you from your own Gmail, with your resume and best project. Pro and Premium add our recruiter database, unlimited sending and one-click automation; Premium adds AI-written emails.">
     <link rel="icon" type="image/png" href="/static/img/favicon.png">
     <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,7 +26,7 @@
             </a>
             <nav class="lp-links" aria-label="Sections">
                 <a href="#how">How it works</a>
-                <a href="#premium">Premium</a>
+                <a href="#premium">Pro &amp; Premium</a>
                 <a href="#pricing">Pricing</a>
                 <a href="#faq">FAQ</a>
             </nav>
@@ -51,11 +51,12 @@
                 </p>
                 <div class="lp-cta lz-cta-left">
                     <a class="btn primary lg" href="/login?mode=signup">Start free</a>
-                    <a class="btn secondary lg" href="#premium">See what Premium does</a>
+                    <a class="btn secondary lg" href="#premium">See what Pro &amp; Premium do</a>
                 </div>
                 <ul class="lz-hero-points">
-                    <li><b>Free</b> 20 emails to your own contact list</li>
-                    <li><b>Premium</b> 100 emails a week to our recruiter database, written by AI</li>
+                    <li><b>Free</b> <span data-free-emails>20</span> emails to your own contact list</li>
+                    <li><b>Pro</b> Unlimited emails and <span data-contacts="pro">200</span> recruiters from our database</li>
+                    <li><b>Premium</b> Everything in Pro, <span data-contacts="premium">500</span> recruiters, and AI-written emails</li>
                 </ul>
             </div>
 
@@ -73,7 +74,7 @@
                     <span id="consoleNext">Next email in 1:42</span>
                 </div>
                 <div class="lz-console-meter">
-                    <div class="lz-meter-row"><span>This week</span><span><b id="consoleUsed">37</b> / 100</span></div>
+                    <div class="lz-meter-row"><span>Today</span><span><b id="consoleUsed">37</b> / <span data-daily-cap>100</span></span></div>
                     <div class="plan-meter-lg"><span id="consoleBar" style="width:37%"></span></div>
                 </div>
                 <div class="lz-console-list-head"><span>Companies reached</span><span class="muted">in your Gmail Sent folder too</span></div>
@@ -93,7 +94,7 @@
             </div>
             <div class="lz-compare reveal">
                 <div class="lz-compare-row lz-compare-head"><span></span><span>Doing it by hand</span><span>With Mailzen</span></div>
-                <div class="lz-compare-row"><span>Finding who to email</span><span>Hours of searching LinkedIn and guessing addresses</span><span><b>Premium:</b> our recruiter database, ready to go</span></div>
+                <div class="lz-compare-row"><span>Finding who to email</span><span>Hours of searching LinkedIn and guessing addresses</span><span><b>Pro &amp; Premium:</b> our recruiter database, ready to go</span></div>
                 <div class="lz-compare-row"><span>Writing each email</span><span>Fifteen minutes each, rewriting the same pitch</span><span>A template, or AI that researches each company</span></div>
                 <div class="lz-compare-row"><span>Staying out of spam</span><span>Guesswork</span><span>21 checks before every send, with fixes</span></div>
                 <div class="lz-compare-row"><span>Sending</span><span>Copy, paste, send, repeat</span><span>Press Start; one email every 1–3 minutes</span></div>
@@ -132,7 +133,7 @@
                 <article class="lz-step reveal" style="--d: 180ms">
                     <span class="lz-step-n">3</span>
                     <h3>Press Start</h3>
-                    <p>Upload your own list, or on Premium let Mailzen use its recruiter database. Every email is spam-checked, then sent 1–3 minutes apart.</p>
+                    <p>Upload your own list, or on Pro and Premium let Mailzen use its recruiter database. Every email is spam-checked, then sent 1–3 minutes apart.</p>
                     <div class="lz-mini">
                         <span class="lz-start">▶ Start</span>
                         <span class="muted small">Stop anytime. Resumes where it left off.</span>
@@ -172,15 +173,15 @@
     <section class="lz-premium" id="premium">
         <div class="lp-wrap">
             <div class="lp-head reveal">
-                <span class="eyebrow">Premium</span>
+                <span class="eyebrow">Pro &amp; Premium</span>
                 <h2>We bring the contacts. You bring the resume.</h2>
-                <p>Premium turns Mailzen into a job-hunting assistant that finds the people, writes the emails and sends them for you.</p>
+                <p>Pro and Premium turn Mailzen into a job-hunting assistant that finds the people and sends for you. Premium writes every email with AI too.</p>
             </div>
             <div class="lz-features">
                 <article class="lz-feature reveal">
                     <span class="lz-icon">◎</span>
                     <h3>Our recruiter database</h3>
-                    <p>Recruiters and hiring managers, added and kept fresh by our team. No more hunting for email addresses.</p>
+                    <p>Recruiters and hiring managers, added and kept fresh by our team. <span data-contacts="pro">200</span> new ones per Pro purchase, <span data-contacts="premium">500</span> on Premium, never repeated.</p>
                 </article>
                 <article class="lz-feature reveal" style="--d: 60ms">
                     <span class="lz-icon">▶</span>
@@ -190,12 +191,12 @@
                 <article class="lz-feature reveal" style="--d: 120ms">
                     <span class="lz-icon">✦</span>
                     <h3>AI-written emails</h3>
-                    <p>For each company, AI reads what they build, picks your best-matching project and drafts a unique email.</p>
+                    <p>Premium: for each company, AI reads what they build, picks your best-matching project and drafts a unique email.</p>
                 </article>
                 <article class="lz-feature reveal">
-                    <span class="lz-icon">100</span>
-                    <h3>100 emails every week</h3>
-                    <p>A fresh allowance every Monday, about 14 a day. Plenty to reach every company you care about.</p>
+                    <span class="lz-icon">∞</span>
+                    <h3>Unlimited emails</h3>
+                    <p>Send as much as you like, up to <span data-daily-cap>100</span> a day. Google may suspend accounts that send too many in a day, so this cap keeps your Gmail safe.</p>
                 </article>
                 <article class="lz-feature reveal" style="--d: 60ms">
                     <span class="lz-icon">☰</span>
@@ -205,7 +206,7 @@
                 <article class="lz-feature reveal" style="--d: 120ms">
                     <span class="lz-icon">✓</span>
                     <h3>Checked and fixed by AI</h3>
-                    <p>Every draft passes the spam check. If one is flagged, AI rewrites the risky parts before it goes out.</p>
+                    <p>Every draft passes the spam check. On Premium, if one is flagged, AI rewrites the risky parts before it goes out.</p>
                 </article>
             </div>
 
@@ -224,8 +225,8 @@
             </div>
 
             <div class="lz-premium-cta reveal">
-                <a class="btn primary lg" href="https://srotabase.com/@vmarena/email-automation-premium" target="_blank" rel="noopener">Buy Premium</a>
-                <span>30 days per purchase · activated on your Mailzen email, usually within a day</span>
+                <a class="btn primary lg" href="#pricing" data-upgrade>Upgrade</a>
+                <span><span data-plan-days>30</span> days per purchase · activated on your Mailzen email, usually within a day</span>
             </div>
         </div>
     </section>
@@ -238,23 +239,26 @@
                 <h2>Start free. Upgrade when you're ready to go all in.</h2>
             </div>
             <div class="lz-table reveal">
-                <div class="lz-tr lz-th"><span></span><span>General<small>Free</small></span><span>Premium<small>30-day pass</small></span></div>
-                <div class="lz-tr"><span>Emails</span><span>20 in total</span><span><b>100 every week</b></span></div>
-                <div class="lz-tr"><span>Who you email</span><span>Your own uploaded list</span><span><b>Our recruiter database</b> + your own lists</span></div>
-                <div class="lz-tr"><span>Writing</span><span>Ready-made templates</span><span>Templates or <b>AI-personalized</b></span></div>
-                <div class="lz-tr"><span>Automation</span><span>Send your uploaded list</span><span><b>One-click Start/Stop</b> over the database</span></div>
-                <div class="lz-tr"><span>Spam check before sending</span><span>✓</span><span>✓ plus AI fixes</span></div>
-                <div class="lz-tr"><span>Sends from your own Gmail</span><span>✓</span><span>✓</span></div>
-                <div class="lz-tr"><span>Companies-reached tracker</span><span>Sent log</span><span>✓ live list</span></div>
+                <div class="lz-tr lz-th"><span></span><span>Free<small>Forever</small></span><span>Pro<small><b data-price="pro">₹99</b> / <span data-plan-days>30</span> days</small></span><span>Premium<small><b data-price="premium">₹249</b> / <span data-plan-days>30</span> days</small></span></div>
+                <div class="lz-tr"><span>Emails</span><span><span data-free-emails>20</span> in total</span><span><b>Unlimited</b>*</span><span><b>Unlimited</b>*</span></div>
+                <div class="lz-tr"><span>Recruiters from our database</span><span>—</span><span><b data-contacts="pro">200</b> new per purchase</span><span><b data-contacts="premium">500</b> new per purchase</span></div>
+                <div class="lz-tr"><span>Your own lists</span><span>✓</span><span>✓</span><span>✓</span></div>
+                <div class="lz-tr"><span>Writing</span><span>Ready-made templates</span><span>Ready-made templates</span><span>Templates or <b>AI-personalized</b></span></div>
+                <div class="lz-tr"><span>Automation</span><span>Send your uploaded list</span><span><b>One-click Start/Stop</b></span><span><b>One-click Start/Stop</b></span></div>
+                <div class="lz-tr"><span>Spam check before sending</span><span>✓</span><span>✓</span><span>✓ plus AI fixes</span></div>
+                <div class="lz-tr"><span>Sends from your own Gmail</span><span>✓</span><span>✓</span><span>✓</span></div>
+                <div class="lz-tr"><span>Companies-reached tracker</span><span>Sent log</span><span>✓ live list</span><span>✓ live list</span></div>
                 <div class="lz-tr lz-tf"><span></span>
                     <span><a class="btn secondary block" href="/login?mode=signup">Create a free account</a></span>
-                    <span><a class="btn primary block" href="https://srotabase.com/@vmarena/email-automation-premium" target="_blank" rel="noopener">Buy Premium</a></span>
+                    <span><a class="btn secondary block" href="#pricing" data-upgrade>Upgrade to Pro</a></span>
+                    <span><a class="btn primary block" href="#pricing" data-upgrade>Upgrade to Premium</a></span>
                 </div>
             </div>
+            <p class="lz-table-note">*Up to <span data-daily-cap>100</span> emails a day. Google may suspend Gmail accounts that send too many emails in a day, so the cap is there for your account's safety.</p>
 
             <div class="lz-activate">
                 <div class="lz-act reveal"><span>1</span><p><b>Create your free account</b> and set up your profile and resume.</p></div>
-                <div class="lz-act reveal" style="--d: 80ms"><span>2</span><p><b>Buy Premium</b> using the same email as your Mailzen account.</p></div>
+                <div class="lz-act reveal" style="--d: 80ms"><span>2</span><p><b>Buy Pro or Premium</b> using the same email as your Mailzen account.</p></div>
                 <div class="lz-act reveal" style="--d: 160ms"><span>3</span><p><b>We activate it</b>, usually within a day. Open Automate and press Start.</p></div>
             </div>
         </div>
@@ -350,11 +354,11 @@
             </div>
             <div class="lp-faq reveal">
                 <details open><summary>Do the emails really come from my Gmail?</summary><p>Yes. You connect Gmail once, and every email is sent from your account, so it appears in your Sent folder and replies come straight to your inbox. Mailzen only asks for permission to send; it can't read your inbox.</p></details>
-                <details><summary>What exactly do I get with Premium?</summary><p>100 emails every week, access to our recruiter database, one-click automation that sends for you, AI-written emails personalized to each company, and AI fixes for anything the spam check flags. Each purchase lasts 30 days.</p></details>
-                <details><summary>How does Premium get activated?</summary><p>Buy Premium using the email you signed up to Mailzen with. We activate it on that account, usually within a day. Buy again before it ends to add another 30 days on top.</p></details>
+                <details><summary>What's the difference between Pro and Premium?</summary><p>Both give unlimited sending (up to <span data-daily-cap>100</span> a day, to keep your Gmail safe), one-click automation and recruiters from our database: <span data-contacts="pro">200</span> new ones per purchase on Pro, <span data-contacts="premium">500</span> on Premium. Pro sends ready-made templates; Premium adds AI that researches each company, picks your best project, writes a unique email and fixes anything the spam check flags. Each purchase lasts <span data-plan-days>30</span> days.</p></details>
+                <details><summary>How do Pro and Premium get activated?</summary><p>Buy using the email you signed up to Mailzen with. We activate it on that account, usually within a day. Every purchase gives you a fresh batch of recruiters you haven't emailed before.</p></details>
                 <details><summary>Can I see or download the recruiter database?</summary><p>No. The database stays private; Mailzen sends to it on your behalf. You see each company and contact you've reached, and the full emails are in your Gmail Sent folder.</p></details>
                 <details><summary>What's the difference between a template and AI?</summary><p>A template sends the same email to everyone, with only the recipient's name and company changed and your featured project kept the same. AI-personalized (Premium) researches each company, picks your best-matching project and writes a unique email.</p></details>
-                <details><summary>What can I do on the free plan?</summary><p>Upload your own list of contacts, pick a template, and send up to 20 emails in total, all spam-checked and sent from your Gmail.</p></details>
+                <details><summary>What can I do on the free plan?</summary><p>Upload your own list of contacts, pick a template, and send up to <span data-free-emails>20</span> emails in total, all spam-checked and sent from your Gmail.</p></details>
                 <details><summary>Will this get my Gmail flagged?</summary><p>Mailzen sends one email at a time with a random 1–3 minute gap, never repeats a recipient, and blocks anything that looks like spam before it leaves. No tool can guarantee the inbox, but these are the habits that protect your account.</p></details>
             </div>
         </div>
@@ -365,10 +369,10 @@
         <div class="lp-wrap">
             <div class="lp-final-card reveal">
                 <h2>Let Mailzen send the emails.<br>You get ready for the interviews.</h2>
-                <p>Set up in five minutes. Your first 20 emails are free.</p>
+                <p>Set up in five minutes. Your first <span data-free-emails>20</span> emails are free.</p>
                 <div class="lp-cta lp-cta-center">
                     <a class="btn primary lg" href="/login?mode=signup">Start free</a>
-                    <a class="btn secondary lg" href="https://srotabase.com/@vmarena/email-automation-premium" target="_blank" rel="noopener">Buy Premium</a>
+                    <a class="btn secondary lg" href="#pricing" data-upgrade>Upgrade</a>
                 </div>
             </div>
         </div>

@@ -37,10 +37,10 @@
                 <div class="actions"><button class="btn primary" type="button" id="useAiBtn" ${inUse ? "disabled" : ""}>${inUse ? "AI-personalized is in use" : "Use AI-personalized"}</button></div>
             </div></div>` : `
             <div class="card ai-pane"><div class="card-body">
-                <span class="eyebrow">Premium feature</span>
-                <p>AI research and writing are included with Premium, along with 100 emails a week and our recruiter database. On the General plan, templates are free to use.</p>
+                <span class="eyebrow">Premium</span>
+                <p>AI research and writing are part of Premium, along with unlimited sending and the biggest batch of recruiters from our database. Templates are included on every plan.</p>
                 <div class="actions">
-                    <a class="btn primary" href="${esc(plan?.premium_url || "#")}" target="_blank" rel="noopener">Buy Premium</a>
+                    <button class="btn primary" type="button" data-upgrade>Upgrade</button>
                     <button class="btn secondary" type="button" data-writing-switch="template">Use a template</button>
                 </div>
             </div></div>`;

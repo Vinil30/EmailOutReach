@@ -14,7 +14,7 @@ from database.fxns import (
 from utils import campaign_runner
 from utils.contacts import normalize_contacts, read_contacts_frame
 from utils.legal import require_signed
-from utils.plans import quota_status, require_ai
+from utils.plans import limit_message, quota_status, require_ai
 from utils.spam_guard import analyze_email_risk
 from utils.templating import merge_fields, render_template, with_compliance_footer
 
@@ -135,7 +135,7 @@ async def launch_campaign(
     if not parsed["contacts"]:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No valid contacts to send to")
     if mode == "auto" and quota_status(current_user)["remaining"] <= 0:
-        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail="You've used all the emails on your plan. Upgrade to Premium to keep sending.")
+        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=limit_message(quota_status(current_user)))
 
     user_id = str(current_user["_id"])
     catalog = project_catalog(user_id) if _role(current_user) == "student" else {}

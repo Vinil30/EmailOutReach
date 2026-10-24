@@ -15,30 +15,44 @@
         stopped: ["Stopped", "plain"],
         idle: ["Not started", "plain"],
         done: ["Finished", "ok"],
-        quota: ["Weekly limit reached", "warn"],
+        quota: ["Daily limit reached", "warn"],
+        allowance: ["Recruiters used up", "warn"],
         blocked: ["Needs attention", "bad"],
         error: ["Stopped with an error", "bad"]
     };
 
     function locked(plan) {
+        const pricing = plan.pricing;
         content.innerHTML = `
             <div class="card locked-card">
                 <div class="card-body">
-                    <span class="eyebrow">${plan?.premium_expired ? "Your Premium has ended" : "Premium feature"}</span>
+                    <span class="eyebrow">${plan.plan_expired ? `Your ${esc(plan.expired_plan_name)} has ended` : "Pro & Premium"}</span>
                     <h2 class="locked-title">Let us find the companies and send for you.</h2>
                     <ul class="locked-list">
-                        <li><b>100 emails every week</b>, sent automatically from your Gmail</li>
-                        <li>Contacts from our curated recruiter and company database</li>
+                        <li><b>Unlimited emails</b>, sent automatically from your Gmail (up to ${pricing.daily_cap} a day to keep your account safe)</li>
+                        <li><b>${pricing.pro.contacts}</b> (Pro) or <b>${pricing.premium.contacts}</b> (Premium) new recruiters from our database with every purchase</li>
+                        <li>Templates on Pro; AI-written emails for every company on Premium</li>
                         <li>See every company you've reached; stop and resume any time</li>
-                        <li>30 days of access per purchase</li>
                     </ul>
                     <div class="actions">
-                        <a class="btn primary lg" href="${esc(plan?.premium_url || "#")}" target="_blank" rel="noopener">${plan?.premium_expired ? "Renew Premium" : "Buy Premium"}</a>
+                        <button type="button" class="btn primary lg" data-upgrade>${plan.plan_expired ? "Renew" : "Upgrade"}</button>
                         <a class="btn secondary lg" href="/campaigns/new">Send to my own list instead</a>
                     </div>
-                    <p class="small muted">After you buy, we activate Premium on <b>${esc(user.email)}</b>, usually within a day. Make sure you buy with this email.</p>
+                    <p class="small muted">After you buy, we activate it on <b>${esc(user.email)}</b>, usually within a day. Make sure you buy with this email.</p>
                 </div>
             </div>`;
+    }
+
+    // Why Start is unavailable right now, beyond setup problems.
+    function limitNotice(quota) {
+        if (!quota.database.remaining) {
+            const more = quota.plan === "pro" ? " or upgrade to Premium" : "";
+            return `You've emailed all ${quota.database.limit} recruiters included with ${esc(quota.plan_name)} this time. Renew${more} for a new batch of recruiters you haven't emailed. <button type="button" class="btn ghost sm" data-upgrade>${quota.plan === "pro" ? "Upgrade" : "Renew"}</button>`;
+        }
+        if (!quota.remaining) {
+            return `You've sent today's ${quota.limit} emails. ${esc(quota.daily_cap_reason)} Start again after midnight.`;
+        }
+        return "";
     }
 
     function countdown(state) {
@@ -56,6 +70,7 @@
         const [label, tone] = STATUS[state.status] || STATUS.idle;
         const running = ["running", "stopping"].includes(state.status);
         const pct = Math.min(100, (quota.used / Math.max(1, quota.limit)) * 100);
+        const notice = running ? "" : limitNotice(quota);
         content.innerHTML = `
             <div class="card auto-hero">
                 <div class="card-body">
@@ -67,22 +82,23 @@
                         <div class="actions">
                             ${running
                                 ? `<button class="btn secondary lg" id="stopBtn" ${state.status === "stopping" ? "disabled" : ""}>Stop</button>`
-                                : `<button class="btn primary lg" id="startBtn" ${problems.length || !quota.remaining ? "disabled" : ""}>${state.status === "idle" ? "Start" : "Start again"}</button>`}
+                                : `<button class="btn primary lg" id="startBtn" ${problems.length || notice ? "disabled" : ""}>${state.status === "idle" ? "Start" : "Start again"}</button>`}
                         </div>
                     </div>
+                    ${notice ? `<p class="auto-notice small">${notice}</p>` : ""}
                     ${problems.length ? `<ul class="auto-problems">${problems.map(problem => `<li>${esc(problem)} ${problem.includes("Gmail") ? '<button class="btn ghost sm" data-gmail>Connect</button>' : problem.includes("Profile") ? '<a class="btn ghost sm" href="/profile">Open profile</a>' : ""}</li>`).join("")}</ul>` : ""}
                 </div>
             </div>
 
             <section class="stats">
-                <div class="stat"><div class="label">This week</div><div class="value">${quota.used}<small class="muted" style="font-size:16px;"> / ${quota.limit}</small></div><div class="plan-meter-lg" style="margin-top:10px;"><span style="width:${pct}%"></span></div></div>
+                <div class="stat"><div class="label">Today</div><div class="value">${quota.used}<small class="muted" style="font-size:16px;"> / ${quota.limit}</small></div><div class="plan-meter-lg" style="margin-top:10px;"><span style="width:${pct}%"></span></div><div class="hint" title="${esc(quota.daily_cap_reason)}">daily safety cap for your Gmail</div></div>
                 <div class="stat"><div class="label">Companies reached</div><div class="value">${counts.sent || 0}</div><div class="hint">from the database</div></div>
-                <div class="stat"><div class="label">Contacts left for you</div><div class="value">${remaining_contacts ?? "–"}</div><div class="hint">not emailed yet</div></div>
+                <div class="stat"><div class="label">Recruiters left for you</div><div class="value">${remaining_contacts ?? "–"}<small class="muted" style="font-size:16px;"> / ${quota.database.limit}</small></div><div class="hint">new to you, with ${esc(quota.plan_name)}</div></div>
                 <div class="stat"><div class="label">Template</div><div class="value" style="font-size:20px;margin-top:12px;">${esc(template)}</div><div class="hint"><a href="/templates">Change template</a></div></div>
             </section>
 
             <div class="card">
-                <div class="card-head"><div><h2>Companies you've reached</h2><p>Full emails are in your Gmail Sent folder.</p></div><span class="small muted">Premium until ${esc(OutreachApi.formatDate(quota.premium_until))}</span></div>
+                <div class="card-head"><div><h2>Companies you've reached</h2><p>Full emails are in your Gmail Sent folder.</p></div><span class="small muted">${esc(quota.plan_name)} until ${esc(OutreachApi.formatDate(quota.plan_until))}</span></div>
                 <div class="table-wrap">
                     <table>
                         <thead><tr><th>Company</th><th>Contact</th><th>Status</th><th class="right">When</th></tr></thead>
@@ -123,7 +139,7 @@
             content.innerHTML = `<div class="status error">${esc(error.message)}</div>`;
             return;
         }
-        if (data.quota.plan !== "premium") {
+        if (data.quota.plan === "free") {
             locked(data.quota);
             return;
         }

@@ -23,7 +23,7 @@ const Layout = (() => {
         const campaigner = OutreachApi.isCampaigner(user);
         const items = [
             { href: "/dashboard", label: "Home", icon: "home" },
-            { href: "/automate", label: "Automate", icon: "bolt", tag: user?.is_premium ? "" : "Premium" },
+            { href: "/automate", label: "Automate", icon: "bolt", tag: user?.is_paid ? "" : "Upgrade" },
             { href: "/campaigns/new", label: "Send to my list", icon: "plus" },
             { href: "/campaigns", label: "My lists", icon: "layers" },
             { href: "/waiting-mails", label: "Review", icon: "inbox", badge: "reviewCount" },
@@ -39,16 +39,20 @@ const Layout = (() => {
 
     function planChip(plan) {
         if (!plan) return "";
-        const premium = plan.plan === "premium";
-        const until = OutreachApi.parseDate(plan.premium_until);
+        const paid = plan.plan !== "free";
+        const until = OutreachApi.parseDate(plan.plan_until);
         const daysLeft = until ? Math.max(0, Math.ceil((until - Date.now()) / 86400000)) : 0;
         const pct = Math.min(100, (plan.used / Math.max(1, plan.limit)) * 100);
+        const action = !paid ? "Upgrade" : daysLeft <= 5 ? "Renew" : plan.plan === "pro" ? "Upgrade" : "";
+        const sub = paid
+            ? `${daysLeft} day${daysLeft === 1 ? "" : "s"} left · ${plan.database.remaining}/${plan.database.limit} recruiters`
+            : plan.plan_expired ? `${OutreachApi.escapeHtml(plan.expired_plan_name)} expired` : "Free plan · lifetime limit";
         return `
-            <div class="plan-chip ${premium ? "premium" : ""}">
-                <div class="plan-chip-top"><strong>${premium ? "Premium" : "General"}</strong><span>${plan.used}/${plan.limit}${premium ? " this week" : " used"}</span></div>
+            <div class="plan-chip ${paid ? "premium" : ""}">
+                <div class="plan-chip-top"><strong>${plan.plan_name}</strong><span>${plan.used}/${plan.limit}${paid ? " today" : " used"}</span></div>
                 <div class="plan-meter"><span style="width:${pct}%"></span></div>
-                <div class="plan-chip-sub">${premium ? `${daysLeft} day${daysLeft === 1 ? "" : "s"} left` : plan.premium_expired ? "Premium expired" : "Free plan · lifetime limit"}</div>
-                ${premium && daysLeft > 5 ? "" : `<a class="btn primary sm block" href="${plan.premium_url}" target="_blank" rel="noopener">${premium ? "Renew Premium" : "Buy Premium"}</a>`}
+                <div class="plan-chip-sub">${sub}</div>
+                ${action ? `<button type="button" class="btn primary sm block" data-upgrade>${action}</button>` : ""}
             </div>`;
     }
 

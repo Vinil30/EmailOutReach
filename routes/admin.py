@@ -1,3 +1,5 @@
+from typing import Literal
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel, EmailStr, Field
 
@@ -5,17 +7,17 @@ from database.admin import (
     add_lead,
     admin_stats,
     delete_lead,
-    grant_premium,
+    grant_plan,
     import_leads,
     list_leads,
     list_users_overview,
     recent_grants,
-    revoke_premium,
+    revoke_plan,
     update_lead,
 )
 from database.fxns import get_current_user, is_admin
 from utils.contacts import EMAIL_PATTERN, read_contacts_frame
-from utils.plans import PREMIUM_DAYS
+from utils.plans import PLAN_DAYS, pricing, save_pricing
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -36,8 +38,22 @@ async def require_admin(current_user=Depends(get_current_user)):
 
 class GrantIn(BaseModel):
     email: EmailStr
-    days: int = Field(default=PREMIUM_DAYS, ge=1, le=366)
+    plan: Literal["pro", "premium"] = "premium"
+    days: int = Field(default=PLAN_DAYS, ge=1, le=366)
     note: str = ""
+
+
+class TierIn(BaseModel):
+    price: float = Field(ge=0)
+    contacts: int = Field(ge=0, le=100000)
+
+
+class PricingIn(BaseModel):
+    currency: str = Field(default="₹", max_length=4)
+    free_emails: int = Field(ge=0, le=100000)
+    daily_cap: int = Field(ge=1, le=2000)
+    pro: TierIn
+    premium: TierIn
 
 
 class RevokeIn(BaseModel):
@@ -70,15 +86,25 @@ async def users_overview(q: str = "", admin=Depends(require_admin)):
     return {"users": list_users_overview(q), "grants": recent_grants()}
 
 
-@router.post("/premium")
+@router.post("/plan")
 async def grant(payload: GrantIn, admin=Depends(require_admin)):
-    return grant_premium(payload.email, payload.days, admin["email"], payload.note)
+    return grant_plan(payload.email, payload.plan, payload.days, admin["email"], payload.note)
 
 
-@router.post("/premium/revoke")
+@router.post("/plan/revoke")
 async def revoke(payload: RevokeIn, admin=Depends(require_admin)):
-    revoke_premium(payload.email, admin["email"])
+    revoke_plan(payload.email, admin["email"])
     return {"revoked": payload.email}
+
+
+@router.get("/pricing")
+async def pricing_get(admin=Depends(require_admin)):
+    return pricing()
+
+
+@router.put("/pricing")
+async def pricing_put(payload: PricingIn, admin=Depends(require_admin)):
+    return save_pricing(payload.model_dump())
 
 
 @router.get("/leads")

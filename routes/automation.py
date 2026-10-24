@@ -6,7 +6,7 @@ from database.fxns import get_current_user, is_premium, project_catalog
 from utils import premium_runner
 from utils.job_templates import MERGE_FIELD_HELP, TEMPLATES, get_template, profile_variables
 from utils.legal import require_signed
-from utils.plans import quota_status
+from utils.plans import limit_message, pricing, quota_status
 from utils.spam_guard import analyze_email_risk
 from utils.templating import render_template, with_compliance_footer
 
@@ -42,6 +42,12 @@ def _render_preview(subject: str, body: str, variables: dict, user: dict | None 
 @router.get("/plan")
 async def plan(current_user=Depends(get_current_user)):
     return quota_status(current_user)
+
+
+@router.get("/pricing")
+async def public_pricing():
+    """Prices and limits for the landing page and upgrade card; no sign-in needed."""
+    return pricing()
 
 
 @router.get("/templates")
@@ -90,15 +96,17 @@ async def automation_status(current_user=Depends(get_current_user)):
         state["status"] = "stopped"
     quota = quota_status(current_user)
     template = get_template((current_user.get("profile") or {}).get("template_id"))
-    premium = quota["plan"] == "premium"
-    # General users only see the upgrade card, so skip the database-usage queries for them.
+    if template.get("ai") and not quota["ai_allowed"]:
+        template = get_template(None)
+    paid = quota["plan"] != "free"
+    # Free users only see the upgrade card, so skip the database-usage queries for them.
     return {
         "state": state,
         "quota": quota,
         "problems": premium_runner.preflight(current_user),
-        "remaining_contacts": remaining_leads(user_id) if premium else None,
-        "counts": lead_send_counts(user_id) if premium else {"sent": 0, "failed": 0},
-        "history": lead_send_history(user_id) if premium else [],
+        "remaining_contacts": min(remaining_leads(user_id), quota["database"]["remaining"]) if paid else None,
+        "counts": lead_send_counts(user_id) if paid else {"sent": 0, "failed": 0},
+        "history": lead_send_history(user_id) if paid else [],
         "template": template["name"],
         "writing": "ai" if template.get("ai") else "template",
     }
@@ -110,8 +118,11 @@ async def automation_start(current_user=Depends(get_current_user)):
     problems = premium_runner.preflight(current_user)
     if problems:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=problems[0])
-    if quota_status(current_user)["remaining"] <= 0:
-        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail="This week's emails are used up. Automation can continue on Monday.")
+    quota = quota_status(current_user)
+    if quota["database"]["remaining"] <= 0:
+        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=premium_runner.allowance_message(quota))
+    if quota["remaining"] <= 0:
+        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=limit_message(quota))
     premium_runner.start(str(current_user["_id"]))
     return {"started": True}
 

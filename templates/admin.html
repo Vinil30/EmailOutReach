@@ -20,25 +20,27 @@
                 <div>
                     <span class="eyebrow">Admin</span>
                     <h1>Admin panel</h1>
-                    <p>Grant Premium after a purchase, manage the contact database premium users send to, and see how much everyone has sent.</p>
+                    <p>Grant Pro or Premium after a purchase, manage the recruiter database paid users send to, set prices and limits, and see how much everyone has sent.</p>
                 </div>
                 <div class="segmented" id="tabs">
-                    <button type="button" class="active" data-tab="users">Users &amp; Premium</button>
+                    <button type="button" class="active" data-tab="users">Users &amp; plans</button>
                     <button type="button" data-tab="leads">Contact database</button>
+                    <button type="button" data-tab="pricing">Pricing &amp; limits</button>
                 </div>
             </header>
 
             <section class="stats" id="stats"></section>
 
-            <!-- Users & Premium -->
+            <!-- Users & plans -->
             <div data-pane="users" class="stack">
                 <div class="card">
-                    <div class="card-head"><div><h2>Grant Premium</h2><p>Use the email they bought with. It works even if they haven't signed up yet; renewing adds days on top of any time left.</p></div></div>
+                    <div class="card-head"><div><h2>Grant a plan</h2><p>Use the email they bought with. It works even if they haven't signed up yet. Renewing the same plan adds days on top of any time left; every grant gives a fresh batch of recruiters they haven't emailed.</p></div></div>
                     <form class="card-body admin-grant" id="grantForm">
                         <label class="field"><span>Email</span><input type="email" name="email" required placeholder="buyer@example.com"></label>
+                        <label class="field"><span>Plan</span><select name="plan"><option value="pro">Pro</option><option value="premium">Premium</option></select></label>
                         <label class="field"><span>Days</span><input type="text" name="days" value="30" inputmode="numeric"></label>
                         <label class="field"><span>Note <span class="muted">(optional)</span></span><input name="note" placeholder="e.g. srotabase order #1234"></label>
-                        <button class="btn primary" type="submit">Grant Premium</button>
+                        <button class="btn primary" type="submit">Grant plan</button>
                     </form>
                 </div>
 
@@ -49,14 +51,14 @@
                     </div>
                     <div class="table-wrap">
                         <table>
-                            <thead><tr><th>User</th><th>Plan</th><th class="right">Sent total</th><th class="right">This week</th><th class="right">From database</th><th>Automation</th><th class="right">Actions</th></tr></thead>
+                            <thead><tr><th>User</th><th>Plan</th><th class="right">Sent total</th><th class="right">This week</th><th class="right">Recruiters used</th><th>Automation</th><th class="right">Actions</th></tr></thead>
                             <tbody id="userRows"></tbody>
                         </table>
                     </div>
                 </div>
 
                 <div class="card">
-                    <div class="card-head"><h3>Recent Premium changes</h3></div>
+                    <div class="card-head"><h3>Recent plan changes</h3></div>
                     <div class="card-body" id="grantLog"></div>
                 </div>
             </div>
@@ -65,7 +67,7 @@
             <div data-pane="leads" class="stack" hidden>
                 <div class="grid grid-2">
                     <div class="card">
-                        <div class="card-head"><div><h2>Add a contact</h2><p>Premium users never see this list, only the companies they reach.</p></div></div>
+                        <div class="card-head"><div><h2>Add a contact</h2><p>Pro and Premium users never see this list, only the companies they reach. Each user is tracked separately, so nobody is emailed twice by the same person.</p></div></div>
                         <form class="card-body form" id="leadForm">
                             <div class="grid grid-2">
                                 <label class="field"><span>Email</span><input type="email" name="email" required></label>
@@ -108,6 +110,34 @@
                         <span class="small muted" id="pageInfo"></span>
                         <button class="btn ghost sm" type="button" id="nextPage">Next →</button>
                     </div>
+                </div>
+            </div>
+
+            <!-- Pricing & limits -->
+            <div data-pane="pricing" class="stack" hidden>
+                <div class="card">
+                    <div class="card-head"><div><h2>Pricing &amp; limits</h2><p>Changes show across the website straight away: landing page, upgrade card, dashboard and automation. Update the prices on Srotabase yourself to match.</p></div></div>
+                    <form class="card-body form" id="pricingForm">
+                        <div class="admin-pricing">
+                            <fieldset>
+                                <legend>Pro</legend>
+                                <label class="field"><span>Price</span><input name="pro_price" inputmode="decimal" required></label>
+                                <label class="field"><span>Recruiters per purchase</span><input name="pro_contacts" inputmode="numeric" required></label>
+                            </fieldset>
+                            <fieldset>
+                                <legend>Premium</legend>
+                                <label class="field"><span>Price</span><input name="premium_price" inputmode="decimal" required></label>
+                                <label class="field"><span>Recruiters per purchase</span><input name="premium_contacts" inputmode="numeric" required></label>
+                            </fieldset>
+                            <fieldset>
+                                <legend>Everyone</legend>
+                                <label class="field"><span>Free plan emails <span class="muted">(lifetime)</span></span><input name="free_emails" inputmode="numeric" required></label>
+                                <label class="field"><span>Daily send cap <span class="muted">(Pro &amp; Premium)</span></span><input name="daily_cap" inputmode="numeric" required></label>
+                                <label class="field"><span>Currency symbol</span><input name="currency" maxlength="4" required></label>
+                            </fieldset>
+                        </div>
+                        <div class="actions"><button class="btn primary" type="submit">Save prices &amp; limits</button><span class="status small" id="pricingStatus"></span></div>
+                    </form>
                 </div>
             </div>
         </main>

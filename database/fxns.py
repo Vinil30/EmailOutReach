@@ -48,6 +48,7 @@ leads: Collection = db["leads"]
 leadSends: Collection = db["leadSends"]
 premiumGrants: Collection = db["premiumGrants"]
 legalSignatures: Collection = db["legalSignatures"]
+settings: Collection = db["settings"]
 
 ADMIN_EMAILS = {email.strip().lower() for email in os.environ.get("ADMIN_EMAILS", "").split(",") if email.strip()}
 
@@ -99,6 +100,12 @@ def ensure_indexes() -> None:
         leadSends.create_index([("user_id", 1), ("created_at", -1)])
         premiumGrants.create_index([("email", 1), ("created_at", -1)])
         legalSignatures.create_index([("user_id", 1), ("signed_at", -1)])
+        # Accounts from before Pro existed only had premium_until; they become Premium with a fresh database allowance.
+        for legacy in users.find({"premium_until": {"$exists": True}, "plan_until": {"$exists": False}}):
+            users.update_one(
+                {"_id": legacy["_id"]},
+                {"$set": {"plan": "premium", "plan_until": legacy["premium_until"], "db_base": 0}, "$unset": {"premium_until": ""}},
+            )
         users.update_many(
             {"automation.status": "running"},
             {"$set": {"automation.status": "stopped", "automation.message": "Stopped because the server restarted. Press Start to resume."}},
@@ -214,9 +221,11 @@ def public_user(user: dict[str, Any] | None) -> dict[str, Any]:
     serialized["role"] = user.get("role") or "student"
     serialized["profile"] = user.get("profile") or {}
     serialized["is_admin"] = is_admin(user)
-    premium_until = user.get("premium_until")
-    serialized["premium_until"] = premium_until
-    serialized["is_premium"] = is_premium(user)
+    serialized.pop("db_base", None)
+    serialized["plan"] = plan_of(user)
+    serialized["plan_until"] = user.get("plan_until")
+    serialized["is_paid"] = serialized["plan"] != "free"
+    serialized["is_premium"] = serialized["plan"] == "premium"
     serialized.pop("automation", None)
     serialized.pop("suppressed_emails", None)
     serialized["legal"] = legal_status(user)
@@ -233,9 +242,24 @@ def as_utc(value: datetime | None) -> datetime | None:
     return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
 
 
+PAID_PLANS = ("pro", "premium")
+
+
+def plan_of(user: dict[str, Any] | None) -> str:
+    """'free', 'pro' or 'premium'. A paid plan lasts until plan_until, then the account is back on Free."""
+    user = user or {}
+    until = as_utc(user.get("plan_until"))
+    if user.get("plan") in PAID_PLANS and until and until > _now():
+        return user["plan"]
+    return "free"
+
+
+def is_paid(user: dict[str, Any] | None) -> bool:
+    return plan_of(user) != "free"
+
+
 def is_premium(user: dict[str, Any] | None) -> bool:
-    until = as_utc((user or {}).get("premium_until"))
-    return bool(until and until > _now())
+    return plan_of(user) == "premium"
 
 
 def sign_legal_documents(user_id: str, signature: str, ip: str | None = None, user_agent: str | None = None) -> dict[str, Any]:

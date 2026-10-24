@@ -1,4 +1,7 @@
-"""Premium automation: sends a user's chosen template to the shared lead database from their own Gmail.
+"""Database automation (Pro and Premium): sends a user's chosen template to the shared lead database from their own Gmail.
+
+Each purchase allows a number of new recruiters (see utils.plans.database_allowance); Pro sends templates only,
+Premium may use AI writing.
 
 Progress lives in the database (one leadSends row per user and lead), so Stop then Start
 continues with the next lead the user hasn't emailed, even across server restarts.
@@ -10,14 +13,15 @@ from typing import Any
 from bson import ObjectId
 
 from database.admin import next_lead_for, record_lead_send, set_automation
-from database.fxns import _now, emailsGenerated, get_user_by_id, is_premium, project_catalog, users
+from database.fxns import _now, emailsGenerated, get_user_by_id, is_paid, is_premium, project_catalog, users
 from Graph import OutreachInput, run_outreach
 from utils.job_templates import brief_for_profile
+from utils.legal import UNSIGNED_MESSAGE, legal_status
 from utils.pacing import random_send_gap
-from utils.plans import quota_status
+from utils.plans import DAILY_CAP_REASON, quota_status
 
 CAMPAIGN_ID = "premium-db"
-CAMPAIGN_NAME = "Premium database"
+CAMPAIGN_NAME = "Recruiter database"
 
 _tasks: dict[str, asyncio.Task] = {}
 _stop: set[str] = set()
@@ -51,12 +55,21 @@ def start(user_id: str) -> None:
     _tasks[user_id] = asyncio.create_task(_run(user_id))
 
 
+def allowance_message(quota: dict[str, Any]) -> str:
+    database = quota["database"]
+    upgrade = " or upgrade to Premium" if quota["plan"] == "pro" else ""
+    return (f"You've emailed all {database['limit']} recruiters included with {quota['plan_name']} this time. "
+            f"Renew{upgrade} to get a new batch of recruiters you haven't emailed yet.")
+
+
 def preflight(user: dict[str, Any]) -> list[str]:
     """Reasons automation can't start yet, in the order the user should fix them."""
     problems = []
     profile = user.get("profile") or {}
-    if not is_premium(user):
-        problems.append("Premium is required to use the shared database.")
+    if not is_paid(user):
+        problems.append("Upgrade to Pro or Premium to use our recruiter database.")
+    if not legal_status(user)["signed"]:
+        problems.append(UNSIGNED_MESSAGE)
     if not (user.get("gmail_tokens") or {}).get("refresh_token") and not (user.get("gmail_tokens") or {}).get("access_token"):
         problems.append("Connect Gmail so emails can be sent from your account.")
     if not profile.get("full_name"):
@@ -84,8 +97,16 @@ async def _run(user_id: str) -> None:
             if problems:
                 return _finish(user_id, "blocked", problems[0])
             quota = quota_status(user)
+            if quota["database"]["remaining"] <= 0:
+                return _finish(user_id, "allowance", allowance_message(quota))
             if quota["remaining"] <= 0:
-                return _finish(user_id, "quota", f"You've used this week's {quota['limit']} emails. Start again on Monday to continue from here.")
+                # Daily safety cap: wait until midnight, then carry on from the next recruiter.
+                wait = max(60.0, quota["resets_at"].timestamp() - time.time())
+                set_automation(user_id, {"current": None, "next_send_at": time.time() + wait,
+                                         "message": f"Paused at today's {quota['limit']} emails. {DAILY_CAP_REASON} Continues after midnight."})
+                await _sleep_unless_stopped(user_id, wait)
+                set_automation(user_id, {"message": ""})
+                continue
 
             lead = next_lead_for(user_id)
             if not lead:
@@ -101,7 +122,7 @@ async def _run(user_id: str) -> None:
                     campaign_id=CAMPAIGN_ID,
                     campaign_name=CAMPAIGN_NAME,
                     profile=profile,
-                    brief=brief_for_profile(profile, ai_allowed=True),
+                    brief=brief_for_profile(profile, ai_allowed=is_premium(user)),
                     project_catalog=project_catalog(user_id),
                     company_name=lead.get("company", ""),
                     recipient_name=lead.get("name", ""),
@@ -132,7 +153,7 @@ async def _run(user_id: str) -> None:
                     reasons = ", ".join((state.get("deliverability_risk") or {}).get("reasons", []))
                     return _finish(user_id, "blocked", f"Your template was held by the spam guard ({reasons}). Adjust it on the Templates page, then press Start.")
                 if outcome == "QUOTA_REACHED":
-                    return _finish(user_id, "quota", "Weekly limit reached. Automation resumes from here on Monday.")
+                    continue  # the next loop pass waits for the daily cap to reset
                 if "Gmail" in reason or "authorization" in reason.lower():
                     return _finish(user_id, "blocked", f"{reason}. Reconnect Gmail, then press Start.")
                 # A bad address shouldn't stall the run: mark it and move on.

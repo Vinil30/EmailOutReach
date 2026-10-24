@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr, Field
 
-from database.admin import apply_pending_premium
+from database.admin import apply_pending_plan
 from database.fxns import (
     authenticate_user,
     create_access_token,
@@ -43,7 +43,7 @@ async def register(payload: RegisterIn, request: Request):
     signature = clean_signature(payload.signature)
     user = create_user(payload.email, payload.password, payload.name or signature, payload.role)
     sign_legal_documents(user["id"], signature, client_ip(request), request.headers.get("user-agent"))
-    apply_pending_premium(get_user_by_email(payload.email))
+    apply_pending_plan(get_user_by_email(payload.email))
     user = public_user(get_user_by_email(payload.email))
     token = create_access_token(user["id"])
     return {"access_token": token, "token_type": "bearer", "user": user}
