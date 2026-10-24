@@ -52,10 +52,14 @@
                 <div class="plan-meter-lg ${plan.remaining ? "" : "full"}"><span style="width:${pct}%"></span></div>
                 ${paid
                     ? `<p class="small muted">${esc(plan.daily_cap_reason)}</p>`
-                    : `<p class="small muted">Pro and Premium give you unlimited sending (up to ${pricing.daily_cap} a day) and ${pricing.pro.contacts} or ${pricing.premium.contacts} new recruiters from our database, sent automatically. After you buy, we activate it on <b>${esc(user.email)}</b>, usually within a day.</p>`}
+                    : `<p class="small muted">Pro and Premium give you unlimited sending (up to ${pricing.daily_cap} a day) ${campaigner ? "for your own lists" : `and ${pricing.pro.contacts} or ${pricing.premium.contacts} new recruiters from our database, sent automatically`}. After you buy, we activate it on <b>${esc(user.email)}</b>, within 5 hours.</p>`}
             </div>`;
         if (!paid) $("automateGo").textContent = "Pro & Premium →";
+    } else {
+        // Keep the page usable if the plan request fails instead of leaving a skeleton.
+        $("planCard").innerHTML = `<div class="card-body"><p class="small muted">Couldn't load your plan. Refresh the page to try again.</p></div>`;
     }
+    if (campaigner) $("automateCard")?.remove();
 
     // ---- Banners ----
     const banners = $("banners");

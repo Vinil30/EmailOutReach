@@ -175,7 +175,12 @@
     $("connectGmailBtn").addEventListener("click", () => Layout.connectGmail().catch(error => OutreachApi.toast(error.message, "error")));
     $("disconnectGmailBtn").addEventListener("click", async () => {
         if (!confirm("Disconnect Gmail? Sends will fail until you reconnect.")) return;
-        await OutreachApi.request("/gmail/disconnect", { method: "POST" });
+        try {
+            await OutreachApi.request("/gmail/disconnect", { method: "POST" });
+        } catch (error) {
+            OutreachApi.toast(error.message, "error");
+            return;
+        }
         user.gmail_connected = false;
         OutreachApi.setUser(user);
         Layout.renderSidebar(user);

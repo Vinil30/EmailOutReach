@@ -51,7 +51,8 @@ def grant_plan(email: str, plan: str, days: int, granted_by: str, note: str = ""
     else:
         pending = premiumGrants.find_one({"email": email, "pending": True}, sort=[("created_at", -1)])
         same_plan = pending and (pending.get("plan") or "premium") == plan
-        until = (as_utc(pending["until"]) if same_plan else now) + timedelta(days=days)
+        pending_until = as_utc(pending["until"]) if same_plan else None
+        until = max(now, pending_until or now) + timedelta(days=days)
     premiumGrants.insert_one(
         {
             "email": email,

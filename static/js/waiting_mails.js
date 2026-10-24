@@ -18,6 +18,8 @@
         failed: email => String(email.outreach_status).startsWith("FAILED")
     };
 
+    if (!FILTERS[view.filter]) view.filter = "all";
+
     function matches(email) {
         if (!FILTERS[view.filter](email)) return false;
         if (view.campaign && email.campaign_id !== view.campaign) return false;
@@ -106,9 +108,11 @@
             }
             OutreachApi.toast(`Sent to ${email.recipient_email}.`, "ok");
             dropEmail(email.id, card);
+            Layout.refreshPlan();
             return true;
         } catch (error) {
             OutreachApi.toast(error.message, "error");
+            if (/Upgrade/.test(error.message)) OutreachApi.openUpgrade();
             return false;
         }
     }

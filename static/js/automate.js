@@ -38,7 +38,7 @@
                         <button type="button" class="btn primary lg" data-upgrade>${plan.plan_expired ? "Renew" : "Upgrade"}</button>
                         <a class="btn secondary lg" href="/campaigns/new">Send to my own list instead</a>
                     </div>
-                    <p class="small muted">After you buy, we activate it on <b>${esc(user.email)}</b>, usually within a day. Make sure you buy with this email.</p>
+                    <p class="small muted">After you buy, we activate it on <b>${esc(user.email)}</b>, within 5 hours. Make sure you buy with this email.</p>
                 </div>
             </div>`;
     }
@@ -70,7 +70,8 @@
         const [label, tone] = STATUS[state.status] || STATUS.idle;
         const running = ["running", "stopping"].includes(state.status);
         const pct = Math.min(100, (quota.used / Math.max(1, quota.limit)) * 100);
-        const notice = running ? "" : limitNotice(quota);
+        // While running, the runner's own message explains pauses (e.g. the daily safety cap).
+        const notice = running ? esc(state.message || "") : limitNotice(quota);
         content.innerHTML = `
             <div class="card auto-hero">
                 <div class="card-body">

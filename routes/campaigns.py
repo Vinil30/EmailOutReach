@@ -186,6 +186,9 @@ async def resume_campaign(campaign_id: str, current_user=Depends(get_current_use
     processed = int(doc.get("processed") or 0)
     if processed >= len(doc.get("contacts", [])):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Every contact has already been processed")
+    require_signed(current_user)
+    if doc.get("mode") == "auto" and quota_status(current_user)["remaining"] <= 0:
+        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=limit_message(quota_status(current_user)))
 
     campaign = dict(doc)
     campaign["id"] = str(campaign.pop("_id"))

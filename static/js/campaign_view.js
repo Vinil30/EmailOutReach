@@ -23,7 +23,7 @@ const CampaignView = (() => {
         const counts = campaign.counts || {};
         const modeLabel = campaign.mode === "auto" ? "Auto-send" : "Review first";
         const writing = campaign.writing_mode === "template" ? "Template" : "AI-written";
-        const canResume = ["interrupted", "cancelled", "failed"].includes(campaign.status) && (campaign.processed || 0) < (campaign.total || 0);
+        const canResume = ["interrupted", "cancelled", "failed", "quota"].includes(campaign.status) && (campaign.processed || 0) < (campaign.total || 0);
         const errors = (campaign.errors || []).slice(-3);
         return `
             <div class="campaign-row" data-id="${campaign.id}">

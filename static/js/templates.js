@@ -191,5 +191,8 @@
         }
     });
 
-    load().catch(error => OutreachApi.toast(error.message, "error"));
+    load().catch(error => {
+        OutreachApi.toast(error.message, "error");
+        $("templateList").innerHTML = `<p class="small muted">Couldn't load templates. Refresh the page to try again.</p>`;
+    });
 })();

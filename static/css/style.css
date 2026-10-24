@@ -1117,3 +1117,4 @@ tbody tr.clickable:hover { background: var(--surface-2); }
 .upgrade-tier li::before { content: "✓"; position: absolute; left: 0; color: var(--ok); font-weight: 600; }
 .upgrade-note { line-height: 1.5; }
 @media (max-width: 820px) { .upgrade-tiers { grid-template-columns: 1fr; } }
+.auto-notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 10px 14px; border-radius: 10px; background: var(--warn-soft); color: var(--ink-2); line-height: 1.5; }

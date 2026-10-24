@@ -161,7 +161,8 @@ class EmailerAgent:
         message = EmailMessage()
         message["From"] = self.email_from
         message["To"] = self.recipient_email
-        message["Subject"] = self.email_subject
+        # A line break in a header (e.g. from a company name) would make EmailMessage refuse the whole email.
+        message["Subject"] = " ".join(str(self.email_subject or "").split())
         message["Date"] = email.utils.formatdate(localtime=True)
         message.set_content("HTML email body is included as an alternative part.")
         message.add_alternative(self.email_body, subtype="html")

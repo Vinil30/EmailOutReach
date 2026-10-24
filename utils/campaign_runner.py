@@ -89,15 +89,19 @@ async def _run(campaign: dict[str, Any], user: dict[str, Any], catalog: dict[str
                     ),
                     automate,
                 )
-                sent_attempted = automate and (state.get("deliverability_risk") or {}).get("action") == "SEND"
-                update_campaign(campaign_id, inc={"processed": 1})
+                skipped = state.get("outreach_status") in ("DUPLICATE_SUPPRESSED", "SUPPRESSED")
+                sent_attempted = automate and not skipped and (state.get("deliverability_risk") or {}).get("action") == "SEND"
                 if state.get("quota_blocked"):
                     update_campaign(
                         campaign_id,
                         {"status": "quota", "finished_at": _now(), "current_contact": None, "next_send_at": None},
                         error={"email": contact["recipient_email"], "reason": "Plan limit reached; the rest of this list was not sent.", "at": _now()},
                     )
-                    return
+                    return  # not counted as processed, so Resume retries this contact
+                if skipped:
+                    update_campaign(campaign_id, inc={"processed": 1}, error={"email": contact["recipient_email"], "reason": state.get("skip_reason", "Skipped"), "at": _now()})
+                else:
+                    update_campaign(campaign_id, inc={"processed": 1})
             except Exception as exc:
                 update_campaign(
                     campaign_id,

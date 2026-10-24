@@ -388,7 +388,7 @@ const OutreachApi = (() => {
                 <div class="card-body">
                     <div class="upgrade-tiers">${tier("free")}${tier("pro")}${tier("premium")}</div>
                     <p class="small muted upgrade-note">*Sending is capped at ${pricing.daily_cap} emails a day because Google may suspend Gmail accounts that send too many emails in a day. It's for your account's safety. Every purchase gives a fresh batch of recruiters you haven't emailed before.</p>
-                    <p class="small muted upgrade-note">${user ? `Buy with <b>${escapeHtml(user.email)}</b>, the email on your Mailzen account.` : "Buy with the same email you use for your Mailzen account."} We activate it on that account, usually within a day.</p>
+                    <p class="small muted upgrade-note">${user ? `Buy with <b>${escapeHtml(user.email)}</b>, the email on your Mailzen account.` : "Buy with the same email you use for your Mailzen account."} We activate it on that account, within 5 hours.</p>
                 </div>
             </div>`;
         backdrop.addEventListener("click", event => {

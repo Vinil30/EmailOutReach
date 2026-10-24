@@ -23,7 +23,7 @@ const Layout = (() => {
         const campaigner = OutreachApi.isCampaigner(user);
         const items = [
             { href: "/dashboard", label: "Home", icon: "home" },
-            { href: "/automate", label: "Automate", icon: "bolt", tag: user?.is_paid ? "" : "Upgrade" },
+            ...(campaigner ? [] : [{ href: "/automate", label: "Automate", icon: "bolt", tag: user?.is_paid ? "" : "Upgrade" }]),
             { href: "/campaigns/new", label: "Send to my list", icon: "plus" },
             { href: "/campaigns", label: "My lists", icon: "layers" },
             { href: "/waiting-mails", label: "Review", icon: "inbox", badge: "reviewCount" },

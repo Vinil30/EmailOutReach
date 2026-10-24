@@ -53,6 +53,8 @@ settings: Collection = db["settings"]
 ADMIN_EMAILS = {email.strip().lower() for email in os.environ.get("ADMIN_EMAILS", "").split(",") if email.strip()}
 
 ROLES = ("student", "campaigner")
+# campaign_id of emails sent by recruiter-database automation (utils/premium_runner.py).
+DATABASE_CAMPAIGN_ID = "premium-db"
 STUDENT_PROFILE_FIELDS = ("full_name", "headline", "school", "skills", "goal", "portfolio_url", "resume_url", "signature")
 TEMPLATE_FIELDS = ("template_id", "custom_subject", "custom_body", "featured_project")
 CAMPAIGNER_PROFILE_FIELDS = (
@@ -499,7 +501,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict[str, Any
     try:
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
         user_id = payload.get("sub")
-        if not user_id:
+        # Only real sign-in tokens: they always expire, and purpose-specific tokens (Gmail OAuth state) never sign in.
+        if not user_id or "exp" not in payload or payload.get("purpose"):
             raise credentials_error
     except JWTError as exc:
         raise credentials_error from exc
@@ -574,11 +577,20 @@ def get_waiting_emails(user_id: str, campaign_id: str | None = None) -> list[dic
     return _serialize_many(emailsGenerated.find(query).sort("created_at", -1))
 
 
+def _hide_database_address(email: dict[str, Any]) -> dict[str, Any]:
+    """Sends to the recruiter database never expose the address, so the database can't be copied out of the app."""
+    if email.get("campaign_id") == DATABASE_CAMPAIGN_ID:
+        email["recipient_email"] = ""
+        email["from_database"] = True
+        (email.get("deliverability_risk") or {}).pop("raw", None)
+    return email
+
+
 def get_sent_emails(user_id: str, campaign_id: str | None = None, limit: int = 500) -> list[dict[str, Any]]:
     query: dict[str, Any] = {"user_id": str(user_id), "email_status": True}
     if campaign_id:
         query["campaign_id"] = campaign_id
-    return _serialize_many(emailsSent.find(query).sort("updated_at", -1).limit(limit))
+    return [_hide_database_address(email) for email in _serialize_many(emailsSent.find(query).sort("updated_at", -1).limit(limit))]
 
 
 def get_waiting_email(mail_id: str, user_id: str) -> dict[str, Any] | None:

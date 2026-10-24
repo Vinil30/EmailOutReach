@@ -360,6 +360,7 @@
         } catch (error) {
             OutreachApi.setStatus(status, error.message, "error");
             $("launchBtn").disabled = false;
+            if (/Upgrade/.test(error.message)) OutreachApi.openUpgrade();
         }
     });
 

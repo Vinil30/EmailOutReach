@@ -255,9 +255,7 @@ def save_to_db(agent_state: AgentState) -> AgentState:
 
 
 def emailer_agent(agent_state: AgentState) -> AgentState:
-    from database.fxns import record_generated_send_result, save_email
-    from utils.GmailAuth import get_valid_gmail_tokens
-    from utils.EmailerAgent import EmailerAgent
+    from database.fxns import save_email
 
     risk = agent_state.get("deliverability_risk") or {}
     if risk.get("action") != "SEND":
@@ -277,6 +275,24 @@ def emailer_agent(agent_state: AgentState) -> AgentState:
         )
         return agent_state
 
+    from utils.send_guard import skip_reason, user_lock, wait_for_gap
+
+    # One send at a time per user: the duplicate check, the plan limit and the gap all hold across parallel runs.
+    with user_lock(agent_state["user_id"]):
+        skip = skip_reason(agent_state["user_id"], agent_state["recipient_email"])
+        if skip:
+            agent_state["final_email_status"] = False
+            agent_state["outreach_status"], agent_state["skip_reason"] = skip
+            agent_state["db_id"] = None
+            return agent_state
+        wait_for_gap(agent_state["user_id"])
+        return _send_now(agent_state, risk)
+
+
+def _send_now(agent_state: AgentState, risk: dict[str, Any]) -> AgentState:
+    from database.fxns import record_generated_send_result, save_email
+    from utils.GmailAuth import get_valid_gmail_tokens
+    from utils.EmailerAgent import EmailerAgent
     from utils.plans import QuotaExceeded, ensure_can_send
 
     try:
