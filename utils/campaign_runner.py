@@ -3,7 +3,9 @@ import os
 import time
 from typing import Any
 
-from database.fxns import _now, get_user_by_id, is_premium, update_campaign
+from fastapi import HTTPException
+
+from database.fxns import _now, campaign_mode, get_user_by_id, get_waiting_email, is_premium, ready_draft_ids, update_campaign
 from Graph import OutreachInput, run_outreach
 from utils.pacing import average_send_gap, random_send_gap
 
@@ -47,17 +49,53 @@ async def _sleep_unless_cancelled(campaign_id: str, seconds: float) -> None:
         await asyncio.sleep(min(1.0, deadline - time.monotonic()))
 
 
+async def _send_ready_drafts(campaign_id: str, user_id: str, wait_first: bool) -> bool:
+    """Auto-send mode also sends this list's drafts that are waiting in Review and passed the spam check.
+
+    Flagged drafts stay for the user to fix. Returns False when the plan limit stopped the list."""
+    from utils.draft_sender import send_draft
+
+    for position, mail_id in enumerate(ready_draft_ids(user_id, campaign_id)):
+        if campaign_id in _cancelled or campaign_mode(campaign_id) != "auto":
+            break
+        if wait_first or position:
+            wait = random_send_gap()
+            update_campaign(campaign_id, {"current_contact": None, "next_send_at": time.time() + wait})
+            await _sleep_unless_cancelled(campaign_id, wait)
+            if campaign_id in _cancelled or campaign_mode(campaign_id) != "auto":
+                break
+        draft = get_waiting_email(mail_id, user_id)
+        if not draft:
+            continue
+        update_campaign(campaign_id, {"current_contact": draft["recipient_email"], "next_send_at": None})
+        try:
+            await asyncio.to_thread(send_draft, mail_id, user_id)
+        except HTTPException as exc:
+            if exc.status_code == 402:
+                update_campaign(
+                    campaign_id,
+                    {"status": "quota", "finished_at": _now(), "current_contact": None, "next_send_at": None},
+                    error={"email": draft["recipient_email"], "reason": "Plan limit reached; the remaining drafts are still in Review.", "at": _now()},
+                )
+                return False
+            update_campaign(campaign_id, error={"email": draft["recipient_email"], "reason": str(exc.detail), "at": _now()})
+    return True
+
+
 async def _run(campaign: dict[str, Any], user: dict[str, Any], catalog: dict[str, str], start_index: int) -> None:
     campaign_id = campaign["id"]
     contacts = campaign.get("contacts", [])
-    automate = campaign.get("mode") == "auto"
+    user_id = str(user["_id"])
     uses_ai = campaign.get("writing_mode") != "template"
     update_campaign(campaign_id, {"status": "running", "started_at": _now(), "finished_at": None})
 
+    sent_attempted = False
     try:
         for index in range(start_index, len(contacts)):
             if campaign_id in _cancelled:
                 break
+            # The user can switch a list between review and auto-send while it runs.
+            automate = campaign_mode(campaign_id) == "auto"
             if uses_ai and not is_premium(get_user_by_id(str(user["_id"]))):
                 update_campaign(
                     campaign_id,
@@ -119,6 +157,10 @@ async def _run(campaign: dict[str, Any], user: dict[str, Any], catalog: dict[str
                 if wait > 0:
                     update_campaign(campaign_id, {"next_send_at": time.time() + wait})
                     await _sleep_unless_cancelled(campaign_id, wait)
+
+        if campaign_id not in _cancelled and campaign_mode(campaign_id) == "auto":
+            if not await _send_ready_drafts(campaign_id, user_id, wait_first=sent_attempted):
+                return
 
         final_status = "cancelled" if campaign_id in _cancelled else "completed"
         update_campaign(

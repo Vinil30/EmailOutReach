@@ -21,7 +21,6 @@ const CampaignView = (() => {
 
     function row(campaign, { detailed = false } = {}) {
         const counts = campaign.counts || {};
-        const modeLabel = campaign.mode === "auto" ? "Auto-send" : "Review first";
         const writing = campaign.writing_mode === "template" ? "Template" : "AI-written";
         const canResume = ["interrupted", "cancelled", "failed", "quota"].includes(campaign.status) && (campaign.processed || 0) < (campaign.total || 0);
         const errors = (campaign.errors || []).slice(-3);
@@ -30,9 +29,13 @@ const CampaignView = (() => {
                 <div class="campaign-row-head">
                     <div style="min-width:0;">
                         <div class="cell-main">${esc(campaign.name)}</div>
-                        <div class="cell-sub">${modeLabel} · ${writing} · ${campaign.total} contacts · ${OutreachApi.timeAgo(campaign.created_at)}</div>
+                        <div class="cell-sub">${writing} · ${campaign.total} contacts · ${OutreachApi.timeAgo(campaign.created_at)}</div>
                     </div>
                     <div class="actions">
+                        <div class="segmented mini" role="group" aria-label="How this list sends">
+                            <button type="button" data-mode="review" class="${campaign.mode === "auto" ? "" : "active"}" title="Drafts wait in Review for you to send">Review first</button>
+                            <button type="button" data-mode="auto" class="${campaign.mode === "auto" ? "active" : ""}" title="Emails that pass the spam check send automatically">Auto-send</button>
+                        </div>
                         ${OutreachApi.statusBadge(campaign.status)}
                         ${campaign.status === "running" || campaign.status === "queued" ? `<button class="btn ghost sm" data-action="cancel">Stop</button>` : ""}
                         ${canResume ? `<button class="btn secondary sm" data-action="resume">Resume</button>` : ""}
@@ -61,6 +64,7 @@ const CampaignView = (() => {
         let timer = null;
 
         let fresh = false;
+        let lists = [];
 
         async function load() {
             try {
@@ -68,6 +72,7 @@ const CampaignView = (() => {
                 const data = await OutreachApi.cachedGet("/api/campaigns", { fresh });
                 fresh = true;
                 const list = data.campaigns.slice(0, limit);
+                lists = list;
                 container.innerHTML = list.length
                     ? list.map(campaign => row(campaign, { detailed })).join("")
                     : emptyHtml;
@@ -81,7 +86,41 @@ const CampaignView = (() => {
             }
         }
 
+        async function switchMode(button) {
+            const row = button.closest(".campaign-row");
+            const campaign = lists.find(item => item.id === row.dataset.id);
+            const mode = button.dataset.mode;
+            if (!campaign || button.classList.contains("active")) return;
+            const remaining = Math.max(0, (campaign.total || 0) - (campaign.processed || 0));
+            const counts = campaign.counts || {};
+            const ready = Math.max(0, (counts.waiting || 0) - (counts.flagged || 0) - (counts.failed || 0));
+            const message = mode === "auto"
+                ? `Switch “${campaign.name}” to auto-send?
+
+${remaining} contact${remaining === 1 ? "" : "s"} not processed yet and ${ready} ready draft${ready === 1 ? "" : "s"} from this list will be sent automatically, 1–3 minutes apart. Flagged drafts stay in Review for you to fix.`
+                : `Switch “${campaign.name}” to review first?
+
+${remaining
+                    ? `The ${remaining} remaining contact${remaining === 1 ? "" : "s"} will become drafts in Review instead of being sent.`
+                    : "Nothing more will be sent automatically from this list. Its drafts stay in Review for you to send."}`;
+            if (!confirm(message)) return;
+            row.querySelectorAll("[data-mode]").forEach(node => { node.disabled = true; });
+            try {
+                const result = await OutreachApi.request(`/api/campaigns/${campaign.id}/mode`, { method: "POST", json: { mode } });
+                OutreachApi.toast(mode === "auto"
+                    ? (result.started ? "Auto-send is on. Sending now, 1–3 minutes apart." : campaign.status === "cancelled" && (remaining || ready) ? "Auto-send is on. Press Resume to continue." : "Auto-send is on.")
+                    : "Review first is on. New drafts will wait in Review.", "ok");
+                setTimeout(load, 400);
+            } catch (error) {
+                OutreachApi.toast(error.message, "error");
+                if (/Upgrade/.test(error.message)) OutreachApi.openUpgrade();
+                row.querySelectorAll("[data-mode]").forEach(node => { node.disabled = false; });
+            }
+        }
+
         container.addEventListener("click", async event => {
+            const modeButton = event.target.closest("button[data-mode]");
+            if (modeButton) return switchMode(modeButton);
             const button = event.target.closest("button[data-action]");
             if (!button) return;
             const id = button.closest(".campaign-row").dataset.id;

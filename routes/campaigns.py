@@ -1,6 +1,7 @@
 import json
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from pydantic import BaseModel
 
 from database.fxns import (
     create_campaign,
@@ -10,6 +11,8 @@ from database.fxns import (
     get_overview_stats,
     list_campaigns,
     project_catalog,
+    ready_draft_ids,
+    update_campaign,
 )
 from utils import campaign_runner
 from utils.contacts import normalize_contacts, read_contacts_frame
@@ -22,6 +25,10 @@ router = APIRouter(prefix="/api/campaigns", tags=["campaigns"])
 
 MODES = ("auto", "review")
 WRITING_MODES = ("ai", "template")
+
+
+class ModeIn(BaseModel):
+    mode: str
 
 
 def _parse_brief(brief_json: str | None) -> dict:
@@ -195,3 +202,35 @@ async def resume_campaign(campaign_id: str, current_user=Depends(get_current_use
     catalog = project_catalog(user_id) if campaign.get("role") == "student" else {}
     campaign_runner.start(campaign, current_user, catalog, start_index=processed)
     return {"resumed": True, "from_index": processed}
+
+
+@router.post("/{campaign_id}/mode")
+async def switch_mode(campaign_id: str, payload: ModeIn, current_user=Depends(get_current_user)):
+    """Switch a list between review-first and auto-send, even while it's running.
+
+    Auto-send applies to contacts not processed yet and to this list's drafts waiting in Review that passed
+    the spam check; review-first turns the remaining contacts into drafts."""
+    user_id = str(current_user["_id"])
+    doc = get_campaign_doc(campaign_id, user_id)
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Campaign not found")
+    if payload.mode not in MODES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mode must be 'auto' or 'review'")
+    if payload.mode == "auto":
+        require_signed(current_user)
+        quota = quota_status(current_user)
+        if quota["remaining"] <= 0:
+            raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=limit_message(quota))
+    update_campaign(campaign_id, {"mode": payload.mode})
+
+    remaining = max(0, len(doc.get("contacts", [])) - int(doc.get("processed") or 0))
+    ready = len(ready_draft_ids(user_id, campaign_id)) if payload.mode == "auto" else 0
+    started = False
+    # A list that isn't running only needs restarting when auto-send has something to do.
+    if payload.mode == "auto" and not campaign_runner.is_running(campaign_id) and (remaining or ready) and doc.get("status") not in ("queued", "cancelled"):
+        campaign = dict(doc, mode="auto")
+        campaign["id"] = str(campaign.pop("_id"))
+        catalog = project_catalog(user_id) if campaign.get("role") == "student" else {}
+        campaign_runner.start(campaign, current_user, catalog, start_index=int(doc.get("processed") or 0))
+        started = True
+    return {"mode": payload.mode, "remaining_contacts": remaining, "ready_drafts": ready, "started": started}

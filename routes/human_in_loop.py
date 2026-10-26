@@ -6,20 +6,13 @@ from pydantic import BaseModel
 from database.fxns import (
     ensure_rejected_csv,
     get_current_user,
-    get_user_by_id,
-    get_waiting_email,
     get_waiting_emails,
-    record_generated_send_result,
     reject_generated_email,
     update_generated_email_details,
 )
 from Graph import EmailDetails
-from utils.EmailerAgent import EmailerAgent
-from utils.GmailAuth import get_valid_gmail_tokens
-from utils.plans import QuotaExceeded, ensure_can_send, require_ai
-from utils.send_guard import skip_reason, user_lock
-from utils.spam_guard import analyze_email_risk
-from utils.templating import with_compliance_footer
+from utils.draft_sender import load_draft, risk_for, send_draft
+from utils.plans import require_ai
 
 router = APIRouter(prefix="/human", tags=["human"])
 
@@ -36,30 +29,7 @@ RejectMailIn = MailEditIn
 
 
 def _load_draft(payload: MailEditIn, user_id: str) -> tuple[dict, EmailDetails, str]:
-    waiting_email = get_waiting_email(payload.mail_id, user_id)
-    if not waiting_email:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Waiting email not found")
-    stored_details = waiting_email["written_email_details"]
-    email_details = EmailDetails(
-        email_subject=payload.email_subject or stored_details["email_subject"],
-        email_body=payload.email_body or stored_details["email_body"],
-    )
-    campaign_type = waiting_email.get("campaign_type") or "outreach"
-    if campaign_type == "campaign":
-        # Edits in the review queue can't remove the sender identity and opt-out line campaigns must carry.
-        owner = get_user_by_id(user_id) or {}
-        email_details.email_body = with_compliance_footer(email_details.email_body, owner.get("profile") or {})
-    return waiting_email, email_details, campaign_type
-
-
-def _risk_for(waiting_email: dict, email_details: EmailDetails, campaign_type: str):
-    return analyze_email_risk(
-        email_details.email_subject,
-        email_details.email_body,
-        waiting_email["email_from"],
-        waiting_email["recipient_email"],
-        campaign_type=campaign_type,
-    )
+    return load_draft(payload.mail_id, user_id, payload.email_subject, payload.email_body)
 
 
 @router.get("/waiting-emails")
@@ -71,7 +41,7 @@ async def get_human_mails(campaign_id: str | None = None, current_user=Depends(g
 async def save_draft(payload: MailEditIn, current_user=Depends(get_current_user)):
     user_id = str(current_user["_id"])
     waiting_email, email_details, campaign_type = _load_draft(payload, user_id)
-    risk = _risk_for(waiting_email, email_details, campaign_type)
+    risk = risk_for(waiting_email, email_details, campaign_type)
     email = update_generated_email_details(
         payload.mail_id,
         user_id,
@@ -92,7 +62,7 @@ async def rewrite_draft(payload: MailEditIn, current_user=Depends(get_current_us
     require_ai(current_user)
     user_id = str(current_user["_id"])
     waiting_email, email_details, campaign_type = _load_draft(payload, user_id)
-    before = _risk_for(waiting_email, email_details, campaign_type)
+    before = risk_for(waiting_email, email_details, campaign_type)
     try:
         rewritten = await run_in_threadpool(
             EmailWriter().RewriteForDeliverability,
@@ -107,7 +77,7 @@ async def rewrite_draft(payload: MailEditIn, current_user=Depends(get_current_us
     if campaign_type == "campaign":
         body = with_compliance_footer(body, current_user.get("profile") or {})
     rewritten = EmailDetails(email_subject=rewritten.email_subject, email_body=body)
-    risk = _risk_for(waiting_email, rewritten, campaign_type)
+    risk = risk_for(waiting_email, rewritten, campaign_type)
     email = update_generated_email_details(
         payload.mail_id,
         user_id,
@@ -121,60 +91,7 @@ async def rewrite_draft(payload: MailEditIn, current_user=Depends(get_current_us
 
 @router.post("/send-mail")
 async def send_mail(payload: SendMailIn, current_user=Depends(get_current_user)):
-    user_id = str(current_user["_id"])
-    waiting_email, email_details, campaign_type = _load_draft(payload, user_id)
-    if waiting_email["recipient_email"].lower() in set(current_user.get("suppressed_emails") or []):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This recipient is on your suppression list")
-
-    risk = _risk_for(waiting_email, email_details, campaign_type)
-    updated_email = update_generated_email_details(
-        payload.mail_id,
-        user_id,
-        email_details.email_subject,
-        email_details.email_body,
-        risk.model_dump(),
-    )
-    if risk.action != "SEND":
-        return {
-            "email": updated_email,
-            "blocked": True,
-            "deliverability_risk": risk.model_dump(),
-        }
-    return await run_in_threadpool(_send_reviewed, payload.mail_id, user_id, waiting_email, email_details, risk)
-
-
-def _send_reviewed(mail_id: str, user_id: str, waiting_email: dict, email_details: EmailDetails, risk) -> dict:
-    # Serialised per user, so a double-click or a parallel list can't send twice or overrun the plan limit.
-    with user_lock(user_id):
-        skip = skip_reason(user_id, waiting_email["recipient_email"])
-        if skip:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=skip[1])
-        try:
-            ensure_can_send(user_id)
-        except QuotaExceeded as exc:
-            raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=str(exc)) from exc
-
-        try:
-            gmail_tokens = get_valid_gmail_tokens(user_id)
-        except HTTPException as exc:
-            send_result = {
-                "status": "FAILED_PERMANENT",
-                "attempt": 0,
-                "reason": exc.detail,
-                "history": [{"attempt": 0, "status": "FAILED", "reason": exc.detail, "transient": False}],
-            }
-            failed_email = record_generated_send_result(mail_id, user_id, send_result, risk.model_dump())
-            return {"email": failed_email, "failed": True}
-
-        emailer = EmailerAgent(
-            email_details=email_details,
-            recipient_email=waiting_email["recipient_email"],
-            email_from=waiting_email["email_from"],
-            gmail_tokens=gmail_tokens,
-        )
-        send_result = emailer.send_with_retries()
-        sent_email = record_generated_send_result(mail_id, user_id, send_result, risk.model_dump())
-        return {"email": sent_email, "failed": send_result.get("status") != "SENT"}
+    return await run_in_threadpool(send_draft, payload.mail_id, str(current_user["_id"]), payload.email_subject, payload.email_body)
 
 
 @router.post("/reject-mail")

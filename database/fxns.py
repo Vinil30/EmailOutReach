@@ -393,6 +393,24 @@ def get_campaign_doc(campaign_id: str, user_id: str) -> dict[str, Any] | None:
     return campaigns.find_one({"_id": ObjectId(campaign_id), "user_id": str(user_id)})
 
 
+def campaign_mode(campaign_id: str) -> str | None:
+    """Read live, so switching a running list between review and auto-send takes effect at the next contact."""
+    doc = campaigns.find_one({"_id": ObjectId(campaign_id)}, {"mode": 1}) if ObjectId.is_valid(campaign_id) else None
+    return (doc or {}).get("mode")
+
+
+def ready_draft_ids(user_id: str, campaign_id: str) -> list[str]:
+    """Drafts in a list that passed the spam check and haven't failed, oldest first."""
+    query = {
+        "user_id": str(user_id),
+        "campaign_id": campaign_id,
+        "email_status": False,
+        "deliverability_risk.action": "SEND",
+        "outreach_status": {"$not": {"$regex": "^(FAILED|DUPLICATE|SENDING)"}},
+    }
+    return [str(doc["_id"]) for doc in emailsGenerated.find(query, {"_id": 1}).sort("created_at", 1)]
+
+
 def _empty_counts() -> dict[str, int]:
     return {"sent": 0, "waiting": 0, "flagged": 0, "failed": 0}
 

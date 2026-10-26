@@ -1119,3 +1119,5 @@ tbody tr.clickable:hover { background: var(--surface-2); }
 @media (max-width: 820px) { .upgrade-tiers { grid-template-columns: 1fr; } }
 .auto-notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 10px 14px; border-radius: 10px; background: var(--warn-soft); color: var(--ink-2); line-height: 1.5; }
 .draft-note { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; }
+.segmented.mini { padding: 3px; gap: 2px; border-radius: 9px; }
+.segmented.mini button { padding: 4px 10px; font-size: 12px; border-radius: 7px; }
