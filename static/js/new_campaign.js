@@ -242,6 +242,8 @@
             const button = event.target.closest("button[data-template]");
             if (button) applyTemplate(usable.find(template => template.id === button.dataset.template));
         });
+        // A restored draft keeps the email the user was writing.
+        if (draftRestored) return;
         // Job seekers start from what they chose on the Templates page.
         const chosen = usable.find(template => template.id === data.selected);
         if (!campaigner && data.selected === "ai" && aiAllowed) {
@@ -355,6 +357,7 @@
         OutreachApi.setStatus(status, "Launching…");
         try {
             const campaign = await OutreachApi.request("/api/campaigns", { method: "POST", body: form });
+            clearDraft();
             OutreachApi.toast(`“${campaign.name}” is running in the background.`, "ok");
             window.location.href = "/campaigns";
         } catch (error) {
@@ -362,6 +365,129 @@
             $("launchBtn").disabled = false;
             if (/Upgrade/.test(error.message)) OutreachApi.openUpgrade();
         }
+    });
+
+    // ---- Unsent draft: kept in this browser so a reload doesn't lose the list or the email ----
+    const DRAFT_KEY = `mzListDraft:${user.id}`;
+    const MAX_DRAFT_FILE_BYTES = 2_000_000;
+    let draftTimer;
+
+    function readDraft() {
+        try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); } catch { return null; }
+    }
+
+    function writeDraft(draft) {
+        try {
+            localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+        } catch {
+            // Storage full (usually a big file): keep everything except the file itself.
+            try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...draft, file: draft.file && { name: draft.file.name, missing: true } })); } catch { /* storage unavailable */ }
+        }
+    }
+
+    function clearDraft() {
+        try { localStorage.removeItem(DRAFT_KEY); } catch { /* storage unavailable */ }
+    }
+
+    function fileAsDataUrl(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function saveDraft() {
+        const previous = readDraft();
+        const file = $("fileInput").files[0];
+        let savedFile = null;
+        if (file) {
+            const sameFile = previous?.file?.data && previous.file.name === file.name && previous.file.size === file.size;
+            savedFile = sameFile ? previous.file
+                : file.size <= MAX_DRAFT_FILE_BYTES ? { name: file.name, type: file.type, size: file.size, data: await fileAsDataUrl(file) }
+                : { name: file.name, missing: true };
+        }
+        const rows = [...$("formRows").querySelectorAll(".contact-form-row")]
+            .map(row => FORM_FIELDS.map(([field]) => row.querySelector(`[data-field="${field}"]`).value))
+            .filter(values => values.some(value => value.trim()));
+        const draft = {
+            source: state.source, file: savedFile, paste: $("contactsText").value, rows,
+            name: $("nameInput").value, writing: state.writing, mode: state.mode,
+            subject: $("subjectTemplate").value, body: $("bodyTemplate").value, dropEmptyLines,
+            ai: { research: $("researchInput").checked, instructions: $("instructionsInput").value, offer: $("offerInput").value,
+                  goal: $("goalInput").value, tone: $("toneInput").value, studentGoal: $("studentGoalInput").value },
+            savedAt: Date.now()
+        };
+        const empty = !draft.file && !draft.paste.trim() && !rows.length && !draft.subject.trim() && !draft.body.trim();
+        if (empty) clearDraft(); else writeDraft(draft);
+    }
+
+    function scheduleDraftSave() {
+        clearTimeout(draftTimer);
+        draftTimer = setTimeout(() => saveDraft().catch(() => {}), 400);
+    }
+
+    function dataUrlToFile({ name, type, data }) {
+        const [meta, base64] = data.split(",");
+        const bytes = Uint8Array.from(atob(base64), char => char.charCodeAt(0));
+        return new File([bytes], name, { type: type || meta.slice(5, meta.indexOf(";")) });
+    }
+
+    function restoreDraft(draft) {
+        $("sourceToggle").querySelector(`[data-source="${draft.source}"]`)?.click();
+        $("contactsText").value = draft.paste || "";
+        if (draft.rows?.length) {
+            $("formRows").innerHTML = "";
+            draft.rows.forEach(values => {
+                addFormRow();
+                const row = $("formRows").lastElementChild;
+                FORM_FIELDS.forEach(([field], index) => { row.querySelector(`[data-field="${field}"]`).value = values[index] || ""; });
+            });
+            updateFormCount();
+        }
+        if (draft.file?.data) {
+            try {
+                const transfer = new DataTransfer();
+                transfer.items.add(dataUrlToFile(draft.file));
+                $("fileInput").files = transfer.files;
+                $("fileName").textContent = draft.file.name;
+            } catch { /* fall through to asking for the file again */ }
+        } else if (draft.file?.missing) {
+            $("fileName").textContent = `Choose “${draft.file.name}” again (too large to keep after a reload)`;
+        }
+        $("nameInput").value = draft.name || "";
+        $("subjectTemplate").value = draft.subject || "";
+        $("bodyTemplate").value = draft.body || "";
+        dropEmptyLines = Boolean(draft.dropEmptyLines);
+        const ai = draft.ai || {};
+        $("researchInput").checked = ai.research ?? $("researchInput").checked;
+        $("instructionsInput").value = ai.instructions || "";
+        if (ai.offer) $("offerInput").value = ai.offer;
+        if (ai.goal) $("goalInput").value = ai.goal;
+        if (ai.tone) $("toneInput").value = ai.tone;
+        if (ai.studentGoal) $("studentGoalInput").value = ai.studentGoal;
+        if (draft.writing === "ai" && aiAllowed) document.querySelector('#writingMode input[value="ai"]').click();
+        if (draft.mode === "auto") document.querySelector('#modeChoice input[value="auto"]').click();
+
+        const note = document.createElement("div");
+        note.className = "banner info small draft-note";
+        note.innerHTML = `<span>Restored your unsent list from ${esc(OutreachApi.timeAgo(new Date(draft.savedAt).toISOString()))}.</span><button type="button" class="btn ghost sm">Start over</button>`;
+        note.querySelector("button").addEventListener("click", () => { clearDraft(); window.location.reload(); });
+        $("sourceToggle").before(note);
+        loadPreview();
+        runTemplateCheck();
+    }
+
+    const savedDraft = readDraft();
+    const draftRestored = Boolean(savedDraft);
+    if (savedDraft) restoreDraft(savedDraft);
+
+    // Any edit on the page (typing, uploads, choices, templates) updates the draft.
+    document.querySelector(".main").addEventListener("input", scheduleDraftSave);
+    document.querySelector(".main").addEventListener("change", scheduleDraftSave);
+    document.querySelector(".main").addEventListener("click", event => {
+        if (event.target.closest("#sourceToggle button, #galleryChips button, #fieldChips button, [data-remove], #addRowBtn")) scheduleDraftSave();
     });
 
     renderChips();
