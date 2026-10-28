@@ -4,7 +4,7 @@ from io import BytesIO, StringIO
 import pandas as pd
 from fastapi import HTTPException, UploadFile, status
 
-MAX_CONTACTS = 500
+MAX_CONTACTS = 3000
 EMAIL_PATTERN = re.compile(r"^[^@\s<>]+@[^@\s<>]+\.[A-Za-z]{2,}$")
 
 # Accept the column names people actually use in exported spreadsheets.
