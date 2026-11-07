@@ -134,7 +134,7 @@
 
     async function load() {
         try {
-            data = await OutreachApi.cachedGet("/api/automation", { fresh });
+            data = await OutreachApi.cachedGet("/api/automation", { fresh, background: fresh });
             fresh = true;
         } catch (error) {
             content.innerHTML = `<div class="status error">${esc(error.message)}</div>`;

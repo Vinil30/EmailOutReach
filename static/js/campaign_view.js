@@ -69,7 +69,8 @@ const CampaignView = (() => {
         async function load() {
             try {
                 // The first load can reuse a request the page already started; polling always refetches.
-                const data = await OutreachApi.cachedGet("/api/campaigns", { fresh });
+                // Refreshes after the first load are live polling, so they stay quiet (no progress bar).
+                const data = await OutreachApi.cachedGet("/api/campaigns", { fresh, background: fresh });
                 fresh = true;
                 const list = data.campaigns.slice(0, limit);
                 lists = list;

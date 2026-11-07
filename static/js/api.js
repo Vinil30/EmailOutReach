@@ -73,7 +73,107 @@ const OutreachApi = (() => {
         setTimeout(() => node.remove(), type === "error" ? 6500 : 4000);
     }
 
+    // ---- Loading feedback: a top progress bar for slow requests, and spinners on the button that started them ----
+    let activeRequests = 0;
+    let progressTimer = null;
+    let progressShowTimer = null;
+    let lastPress = null;
+
+    function progressBar() {
+        let bar = document.getElementById("mzProgress");
+        if (!bar) {
+            bar = document.createElement("div");
+            bar.id = "mzProgress";
+            bar.innerHTML = "<span></span>";
+            document.body.appendChild(bar);
+        }
+        return bar;
+    }
+
+    function startProgress() {
+        const bar = progressBar();
+        const fill = bar.firstChild;
+        clearInterval(progressTimer);
+        bar.classList.remove("done");
+        bar.classList.add("on");
+        let width = Math.max(parseFloat(fill.style.width) || 0, 12);
+        fill.style.width = `${width}%`;
+        // Creeps toward 90% so a slow request still looks alive, without ever claiming to be finished.
+        progressTimer = setInterval(() => {
+            width += (90 - width) * 0.08;
+            fill.style.width = `${width}%`;
+        }, 200);
+    }
+
+    function finishProgress() {
+        const bar = document.getElementById("mzProgress");
+        clearInterval(progressTimer);
+        if (!bar || !bar.classList.contains("on")) return;
+        bar.firstChild.style.width = "100%";
+        bar.classList.add("done");
+        setTimeout(() => {
+            if (activeRequests || document.body.classList.contains("mz-leaving")) return;
+            bar.classList.remove("on", "done");
+            bar.firstChild.style.width = "0%";
+        }, 260);
+    }
+
+    function trackRequest() {
+        activeRequests += 1;
+        // Fast requests finish before the bar appears, so it never flickers.
+        if (activeRequests === 1) progressShowTimer = setTimeout(startProgress, 180);
+        const press = lastPress && performance.now() - lastPress.at < 400 && lastPress.button.isConnected ? lastPress.button : null;
+        if (press) {
+            press.dataset.busyCount = String(Number(press.dataset.busyCount || 0) + 1);
+            press.classList.add("is-busy");
+            press.setAttribute("aria-busy", "true");
+        }
+        return () => {
+            activeRequests = Math.max(0, activeRequests - 1);
+            if (!activeRequests) {
+                clearTimeout(progressShowTimer);
+                finishProgress();
+            }
+            if (press) {
+                const left = Number(press.dataset.busyCount || 1) - 1;
+                press.dataset.busyCount = String(left);
+                if (left <= 0) {
+                    press.classList.remove("is-busy");
+                    press.removeAttribute("aria-busy");
+                }
+            }
+        };
+    }
+
+    function notePress(button) {
+        lastPress = { button, at: performance.now() };
+    }
+
+    function startNavigation(link) {
+        document.body.classList.add("mz-leaving");
+        link?.classList.add(link.classList.contains("btn") ? "is-busy" : "is-going");
+        // Highlight the destination in the sidebar straight away.
+        if (link?.closest(".nav")) link.closest(".nav").querySelectorAll("a").forEach(node => node.classList.toggle("active", node === link));
+        startProgress();
+    }
+
+    function endNavigation() {
+        document.body.classList.remove("mz-leaving");
+        document.querySelectorAll(".is-going, a.btn.is-busy").forEach(node => node.classList.remove("is-going", "is-busy"));
+        finishProgress();
+    }
+
     async function request(path, options = {}) {
+        const { background, ...fetchOptions } = options;
+        const done = background ? () => {} : trackRequest();
+        try {
+            return await send(path, fetchOptions);
+        } finally {
+            done();
+        }
+    }
+
+    async function send(path, options) {
         const headers = options.headers || {};
         const token = getToken();
         if (token) {
@@ -109,9 +209,9 @@ const OutreachApi = (() => {
     // Shares one in-flight GET per path, so a page can start its data requests before the
     // sidebar's user check finishes and duplicate requests (plan, stats) hit the server once.
     const getCache = new Map();
-    function cachedGet(path, { fresh = false } = {}) {
+    function cachedGet(path, { fresh = false, background = false } = {}) {
         if (fresh || !getCache.has(path)) {
-            const pending = request(path);
+            const pending = request(path, { background });
             getCache.set(path, pending);
             pending.catch(() => { if (getCache.get(path) === pending) getCache.delete(path); });
         }
@@ -407,6 +507,7 @@ const OutreachApi = (() => {
         clearSession,
         closeUpgrade,
         currentTheme,
+        endNavigation,
         duration,
         escapeAttr,
         escapeHtml,
@@ -419,6 +520,7 @@ const OutreachApi = (() => {
         isCampaigner,
         legalDocuments,
         logout,
+        notePress,
         openUpgrade,
         parseDate,
         redirectIfLoggedIn,
@@ -430,6 +532,7 @@ const OutreachApi = (() => {
         setTheme,
         setUser,
         signatureBlock,
+        startNavigation,
         statusBadge,
         timeAgo,
         toast
@@ -440,6 +543,41 @@ document.addEventListener("DOMContentLoaded", () => {
     OutreachApi.bindThemeToggles();
     OutreachApi.applyPricing().catch(() => {});
 });
+
+// Remember which button was pressed, so the requests it starts can show a spinner on it.
+document.addEventListener("click", event => {
+    const button = event.target.closest("button.btn, a.btn, [data-busy]");
+    if (button && !button.disabled && !button.hasAttribute("data-no-busy")) OutreachApi.notePress(button);
+}, true);
+
+// Leaving for another Mailzen page: dim the current one and start the progress bar right away.
+document.addEventListener("click", event => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const link = event.target.closest("a[href]");
+    if (!link || link.target === "_blank" || link.hasAttribute("download") || link.hasAttribute("data-upgrade")) return;
+    const url = new URL(link.href, window.location.href);
+    if (url.origin !== window.location.origin || url.pathname.startsWith("/static/") || url.pathname.startsWith("/gmail/")) return;
+    if (url.pathname === window.location.pathname && url.search === window.location.search) return;  // same page or #anchor
+    OutreachApi.startNavigation(link);
+});
+// Coming back with the browser's back button can restore a page mid-transition.
+window.addEventListener("pageshow", () => OutreachApi.endNavigation());
+// The browser skips the cross-page fade when the tab is hidden; that's expected, not an error.
+["pageswap", "pagereveal"].forEach(type => window.addEventListener(type, event => event.viewTransition?.finished.catch(() => {})));
+
+// Content replacing a loading placeholder fades in instead of popping.
+const skeletonWatcher = new MutationObserver(mutations => {
+    for (const mutation of mutations) {
+        if ([...mutation.removedNodes].some(node => node.nodeType === 1 && (node.classList?.contains("skeleton") || node.querySelector?.(".skeleton")))) {
+            const target = mutation.target;
+            if (target.nodeType !== 1 || target.querySelector(".skeleton")) continue;
+            target.classList.remove("mz-reveal");
+            void target.offsetWidth;
+            target.classList.add("mz-reveal");
+        }
+    }
+});
+document.addEventListener("DOMContentLoaded", () => skeletonWatcher.observe(document.body, { childList: true, subtree: true }));
 
 // Any element marked data-upgrade opens the plans card instead of navigating.
 document.addEventListener("click", event => {

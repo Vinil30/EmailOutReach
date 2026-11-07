@@ -716,7 +716,11 @@ tbody tr.clickable:hover { background: var(--surface-2); }
 .toast.ok { background: var(--ok); color: #fff; }
 @keyframes toast-in { from { transform: translateY(8px); opacity: 0; } }
 
-.skeleton { height: 14px; border-radius: 6px; background: linear-gradient(90deg, var(--surface-3), var(--surface-2), var(--surface-3)); background-size: 200% 100%; animation: shimmer 1.2s linear infinite; }
+.skeleton { position: relative; height: 14px; margin-bottom: 46px; border-radius: 6px; background: linear-gradient(90deg, var(--surface-3), var(--surface-2), var(--surface-3)); background-size: 200% 100%; animation: shimmer 1.2s linear infinite; }
+/* Two more bars under every placeholder, so loading areas look like the content that's coming. */
+.skeleton::before, .skeleton::after { content: ""; position: absolute; left: 0; height: 14px; border-radius: 6px; background: inherit; background-size: inherit; animation: inherit; }
+.skeleton::before { top: 23px; width: 86%; }
+.skeleton::after { top: 46px; width: 58%; }
 @keyframes shimmer { to { background-position: -200% 0; } }
 
 .kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13px; }
@@ -1121,3 +1125,39 @@ tbody tr.clickable:hover { background: var(--surface-2); }
 .draft-note { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; }
 .segmented.mini { padding: 3px; gap: 2px; border-radius: 9px; }
 .segmented.mini button { padding: 4px 10px; font-size: 12px; border-radius: 7px; }
+
+/* ---------- Loading & transitions ---------- */
+#mzProgress { position: fixed; inset: 0 0 auto 0; z-index: 300; height: 2px; pointer-events: none; opacity: 0; transition: opacity .25s ease; }
+#mzProgress.on { opacity: 1; }
+#mzProgress.done { opacity: 0; transition-delay: .12s; }
+#mzProgress span { display: block; width: 0; height: 100%; background: var(--accent); box-shadow: 0 0 8px var(--accent); transition: width .2s ease; }
+
+/* A button that started a request shows a spinner and can't be pressed twice. */
+.btn.is-busy { pointer-events: none; opacity: .82; }
+.btn.is-busy::before { content: ""; flex: none; width: 12px; height: 12px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: mz-spin .7s linear infinite; }
+@keyframes mz-spin { to { transform: rotate(360deg); } }
+.nav a.is-going { opacity: .7; }
+
+/* Page changes: the old page dims at once, the new one fades in. Browsers that support
+   cross-page view transitions cross-fade, with the sidebar held still. */
+@view-transition { navigation: auto; }
+.sidebar { view-transition-name: sidebar; }
+::view-transition-old(root) { animation: mz-fade-out .16s ease both; }
+::view-transition-new(root) { animation: mz-fade-in .24s ease both; }
+@keyframes mz-fade-out { to { opacity: 0; } }
+@keyframes mz-fade-in { from { opacity: 0; } }
+body.mz-leaving .main, body.mz-leaving .auth-form-side, body.mz-leaving .legal { opacity: .55; transition: opacity .15s ease; pointer-events: none; }
+/* Browsers without cross-page view transitions get a fade-in instead (one or the other, never both). */
+@supports not (view-transition-name: none) {
+    .main, .auth-card, .legal { animation: mz-page-in .32s cubic-bezier(.2, .8, .2, 1); }
+}
+@keyframes mz-page-in { from { opacity: 0; transform: translateY(6px); } }
+
+/* Content that replaces a loading placeholder. */
+.mz-reveal { animation: mz-reveal .3s ease both; }
+@keyframes mz-reveal { from { opacity: 0; transform: translateY(4px); } }
+
+@media (prefers-reduced-motion: reduce) {
+    .main, .auth-card, .legal, .mz-reveal, ::view-transition-old(root), ::view-transition-new(root) { animation: none !important; }
+    .btn.is-busy::before { animation-duration: 1.6s; }
+}

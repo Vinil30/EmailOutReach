@@ -103,7 +103,7 @@ const Layout = (() => {
 
     async function refreshPlan({ fresh = true } = {}) {
         try {
-            currentPlan = await OutreachApi.cachedGet("/api/plan", { fresh });
+            currentPlan = await OutreachApi.cachedGet("/api/plan", { fresh, background: true });
             const node = document.getElementById("planChip");
             if (node) node.innerHTML = planChip(currentPlan);
         } catch {
@@ -124,7 +124,7 @@ const Layout = (() => {
 
     async function refreshReviewCount({ fresh = true } = {}) {
         try {
-            const stats = await OutreachApi.cachedGet("/api/campaigns/stats", { fresh });
+            const stats = await OutreachApi.cachedGet("/api/campaigns/stats", { fresh, background: true });
             const node = document.getElementById("reviewCount");
             if (node) {
                 node.textContent = stats.waiting;
