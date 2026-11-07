@@ -218,6 +218,18 @@ const OutreachApi = (() => {
         return getCache.get(path);
     }
 
+    // App pages need the account, plan and review counts before anything else. One /api/session request
+    // starts as soon as this script loads and answers all three, so the page waits on one round trip, not three.
+    function primeSession() {
+        if (!getToken() || !document.getElementById("sidebar")) return;
+        const session = request("/api/session");
+        [["/auth/me", "user"], ["/api/plan", "plan"], ["/api/campaigns/stats", "stats"]].forEach(([path, key]) => {
+            const part = session.then(data => data[key]);
+            getCache.set(path, part);
+            part.catch(() => { if (getCache.get(path) === part) getCache.delete(path); });
+        });
+    }
+
     function escapeHtml(value) {
         return String(value ?? "")
             .replaceAll("&", "&amp;")
@@ -498,6 +510,8 @@ const OutreachApi = (() => {
         document.body.appendChild(backdrop);
     }
 
+    primeSession();
+
     return {
         bindLogout,
         bindSignature,
@@ -563,7 +577,10 @@ document.addEventListener("click", event => {
 // Coming back with the browser's back button can restore a page mid-transition.
 window.addEventListener("pageshow", () => OutreachApi.endNavigation());
 // The browser skips the cross-page fade when the tab is hidden; that's expected, not an error.
-["pageswap", "pagereveal"].forEach(type => window.addEventListener(type, event => event.viewTransition?.finished.catch(() => {})));
+["pageswap", "pagereveal"].forEach(type => window.addEventListener(type, event => {
+    const transition = event.viewTransition;
+    if (transition) [transition.ready, transition.updateCallbackDone, transition.finished].forEach(promise => promise?.catch(() => {}));
+}));
 
 // Content replacing a loading placeholder fades in instead of popping.
 const skeletonWatcher = new MutationObserver(mutations => {

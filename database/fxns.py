@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +17,7 @@ from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 from pymongo.collection import Collection
 from pymongo import ReturnDocument
+from pymongo.collation import Collation
 
 from utils.legal import clean_signature, legal_status, signature_records
 
@@ -49,6 +51,9 @@ leadSends: Collection = db["leadSends"]
 premiumGrants: Collection = db["premiumGrants"]
 legalSignatures: Collection = db["legalSignatures"]
 settings: Collection = db["settings"]
+badAddresses: Collection = db["badAddresses"]
+
+CASE_INSENSITIVE = Collation(locale="en", strength=2)
 
 ADMIN_EMAILS = {email.strip().lower() for email in os.environ.get("ADMIN_EMAILS", "").split(",") if email.strip()}
 
@@ -96,12 +101,16 @@ def ensure_indexes() -> None:
         projects.create_index([("user_id", 1), ("created_at", -1)])
         campaigns.create_index([("user_id", 1), ("created_at", -1)])
         emailsSent.create_index([("user_id", 1), ("sent_at", -1)])
+        emailsSent.create_index([("user_id", 1), ("updated_at", -1)])
+        # Case-insensitive, so "never email the same person twice" is an index lookup, not a scan.
+        emailsSent.create_index([("user_id", 1), ("recipient_email", 1)], collation=CASE_INSENSITIVE, name="user_recipient_ci")
         leads.create_index("email", unique=True)
         leads.create_index([("active", 1), ("created_at", 1)])
         leadSends.create_index([("user_id", 1), ("lead_id", 1)], unique=True)
         leadSends.create_index([("user_id", 1), ("created_at", -1)])
         premiumGrants.create_index([("email", 1), ("created_at", -1)])
         legalSignatures.create_index([("user_id", 1), ("signed_at", -1)])
+        badAddresses.create_index("email", unique=True)
         # Accounts from before Pro existed only had premium_until; they become Premium with a fresh database allowance.
         for legacy in users.find({"premium_until": {"$exists": True}, "plan_until": {"$exists": False}}):
             users.update_one(
@@ -510,7 +519,7 @@ def disconnect_gmail(user_id: str) -> None:
         users.update_one({"_id": ObjectId(user_id)}, {"$unset": {"gmail_tokens": ""}})
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict[str, Any]:
+def get_current_user(token: str = Depends(oauth2_scheme)) -> dict[str, Any]:
     credentials_error = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -576,6 +585,30 @@ def save_email(
     return str(resp.inserted_id)
 
 
+# ---------- Addresses that bounced ("Address not found"), shared by every account ----------
+
+def is_bad_address(address: str) -> bool:
+    return bool(badAddresses.find_one({"email": (address or "").strip().lower()}, {"_id": 1}))
+
+
+def bad_addresses_among(addresses: list[str]) -> set[str]:
+    lowered = list({(address or "").strip().lower() for address in addresses if address})
+    if not lowered:
+        return set()
+    return {row["email"] for row in badAddresses.find({"email": {"$in": lowered}}, {"email": 1})}
+
+
+def add_bad_address(address: str, reason: str, source: str, user_id: str | None = None) -> None:
+    email = (address or "").strip().lower()
+    if not email:
+        return
+    badAddresses.update_one(
+        {"email": email},
+        {"$setOnInsert": {"email": email, "reason": reason, "source": source, "user_id": user_id, "created_at": _now()}},
+        upsert=True,
+    )
+
+
 def make_send_fingerprint(user_id: str, recipient_email: str, email_subject: str, email_body: str) -> str:
     normalized = "\n".join(
         [
@@ -588,13 +621,6 @@ def make_send_fingerprint(user_id: str, recipient_email: str, email_subject: str
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
 
-def get_waiting_emails(user_id: str, campaign_id: str | None = None) -> list[dict[str, Any]]:
-    query: dict[str, Any] = {"user_id": str(user_id), "email_status": False}
-    if campaign_id:
-        query["campaign_id"] = campaign_id
-    return _serialize_many(emailsGenerated.find(query).sort("created_at", -1))
-
-
 def _hide_database_address(email: dict[str, Any]) -> dict[str, Any]:
     """Sends to the recruiter database never expose the address, so the database can't be copied out of the app."""
     if email.get("campaign_id") == DATABASE_CAMPAIGN_ID:
@@ -604,11 +630,79 @@ def _hide_database_address(email: dict[str, Any]) -> dict[str, Any]:
     return email
 
 
-def get_sent_emails(user_id: str, campaign_id: str | None = None, limit: int = 500) -> list[dict[str, Any]]:
+# What a row in the Sent list needs; the full message and spam report load only when an email is opened.
+SENT_LIST_FIELDS = {
+    "recipient_email": 1, "recipient_name": 1, "company_name": 1, "campaign_id": 1, "campaign_name": 1,
+    "written_email_details.email_subject": 1, "deliverability_risk.score": 1, "deliverability_risk.level": 1,
+    "email_response.attempt": 1, "updated_at": 1, "created_at": 1, "sent_at": 1, "bounced": 1,
+}
+
+
+def _sent_query(user_id: str, campaign_id: str | None, search: str) -> dict[str, Any]:
     query: dict[str, Any] = {"user_id": str(user_id), "email_status": True}
     if campaign_id:
         query["campaign_id"] = campaign_id
-    return [_hide_database_address(email) for email in _serialize_many(emailsSent.find(query).sort("updated_at", -1).limit(limit))]
+    if search:
+        pattern = {"$regex": re.escape(search.strip()), "$options": "i"}
+        query["$or"] = [
+            {"recipient_name": pattern},
+            {"company_name": pattern},
+            {"written_email_details.email_subject": pattern},
+            # Database addresses are private, so they can't be searched for either.
+            {"recipient_email": pattern, "campaign_id": {"$ne": DATABASE_CAMPAIGN_ID}},
+        ]
+    return query
+
+
+def list_sent_emails(user_id: str, campaign_id: str | None = None, search: str = "", skip: int = 0, limit: int = 50) -> dict[str, Any]:
+    query = _sent_query(user_id, campaign_id, search)
+    docs = emailsSent.find(query, SENT_LIST_FIELDS).sort("updated_at", -1).skip(skip).limit(limit)
+    return {
+        "emails": [_hide_database_address(email) for email in _serialize_many(docs)],
+        "total": emailsSent.count_documents(query),
+    }
+
+
+def export_sent_emails(user_id: str, campaign_id: str | None = None, search: str = "", limit: int = 10000) -> list[dict[str, Any]]:
+    docs = emailsSent.find(_sent_query(user_id, campaign_id, search), SENT_LIST_FIELDS).sort("updated_at", -1).limit(limit)
+    return [_hide_database_address(email) for email in _serialize_many(docs)]
+
+
+def get_sent_email(user_id: str, email_id: str) -> dict[str, Any] | None:
+    if not ObjectId.is_valid(email_id):
+        return None
+    doc = emailsSent.find_one({"_id": ObjectId(email_id), "user_id": str(user_id), "email_status": True})
+    return _hide_database_address(_serialize_doc(doc)) if doc else None
+
+
+REVIEW_FILTERS = {
+    "all": {},
+    "ready": {"deliverability_risk.action": "SEND", "outreach_status": {"$not": {"$regex": "^FAILED"}}},
+    "flagged": {"$or": [{"outreach_status": "REGENERATE"}, {"deliverability_risk.action": "REGENERATE"}]},
+    "failed": {"outreach_status": {"$regex": "^FAILED"}},
+}
+
+
+def _all_of(*conditions: dict[str, Any]) -> dict[str, Any]:
+    parts = [condition for condition in conditions if condition]
+    return {"$and": parts} if len(parts) > 1 else (parts[0] if parts else {})
+
+
+def list_waiting_emails(user_id: str, campaign_id: str | None = None, review_filter: str = "all", search: str = "",
+                        skip: int = 0, limit: int = 20) -> dict[str, Any]:
+    """One page of the review queue, plus how many drafts each filter chip would show."""
+    base: dict[str, Any] = {"user_id": str(user_id), "email_status": False}
+    if campaign_id:
+        base["campaign_id"] = campaign_id
+    matched: dict[str, Any] = {}
+    if search:
+        pattern = {"$regex": re.escape(search.strip()), "$options": "i"}
+        matched = {"$or": [{"recipient_name": pattern}, {"recipient_email": pattern}, {"company_name": pattern},
+                           {"written_email_details.email_subject": pattern}]}
+    counts = {name: emailsGenerated.count_documents(_all_of(base, matched, extra)) for name, extra in REVIEW_FILTERS.items()}
+    review_filter = review_filter if review_filter in REVIEW_FILTERS else "all"
+    docs = emailsGenerated.find(_all_of(base, matched, REVIEW_FILTERS[review_filter])).sort("created_at", -1).skip(skip).limit(limit)
+    return {"emails": _serialize_many(docs), "total": counts[review_filter], "counts": counts}
 
 
 def get_waiting_email(mail_id: str, user_id: str) -> dict[str, Any] | None:

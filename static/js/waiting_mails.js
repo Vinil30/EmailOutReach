@@ -1,69 +1,96 @@
 (async () => {
+    const PAGE = 20;
+    const params = new URLSearchParams(window.location.search);
+    const FILTERS = ["all", "ready", "flagged", "failed"];
+    const view = { filter: FILTERS.includes(params.get("filter")) ? params.get("filter") : "all", campaign: params.get("campaign") || "", query: "" };
+    const pageUrl = skip => {
+        const query = new URLSearchParams({ filter: view.filter, skip, limit: PAGE });
+        if (view.campaign) query.set("campaign_id", view.campaign);
+        if (view.query) query.set("q", view.query);
+        return `/human/waiting-emails?${query}`;
+    };
     // Start this page's data requests alongside the sidebar's user check, not after it.
-    OutreachApi.cachedGet("/human/waiting-emails");
+    OutreachApi.cachedGet(pageUrl(0));
     OutreachApi.cachedGet("/api/campaigns");
-    let fresh = false;
     const user = await Layout.init();
     const $ = id => document.getElementById(id);
     const reviewStatus = $("reviewStatus");
     const reviewList = $("reviewList");
-    const params = new URLSearchParams(window.location.search);
-    const view = { filter: params.get("filter") || "all", campaign: params.get("campaign") || "", query: "" };
     let emails = [];
+    let total = 0;
+    let counts = { all: 0, ready: 0, flagged: 0, failed: 0 };
+    let loading = false;
+    let generation = 0;
+    let loadedOnce = false;
 
-    const FILTERS = {
-        all: () => true,
-        ready: email => email.deliverability_risk?.action === "SEND" && !String(email.outreach_status).startsWith("FAILED"),
-        flagged: email => email.outreach_status === "REGENERATE" || email.deliverability_risk?.action === "REGENERATE",
-        failed: email => String(email.outreach_status).startsWith("FAILED")
-    };
+    const actions = () => ({ send: sendDraft, reject: rejectDraft, save: saveDraft, ...(user.is_premium ? { rewrite: rewriteDraft } : {}) });
 
-    if (!FILTERS[view.filter]) view.filter = "all";
-
-    function matches(email) {
-        if (!FILTERS[view.filter](email)) return false;
-        if (view.campaign && email.campaign_id !== view.campaign) return false;
-        if (!view.query) return true;
-        const haystack = [email.recipient_name, email.recipient_email, email.company_name, email.written_email_details?.email_subject].join(" ").toLowerCase();
-        return haystack.includes(view.query);
+    function renderChips() {
+        document.querySelectorAll("#filterChips button").forEach(button => {
+            button.classList.toggle("active", button.dataset.filter === view.filter);
+            button.innerHTML = `${button.dataset.filter[0].toUpperCase()}${button.dataset.filter.slice(1)}<span class="n">${counts[button.dataset.filter] ?? 0}</span>`;
+        });
     }
 
+    function renderStatus() {
+        OutreachApi.setStatus(reviewStatus, total ? `Showing ${emails.length} of ${total} drafts.` : "");
+        $("reviewMore").hidden = emails.length >= total;
+    }
+
+    // Re-renders the drafts already loaded (after a save, rewrite or send changes one).
     function render() {
-        document.querySelectorAll("#filterChips button").forEach(button => {
-            const count = emails.filter(FILTERS[button.dataset.filter]).length;
-            button.classList.toggle("active", button.dataset.filter === view.filter);
-            button.innerHTML = `${button.dataset.filter[0].toUpperCase()}${button.dataset.filter.slice(1)}<span class="n">${count}</span>`;
-        });
-        const visible = emails.filter(matches);
+        renderChips();
         reviewList.innerHTML = "";
-        if (!visible.length) {
-            reviewList.innerHTML = emails.length
+        if (!emails.length) {
+            reviewList.innerHTML = counts.all || view.query || view.campaign
                 ? `<div class="empty"><strong>Nothing matches this filter</strong><span>Try another filter or campaign.</span></div>`
                 : `<div class="empty"><strong>Your queue is clear</strong><span>Drafts from “Review first” campaigns, and anything the spam guard holds back, show up here.</span><a class="btn primary" href="/campaigns/new">Start a campaign</a></div>`;
         } else {
-            visible.forEach(email => reviewList.appendChild(renderEmailCard(email, { send: sendDraft, reject: rejectDraft, save: saveDraft, ...(user.is_premium ? { rewrite: rewriteDraft } : {}) })));
+            emails.forEach(email => reviewList.appendChild(renderEmailCard(email, actions())));
         }
-        OutreachApi.setStatus(reviewStatus, `${visible.length} of ${emails.length} drafts shown.`);
+        renderStatus();
     }
 
-    async function loadReview() {
-        OutreachApi.setStatus(reviewStatus, "Loading drafts…");
+    // Loads the next page of drafts; reset starts over after a filter, campaign or search change.
+    async function loadPage({ reset = false } = {}) {
+        if (loading && !reset) return;
+        const mine = reset ? ++generation : generation;
+        if (reset) {
+            emails = [];
+            reviewList.innerHTML = `<div class="card card-pad"><div class="skeleton"></div></div>`;
+        }
+        loading = true;
+        $("reviewMoreBtn").disabled = true;
         try {
-            const [data, campaigns] = await Promise.all([
-                OutreachApi.cachedGet("/human/waiting-emails", { fresh }),
-                OutreachApi.cachedGet("/api/campaigns", { fresh }).catch(() => ({ campaigns: [] }))
-            ]);
-            fresh = true;
-            emails = data.emails;
-            const select = $("campaignFilter");
-            select.innerHTML = `<option value="">All campaigns</option>` + campaigns.campaigns
-                .filter(campaign => campaign.counts?.waiting)
-                .map(campaign => `<option value="${campaign.id}">${OutreachApi.escapeHtml(campaign.name)} (${campaign.counts.waiting})</option>`).join("");
-            select.value = view.campaign;
-            render();
+            const data = await OutreachApi.cachedGet(pageUrl(emails.length), { fresh: loadedOnce });
+            loadedOnce = true;
+            if (mine !== generation) return;
+            const first = !emails.length;
+            emails = emails.concat(data.emails);
+            total = data.total;
+            counts = data.counts;
+            if (first) {
+                render();
+            } else {
+                data.emails.forEach(email => reviewList.appendChild(renderEmailCard(email, actions())));
+                renderChips();
+                renderStatus();
+            }
         } catch (error) {
             OutreachApi.setStatus(reviewStatus, error.message, "error");
+        } finally {
+            if (mine === generation) loading = false;
+            $("reviewMoreBtn").disabled = false;
         }
+    }
+
+    async function loadCampaigns() {
+        const campaigns = await OutreachApi.cachedGet("/api/campaigns").catch(() => ({ campaigns: [] }));
+        const select = $("campaignFilter");
+        select.innerHTML = `<option value="">All campaigns</option>` + campaigns.campaigns
+            .filter(campaign => campaign.counts?.waiting)
+            .map(campaign => `<option value="${campaign.id}">${OutreachApi.escapeHtml(campaign.name)} (${campaign.counts.waiting})</option>`).join("");
+        select.value = view.campaign;
     }
 
     function replaceEmail(updated) {
@@ -72,10 +99,20 @@
 
     function dropEmail(id, card) {
         emails = emails.filter(email => email.id !== id);
+        total = Math.max(0, total - 1);
+        counts.all = Math.max(0, counts.all - 1);
+        if (view.filter !== "all") counts[view.filter] = Math.max(0, counts[view.filter] - 1);
         card.style.transition = "opacity .2s, transform .2s";
         card.style.opacity = "0";
         card.style.transform = "translateX(12px)";
-        setTimeout(render, 200);
+        setTimeout(() => {
+            card.remove();
+            renderChips();
+            renderStatus();
+            if (emails.length) return;
+            if (total) loadPage();
+            else render();
+        }, 200);
         Layout.refreshReviewCount();
     }
 
@@ -152,13 +189,23 @@
 
     $("filterChips").addEventListener("click", event => {
         const button = event.target.closest("button[data-filter]");
-        if (!button) return;
+        if (!button || button.dataset.filter === view.filter) return;
         view.filter = button.dataset.filter;
-        render();
+        renderChips();
+        loadPage({ reset: true });
     });
-    $("campaignFilter").addEventListener("change", event => { view.campaign = event.target.value; render(); });
-    $("searchInput").addEventListener("input", event => { view.query = event.target.value.trim().toLowerCase(); render(); });
-    $("refreshReviewBtn").addEventListener("click", loadReview);
+    $("campaignFilter").addEventListener("change", event => { view.campaign = event.target.value; loadPage({ reset: true }); });
+    let searchTimer;
+    $("searchInput").addEventListener("input", event => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => { view.query = event.target.value.trim(); loadPage({ reset: true }); }, 350);
+    });
+    $("refreshReviewBtn").addEventListener("click", () => loadPage({ reset: true }));
+    $("reviewMoreBtn").addEventListener("click", () => loadPage());
+    // The next drafts load by themselves as the bottom of the queue scrolls into view.
+    new IntersectionObserver(entries => {
+        if (entries.some(entry => entry.isIntersecting) && !$("reviewMore").hidden) loadPage();
+    }, { rootMargin: "400px" }).observe($("reviewMore"));
 
     $("downloadRejectedBtn").addEventListener("click", async () => {
         try {
@@ -175,5 +222,7 @@
         }
     });
 
-    loadReview();
+    renderChips();
+    loadCampaigns();
+    loadPage();
 })();

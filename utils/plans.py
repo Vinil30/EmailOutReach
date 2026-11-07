@@ -3,7 +3,9 @@
 Free: a small lifetime allowance to the user's own lists. Pro and Premium: unlimited sending (capped per day so
 Gmail doesn't suspend the account), plus a number of new recruiters from the shared database per purchase.
 Premium also gets AI writing. Prices and limits are admin-editable and stored in the settings collection."""
+import copy
 import os
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -36,8 +38,22 @@ class QuotaExceeded(Exception):
     pass
 
 
+_pricing_cache: dict[str, Any] = {"value": None, "at": 0.0}
+PRICING_CACHE_SECONDS = 30
+
+
 def pricing() -> dict[str, Any]:
-    """Current prices and limits, with the purchase links. Safe to show publicly."""
+    """Current prices and limits, with the purchase links. Safe to show publicly.
+
+    Read on almost every request, so it's cached briefly; saving new prices clears the cache."""
+    if _pricing_cache["value"] and time.monotonic() - _pricing_cache["at"] < PRICING_CACHE_SECONDS:
+        return copy.deepcopy(_pricing_cache["value"])
+    value = _load_pricing()
+    _pricing_cache.update(value=value, at=time.monotonic())
+    return copy.deepcopy(value)
+
+
+def _load_pricing() -> dict[str, Any]:
     stored = settings.find_one({"_id": "pricing"}) or {}
     data = {
         "currency": stored.get("currency") or DEFAULT_PRICING["currency"],
@@ -69,6 +85,7 @@ def save_pricing(fields: dict[str, Any]) -> dict[str, Any]:
     if update["daily_cap"] < 1:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The daily cap must be at least 1")
     settings.update_one({"_id": "pricing"}, {"$set": update}, upsert=True)
+    _pricing_cache["value"] = None
     return pricing()
 
 

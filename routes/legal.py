@@ -14,12 +14,12 @@ class SignIn(BaseModel):
 
 
 @router.get("")
-async def status_for_user(current_user=Depends(get_current_user)):
+def status_for_user(current_user=Depends(get_current_user)):
     return legal_status(current_user)
 
 
 @router.post("/sign")
-async def sign(payload: SignIn, request: Request, current_user=Depends(get_current_user)):
+def sign(payload: SignIn, request: Request, current_user=Depends(get_current_user)):
     if not payload.agree:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tick the box to agree before signing")
     user = sign_legal_documents(str(current_user["_id"]), payload.signature, client_ip(request), request.headers.get("user-agent"))

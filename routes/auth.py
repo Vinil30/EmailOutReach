@@ -37,7 +37,7 @@ class LoginIn(BaseModel):
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
-async def register(payload: RegisterIn, request: Request):
+def register(payload: RegisterIn, request: Request):
     if not payload.accept_terms:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Agree to the Terms and Privacy Policy to create an account")
     signature = clean_signature(payload.signature)
@@ -50,7 +50,7 @@ async def register(payload: RegisterIn, request: Request):
 
 
 @router.post("/login")
-async def login(payload: LoginIn):
+def login(payload: LoginIn):
     user = authenticate_user(payload.email, payload.password)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
@@ -61,5 +61,5 @@ async def login(payload: LoginIn):
 
 
 @router.get("/me")
-async def me(current_user=Depends(get_current_user)):
+def me(current_user=Depends(get_current_user)):
     return public_user(current_user)

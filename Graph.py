@@ -39,6 +39,7 @@ class AgentState(TypedDict, total=False):
     deliverability_history: list[dict[str, Any]]
     outreach_status: str
     quota_blocked: bool
+    skip_reason: str
 
 
 class OutreachInput(BaseModel):
@@ -294,6 +295,7 @@ def _send_now(agent_state: AgentState, risk: dict[str, Any]) -> AgentState:
     from utils.GmailAuth import get_valid_gmail_tokens
     from utils.EmailerAgent import EmailerAgent
     from utils.plans import QuotaExceeded, ensure_can_send
+    from utils.send_guard import note_send_result
 
     try:
         ensure_can_send(agent_state["user_id"])
@@ -354,6 +356,7 @@ def _send_now(agent_state: AgentState, risk: dict[str, Any]) -> AgentState:
         gmail_tokens=gmail_tokens,
     )
     send_result = emailer.send_with_retries()
+    note_send_result(agent_state["user_id"], agent_state["recipient_email"], send_result)
     agent_state["email_response"] = send_result
     agent_state["final_email_status"] = send_result.get("status") == "SENT"
     persisted = record_generated_send_result(pending_id, agent_state["user_id"], send_result, risk)

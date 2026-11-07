@@ -4,12 +4,12 @@
 - One send at a time per user, so parallel lists and automation can't overrun the daily cap together.
 - Automated sends keep at least the minimum gap after the user's previous send, across all runners.
 """
-import re
 import threading
 import time
 from typing import Any
 
-from database.fxns import as_utc, emailsSent, get_user_by_id
+from database.fxns import CASE_INSENSITIVE, add_bad_address, as_utc, emailsSent, get_user_by_id, is_bad_address
+from utils.email_check import domain_accepts_mail
 from utils.pacing import SEND_GAP_MIN_SECONDS
 
 _locks: dict[str, threading.Lock] = {}
@@ -17,6 +17,10 @@ _locks_guard = threading.Lock()
 
 ALREADY_EMAILED = "You've already emailed this address, so it was skipped. Mailzen never emails the same person twice."
 SUPPRESSED = "This address is on your suppression list, so it was skipped."
+BAD_ADDRESS = "This address bounced before (\"Address not found\"), so it was skipped."
+BAD_DOMAIN = "This email domain doesn't exist or doesn't accept email, so it was skipped."
+# Outcomes where nothing was sent and the contact was skipped on purpose.
+SKIP_STATUSES = ("DUPLICATE_SUPPRESSED", "SUPPRESSED", "BAD_ADDRESS", "BAD_DOMAIN")
 
 
 def user_lock(user_id: str) -> threading.Lock:
@@ -25,8 +29,8 @@ def user_lock(user_id: str) -> threading.Lock:
 
 
 def already_emailed(user_id: str, address: str) -> bool:
-    pattern = f"^{re.escape((address or '').strip())}$"
-    return bool(emailsSent.find_one({"user_id": str(user_id), "recipient_email": {"$regex": pattern, "$options": "i"}}, {"_id": 1}))
+    query = {"user_id": str(user_id), "recipient_email": (address or "").strip()}
+    return bool(emailsSent.find_one(query, {"_id": 1}, collation=CASE_INSENSITIVE))
 
 
 def is_suppressed(user: dict[str, Any] | None, address: str) -> bool:
@@ -39,7 +43,21 @@ def skip_reason(user_id: str, address: str) -> tuple[str, str] | None:
         return "SUPPRESSED", SUPPRESSED
     if already_emailed(user_id, address):
         return "DUPLICATE_SUPPRESSED", ALREADY_EMAILED
+    if is_bad_address(address):
+        return "BAD_ADDRESS", BAD_ADDRESS
+    # Free DNS check (cached); an unknown answer never blocks the send.
+    if domain_accepts_mail(address) is False:
+        return "BAD_DOMAIN", BAD_DOMAIN
     return None
+
+
+def note_send_result(user_id: str, address: str, send_result: dict[str, Any]) -> None:
+    """Gmail rejecting the recipient outright means the address is bad for everyone, not just this send."""
+    rejected = send_result.get("status") == "FAILED_PERMANENT" and any(
+        attempt.get("status_code") in (400, 404) for attempt in send_result.get("history") or []
+    )
+    if rejected:
+        add_bad_address(address, "Gmail rejected the recipient", "gmail", user_id)
 
 
 def wait_for_gap(user_id: str) -> None:

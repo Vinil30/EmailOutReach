@@ -1,8 +1,11 @@
+import copy
+from functools import lru_cache
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from database.admin import get_automation, lead_send_counts, lead_send_history, remaining_leads
-from database.fxns import get_current_user, is_premium, project_catalog
+from database.fxns import get_current_user, get_overview_stats, is_premium, project_catalog, public_user
 from utils import premium_runner
 from utils.job_templates import MERGE_FIELD_HELP, TEMPLATES, get_template, profile_variables
 from utils.legal import require_signed
@@ -35,23 +38,38 @@ def _render_preview(subject: str, body: str, variables: dict, user: dict | None 
     if user and user.get("role") == "campaigner":
         body = with_compliance_footer(body, user.get("profile") or {})
         campaign_type = "campaign"
-    risk = analyze_email_risk(subject, body, campaign_type=campaign_type).model_dump()
-    return {"preview_subject": subject, "preview_body": body, "risk": risk}
+    return {"preview_subject": subject, "preview_body": body, "risk": copy.deepcopy(_score(subject, body, campaign_type))}
+
+
+@lru_cache(maxsize=512)
+def _score(subject: str, body: str, campaign_type: str) -> dict:
+    # The Templates page re-scores the same rendered templates on every visit; scoring is deterministic.
+    return analyze_email_risk(subject, body, campaign_type=campaign_type).model_dump()
 
 
 @router.get("/plan")
-async def plan(current_user=Depends(get_current_user)):
+def plan(current_user=Depends(get_current_user)):
     return quota_status(current_user)
 
 
+@router.get("/session")
+def session(current_user=Depends(get_current_user)):
+    """Everything the app shell needs on every page (account, plan, review counts) in one round trip."""
+    return {
+        "user": public_user(current_user),
+        "plan": quota_status(current_user),
+        "stats": get_overview_stats(str(current_user["_id"])),
+    }
+
+
 @router.get("/pricing")
-async def public_pricing():
+def public_pricing():
     """Prices and limits for the landing page and upgrade card; no sign-in needed."""
     return pricing()
 
 
 @router.get("/templates")
-async def templates(current_user=Depends(get_current_user)):
+def templates(current_user=Depends(get_current_user)):
     """Every template rendered with the user's own profile and a sample contact, plus its spam score."""
     profile = current_user.get("profile") or {}
     variables = _sample_variables(current_user)
@@ -83,13 +101,13 @@ async def templates(current_user=Depends(get_current_user)):
 
 
 @router.post("/templates/preview")
-async def template_preview(payload: TemplatePreviewIn, current_user=Depends(get_current_user)):
+def template_preview(payload: TemplatePreviewIn, current_user=Depends(get_current_user)):
     variables = _sample_variables(current_user, payload.contact)
     return _render_preview(payload.subject, payload.body, variables, current_user, payload.drop_empty_lines)
 
 
 @router.get("/automation")
-async def automation_status(current_user=Depends(get_current_user)):
+def automation_status(current_user=Depends(get_current_user)):
     user_id = str(current_user["_id"])
     state = get_automation(current_user)
     if state.get("status") in ("running", "stopping") and not premium_runner.is_running(user_id):
@@ -113,7 +131,7 @@ async def automation_status(current_user=Depends(get_current_user)):
 
 
 @router.post("/automation/start")
-async def automation_start(current_user=Depends(get_current_user)):
+def automation_start(current_user=Depends(get_current_user)):
     require_signed(current_user)
     problems = premium_runner.preflight(current_user)
     if problems:
@@ -128,5 +146,5 @@ async def automation_start(current_user=Depends(get_current_user)):
 
 
 @router.post("/automation/stop")
-async def automation_stop(current_user=Depends(get_current_user)):
+def automation_stop(current_user=Depends(get_current_user)):
     return {"stopping": premium_runner.stop(str(current_user["_id"]))}

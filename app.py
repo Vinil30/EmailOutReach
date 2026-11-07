@@ -2,7 +2,10 @@ from contextlib import asynccontextmanager
 import hashlib
 import os
 import re
+import threading
+import time
 
+import requests
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -16,7 +19,27 @@ from routes import admin, auth, automated, automation, campaigns, gmail, human_i
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     ensure_indexes()
+    _start_keep_alive()
     yield
+
+
+def _start_keep_alive() -> None:
+    """Free hosting (e.g. Render free) sleeps after ~15 idle minutes, which makes the next visit take 30-60 s
+    and pauses running lists. With KEEP_ALIVE_URL set to the site's public address, the server visits its own
+    /healthz every 10 minutes so it stays awake."""
+    url = os.environ.get("KEEP_ALIVE_URL", "").rstrip("/")
+    if not url:
+        return
+
+    def ping() -> None:
+        while True:
+            time.sleep(600)
+            try:
+                requests.get(f"{url}/healthz", timeout=15)
+            except requests.RequestException:
+                pass
+
+    threading.Thread(target=ping, name="keep-alive", daemon=True).start()
 
 
 app = FastAPI(title="Mailzen", lifespan=lifespan)

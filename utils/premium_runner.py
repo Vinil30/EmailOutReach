@@ -6,30 +6,32 @@ Premium may use AI writing.
 Progress lives in the database (one leadSends row per user and lead), so Stop then Start
 continues with the next lead the user hasn't emailed, even across server restarts.
 """
-import asyncio
+import threading
 import time
 from typing import Any
 
 from bson import ObjectId
 
-from database.admin import next_lead_for, record_lead_send, set_automation
-from database.fxns import DATABASE_CAMPAIGN_ID, _now, emailsGenerated, get_user_by_id, leadSends, is_paid, is_premium, project_catalog, users
+from database.admin import deactivate_lead, next_lead_for, record_lead_send, set_automation
+from database.fxns import DATABASE_CAMPAIGN_ID, _now, emailsGenerated, get_user_by_id, is_bad_address, is_paid, is_premium, leadSends, project_catalog, users
 from Graph import OutreachInput, run_outreach
 from utils.job_templates import brief_for_profile
 from utils.legal import UNSIGNED_MESSAGE, legal_status
 from utils.pacing import random_send_gap
 from utils.plans import DAILY_CAP_REASON, quota_status
+from utils.send_guard import SKIP_STATUSES
 
 CAMPAIGN_ID = DATABASE_CAMPAIGN_ID
 CAMPAIGN_NAME = "Recruiter database"
 
-_tasks: dict[str, asyncio.Task] = {}
+# Each user's automation is a daemon thread, so its waits and database calls never block the web server.
+_tasks: dict[str, threading.Thread] = {}
 _stop: set[str] = set()
 
 
 def is_running(user_id: str) -> bool:
     task = _tasks.get(user_id)
-    return bool(task and not task.done())
+    return bool(task and task.is_alive())
 
 
 def stop(user_id: str) -> bool:
@@ -55,7 +57,9 @@ def start(user_id: str) -> None:
         "message": "",
         "next_send_at": None,
     })
-    _tasks[user_id] = asyncio.create_task(_run(user_id))
+    thread = threading.Thread(target=_run, args=(user_id,), name=f"automation-{user_id}", daemon=True)
+    _tasks[user_id] = thread
+    thread.start()
 
 
 def allowance_message(quota: dict[str, Any]) -> str:
@@ -84,17 +88,17 @@ def preflight(user: dict[str, Any]) -> list[str]:
     return problems
 
 
-async def _sleep_unless_stopped(user_id: str, seconds: float) -> None:
+def _sleep_unless_stopped(user_id: str, seconds: float) -> None:
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline and user_id not in _stop:
-        await asyncio.sleep(min(1.0, deadline - time.monotonic()))
+        time.sleep(min(0.5, max(0.0, deadline - time.monotonic())))
 
 
 def _finish(user_id: str, status: str, message: str) -> None:
     set_automation(user_id, {"status": status, "message": message, "current": None, "next_send_at": None, "finished_at": _now()})
 
 
-async def _run(user_id: str) -> None:
+def _run(user_id: str) -> None:
     errors_in_a_row: list[str] = []
     try:
         while user_id not in _stop:
@@ -110,7 +114,7 @@ async def _run(user_id: str) -> None:
                 wait = max(60.0, quota["resets_at"].timestamp() - time.time())
                 set_automation(user_id, {"current": None, "next_send_at": time.time() + wait,
                                          "message": f"Paused at today's {quota['limit']} emails. {DAILY_CAP_REASON} Continues after midnight."})
-                await _sleep_unless_stopped(user_id, wait)
+                _sleep_unless_stopped(user_id, wait)
                 set_automation(user_id, {"message": ""})
                 continue
 
@@ -121,8 +125,7 @@ async def _run(user_id: str) -> None:
             set_automation(user_id, {"current": lead.get("company") or "next contact", "next_send_at": None})
             profile = user.get("profile") or {}
             try:
-                state = await asyncio.to_thread(
-                    run_outreach,
+                state = run_outreach(
                     OutreachInput(
                         user_id=user_id,
                         role="student",
@@ -172,18 +175,22 @@ async def _run(user_id: str) -> None:
                     return _finish(user_id, "blocked", f"Your template was held by the spam guard ({reasons}). Adjust it on the Templates page, then press Start.")
                 if outcome == "QUOTA_REACHED":
                     continue  # the next loop pass waits for the daily cap to reset
-                if outcome in ("DUPLICATE_SUPPRESSED", "SUPPRESSED"):
-                    # Already emailed from one of their own lists, or unsubscribed: skip without using the allowance.
+                if outcome in SKIP_STATUSES:
+                    # Already emailed, unsubscribed or undeliverable: skip without using the allowance.
                     record_lead_send(user_id, lead, "skipped", reason=state.get("skip_reason", ""))
+                    if outcome in ("BAD_ADDRESS", "BAD_DOMAIN"):
+                        deactivate_lead(lead["_id"], state.get("skip_reason", "Undeliverable"))
                     continue
                 if "Gmail" in reason or "authorization" in reason.lower():
                     return _finish(user_id, "blocked", f"{reason}. Reconnect Gmail, then press Start.")
                 # A bad address shouldn't stall the run: mark it and move on.
                 record_lead_send(user_id, lead, "failed", reason=reason or outcome)
+                if is_bad_address(lead["email"]):
+                    deactivate_lead(lead["_id"], "Gmail rejected the recipient")
 
             gap = random_send_gap()
             set_automation(user_id, {"current": None, "next_send_at": time.time() + gap})
-            await _sleep_unless_stopped(user_id, gap)
+            _sleep_unless_stopped(user_id, gap)
 
         _finish(user_id, "stopped", "Stopped. Press Start to continue from the next company.")
     except Exception as exc:  # keep the state truthful if something unexpected breaks

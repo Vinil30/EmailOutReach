@@ -1,12 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.concurrency import run_in_threadpool
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from database.fxns import (
     ensure_rejected_csv,
     get_current_user,
-    get_waiting_emails,
+    list_waiting_emails,
     reject_generated_email,
     update_generated_email_details,
 )
@@ -33,12 +32,20 @@ def _load_draft(payload: MailEditIn, user_id: str) -> tuple[dict, EmailDetails, 
 
 
 @router.get("/waiting-emails")
-async def get_human_mails(campaign_id: str | None = None, current_user=Depends(get_current_user)):
-    return {"emails": get_waiting_emails(str(current_user["_id"]), campaign_id)}
+def get_human_mails(
+    campaign_id: str | None = None,
+    filter: str = "all",
+    q: str = "",
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=200),
+    current_user=Depends(get_current_user),
+):
+    """One page of drafts waiting for review, newest first, with counts for each filter."""
+    return list_waiting_emails(str(current_user["_id"]), campaign_id, filter, q, skip, limit)
 
 
 @router.post("/save-draft")
-async def save_draft(payload: MailEditIn, current_user=Depends(get_current_user)):
+def save_draft(payload: MailEditIn, current_user=Depends(get_current_user)):
     user_id = str(current_user["_id"])
     waiting_email, email_details, campaign_type = _load_draft(payload, user_id)
     risk = risk_for(waiting_email, email_details, campaign_type)
@@ -54,7 +61,7 @@ async def save_draft(payload: MailEditIn, current_user=Depends(get_current_user)
 
 
 @router.post("/rewrite")
-async def rewrite_draft(payload: MailEditIn, current_user=Depends(get_current_user)):
+def rewrite_draft(payload: MailEditIn, current_user=Depends(get_current_user)):
     """Ask the LLM to fix exactly what the spam guard flagged, then re-score."""
     from utils.EmailWriter import EmailWriter
     from utils.templating import with_compliance_footer
@@ -64,8 +71,7 @@ async def rewrite_draft(payload: MailEditIn, current_user=Depends(get_current_us
     waiting_email, email_details, campaign_type = _load_draft(payload, user_id)
     before = risk_for(waiting_email, email_details, campaign_type)
     try:
-        rewritten = await run_in_threadpool(
-            EmailWriter().RewriteForDeliverability,
+        rewritten = EmailWriter().RewriteForDeliverability(
             email_details.email_subject,
             email_details.email_body,
             before.reasons or ["general polish for deliverability"],
@@ -90,12 +96,12 @@ async def rewrite_draft(payload: MailEditIn, current_user=Depends(get_current_us
 
 
 @router.post("/send-mail")
-async def send_mail(payload: SendMailIn, current_user=Depends(get_current_user)):
-    return await run_in_threadpool(send_draft, payload.mail_id, str(current_user["_id"]), payload.email_subject, payload.email_body)
+def send_mail(payload: SendMailIn, current_user=Depends(get_current_user)):
+    return send_draft(payload.mail_id, str(current_user["_id"]), payload.email_subject, payload.email_body)
 
 
 @router.post("/reject-mail")
-async def reject_mail(payload: RejectMailIn, current_user=Depends(get_current_user)):
+def reject_mail(payload: RejectMailIn, current_user=Depends(get_current_user)):
     return reject_generated_email(
         payload.mail_id,
         str(current_user["_id"]),
@@ -105,6 +111,6 @@ async def reject_mail(payload: RejectMailIn, current_user=Depends(get_current_us
 
 
 @router.get("/rejected-csv")
-async def rejected_csv(current_user=Depends(get_current_user)):
+def rejected_csv(current_user=Depends(get_current_user)):
     path = ensure_rejected_csv(str(current_user["_id"]))
     return FileResponse(path, media_type="text/csv", filename="rejected_by_human.csv")

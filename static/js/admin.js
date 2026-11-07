@@ -122,10 +122,10 @@
     async function loadLeads() {
         const q = encodeURIComponent($("leadSearch").value.trim());
         const data = await OutreachApi.request(`/api/admin/leads?q=${q}&skip=${leadSkip}&limit=${PAGE}`);
-        $("leadTotal").textContent = `· ${data.total} total, ${data.active} active`;
+        $("leadTotal").textContent = `· ${data.total} total, ${data.active} active${data.unverified ? `, ${data.unverified} not verified` : ""}`;
         $("leadRows").innerHTML = data.leads.length ? data.leads.map(lead => `
             <tr data-id="${lead.id}">
-                <td><div class="cell-main">${esc(lead.name || "—")}</div><div class="cell-sub">${esc(lead.email)}</div></td>
+                <td><div class="cell-main">${esc(lead.name || "—")}</div><div class="cell-sub">${esc(lead.email)}${lead.inactive_reason ? ` · <span style="color:var(--bad)">${esc(lead.inactive_reason)}</span>` : lead.verify_status ? ` · ${esc(lead.verify_status)}` : ""}</div></td>
                 <td>${esc(lead.company || "—")}</td>
                 <td class="cell-sub">${esc(lead.role || "")}</td>
                 <td class="right">${lead.times_used} user${lead.times_used === 1 ? "" : "s"}</td>
@@ -187,6 +187,15 @@
         try {
             await OutreachApi.request(`/api/admin/leads/${button.closest("tr").dataset.id}`, { method: "DELETE" });
             await Promise.all([loadLeads(), loadStats()]);
+        } catch (error) {
+            OutreachApi.toast(error.message, "error");
+        }
+    });
+
+    $("verifyLeadsBtn").addEventListener("click", async () => {
+        try {
+            await OutreachApi.request("/api/admin/leads/verify", { method: "POST" });
+            OutreachApi.toast("Checking mailboxes in the background. Undeliverable recruiters are switched off automatically.", "ok");
         } catch (error) {
             OutreachApi.toast(error.message, "error");
         }

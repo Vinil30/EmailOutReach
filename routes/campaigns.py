@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from pydantic import BaseModel
 
 from database.fxns import (
+    bad_addresses_among,
     create_campaign,
     get_campaign,
     get_campaign_doc,
@@ -65,21 +66,28 @@ def _template_sample(user: dict, brief: dict, contact: dict | None) -> dict | No
 
 def _load_contacts(user: dict, file: UploadFile | None, contacts_text: str | None) -> dict:
     frame = read_contacts_frame(file, contacts_text)
-    return normalize_contacts(frame, set(user.get("suppressed_emails") or []))
+    parsed = normalize_contacts(frame, set(user.get("suppressed_emails") or []))
+    # Addresses that bounced for anyone are left out before the list is even saved.
+    bad = bad_addresses_among([contact["recipient_email"] for contact in parsed["contacts"]])
+    if bad:
+        parsed["skipped"] += [{"email": contact["recipient_email"], "reason": "bounced before (address not found)"}
+                              for contact in parsed["contacts"] if contact["recipient_email"].lower() in bad]
+        parsed["contacts"] = [contact for contact in parsed["contacts"] if contact["recipient_email"].lower() not in bad]
+    return parsed
 
 
 @router.get("/stats")
-async def stats(current_user=Depends(get_current_user)):
+def stats(current_user=Depends(get_current_user)):
     return get_overview_stats(str(current_user["_id"]))
 
 
 @router.get("")
-async def campaigns_index(current_user=Depends(get_current_user)):
+def campaigns_index(current_user=Depends(get_current_user)):
     return {"campaigns": list_campaigns(str(current_user["_id"]))}
 
 
 @router.post("/preview")
-async def preview_campaign(
+def preview_campaign(
     file: UploadFile | None = File(None),
     contacts_text: str | None = Form(None),
     brief_json: str | None = Form(None),
@@ -116,7 +124,7 @@ def _estimate_seconds(total: int, brief: dict, mode: str | None = None) -> int:
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-async def launch_campaign(
+def launch_campaign(
     name: str = Form(...),
     email_from: str = Form(...),
     mode: str = Form("review"),
@@ -167,7 +175,7 @@ async def launch_campaign(
 
 
 @router.get("/{campaign_id}")
-async def campaign_detail(campaign_id: str, current_user=Depends(get_current_user)):
+def campaign_detail(campaign_id: str, current_user=Depends(get_current_user)):
     campaign = get_campaign(campaign_id, str(current_user["_id"]))
     if not campaign:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Campaign not found")
@@ -176,14 +184,14 @@ async def campaign_detail(campaign_id: str, current_user=Depends(get_current_use
 
 
 @router.post("/{campaign_id}/cancel")
-async def cancel_campaign(campaign_id: str, current_user=Depends(get_current_user)):
+def cancel_campaign(campaign_id: str, current_user=Depends(get_current_user)):
     if not get_campaign_doc(campaign_id, str(current_user["_id"])):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Campaign not found")
     return {"cancelling": campaign_runner.cancel(campaign_id)}
 
 
 @router.post("/{campaign_id}/resume")
-async def resume_campaign(campaign_id: str, current_user=Depends(get_current_user)):
+def resume_campaign(campaign_id: str, current_user=Depends(get_current_user)):
     user_id = str(current_user["_id"])
     doc = get_campaign_doc(campaign_id, user_id)
     if not doc:
@@ -205,7 +213,7 @@ async def resume_campaign(campaign_id: str, current_user=Depends(get_current_use
 
 
 @router.post("/{campaign_id}/mode")
-async def switch_mode(campaign_id: str, payload: ModeIn, current_user=Depends(get_current_user)):
+def switch_mode(campaign_id: str, payload: ModeIn, current_user=Depends(get_current_user)):
     """Switch a list between review-first and auto-send, even while it's running.
 
     Auto-send applies to contacts not processed yet and to this list's drafts waiting in Review that passed

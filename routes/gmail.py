@@ -26,7 +26,7 @@ STATE_MINUTES = 15
 
 
 @router.get("/status")
-async def gmail_status(current_user=Depends(get_current_user)):
+def gmail_status(current_user=Depends(get_current_user)):
     return {
         "connected": bool(current_user.get("gmail_tokens", {}).get("refresh_token") or current_user.get("gmail_tokens", {}).get("access_token")),
         "scope": GMAIL_SEND_SCOPE,
@@ -35,7 +35,7 @@ async def gmail_status(current_user=Depends(get_current_user)):
 
 
 @router.get("/connect")
-async def connect_gmail(response: Response, current_user=Depends(get_current_user)):
+def connect_gmail(response: Response, current_user=Depends(get_current_user)):
     # The state is short-lived, can't be used to sign in, and only completes in the browser that started it.
     nonce = secrets.token_urlsafe(24)
     state = jwt.encode(
@@ -49,7 +49,7 @@ async def connect_gmail(response: Response, current_user=Depends(get_current_use
 
 
 @router.get("/callback")
-async def gmail_callback(request: Request, code: str | None = None, state: str | None = None, error: str | None = None):
+def gmail_callback(request: Request, code: str | None = None, state: str | None = None, error: str | None = None):
     if error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Google OAuth error: {error}")
     if not code or not state:
@@ -73,6 +73,6 @@ async def gmail_callback(request: Request, code: str | None = None, state: str |
 
 
 @router.post("/disconnect")
-async def disconnect(current_user=Depends(get_current_user)):
+def disconnect(current_user=Depends(get_current_user)):
     disconnect_gmail(str(current_user["_id"]))
     return {"connected": False}

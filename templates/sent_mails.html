@@ -40,6 +40,7 @@
                         <tbody id="sentList"><tr><td colspan="6"><div class="skeleton"></div></td></tr></tbody>
                     </table>
                 </div>
+                <div class="card-body list-more" id="sentMore" hidden><button class="btn ghost sm" type="button" id="sentMoreBtn">Load more</button></div>
             </div>
         </main>
     </div>
@@ -50,7 +51,10 @@
                     <span class="badge ok">Sent</span>
                     <h2 id="modalTitle"></h2>
                 </div>
-                <button class="btn ghost sm" type="button" id="closeModal" aria-label="Close">✕</button>
+                <div class="actions">
+                    <button class="btn ghost sm" type="button" id="bounceBtn" title="Got an &quot;Address not found&quot; reply for this email?">Mark as bounced</button>
+                    <button class="btn ghost sm" type="button" id="closeModal" aria-label="Close">✕</button>
+                </div>
             </header>
             <dl class="sent-meta" id="modalMeta"></dl>
             <div class="sent-modal-body">

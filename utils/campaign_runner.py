@@ -1,5 +1,5 @@
-import asyncio
 import os
+import threading
 import time
 from typing import Any
 
@@ -8,10 +8,12 @@ from fastapi import HTTPException
 from database.fxns import _now, campaign_mode, get_user_by_id, get_waiting_email, is_premium, ready_draft_ids, update_campaign
 from Graph import OutreachInput, run_outreach
 from utils.pacing import average_send_gap, random_send_gap
+from utils.send_guard import SKIP_STATUSES
 
 MIN_PROCESS_START_DELAY_SECONDS = 30
 
-_tasks: dict[str, asyncio.Task] = {}
+# Each running list is a daemon thread, so its waits and database calls never block the web server.
+_tasks: dict[str, threading.Thread] = {}
 _cancelled: set[str] = set()
 
 
@@ -27,7 +29,7 @@ def process_start_delay_seconds() -> int:
 
 def is_running(campaign_id: str) -> bool:
     task = _tasks.get(campaign_id)
-    return bool(task and not task.done())
+    return bool(task and task.is_alive())
 
 
 def cancel(campaign_id: str) -> bool:
@@ -40,16 +42,18 @@ def cancel(campaign_id: str) -> bool:
 def start(campaign: dict[str, Any], user: dict[str, Any], catalog: dict[str, str], start_index: int = 0) -> None:
     campaign_id = campaign["id"]
     _cancelled.discard(campaign_id)
-    _tasks[campaign_id] = asyncio.create_task(_run(campaign, user, catalog, start_index))
+    thread = threading.Thread(target=_run, args=(campaign, user, catalog, start_index), name=f"list-{campaign_id}", daemon=True)
+    _tasks[campaign_id] = thread
+    thread.start()
 
 
-async def _sleep_unless_cancelled(campaign_id: str, seconds: float) -> None:
+def _sleep_unless_cancelled(campaign_id: str, seconds: float) -> None:
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline and campaign_id not in _cancelled:
-        await asyncio.sleep(min(1.0, deadline - time.monotonic()))
+        time.sleep(min(0.5, max(0.0, deadline - time.monotonic())))
 
 
-async def _send_ready_drafts(campaign_id: str, user_id: str, wait_first: bool) -> bool:
+def _send_ready_drafts(campaign_id: str, user_id: str, wait_first: bool) -> bool:
     """Auto-send mode also sends this list's drafts that are waiting in Review and passed the spam check.
 
     Flagged drafts stay for the user to fix. Returns False when the plan limit stopped the list."""
@@ -61,7 +65,7 @@ async def _send_ready_drafts(campaign_id: str, user_id: str, wait_first: bool) -
         if wait_first or position:
             wait = random_send_gap()
             update_campaign(campaign_id, {"current_contact": None, "next_send_at": time.time() + wait})
-            await _sleep_unless_cancelled(campaign_id, wait)
+            _sleep_unless_cancelled(campaign_id, wait)
             if campaign_id in _cancelled or campaign_mode(campaign_id) != "auto":
                 break
         draft = get_waiting_email(mail_id, user_id)
@@ -69,7 +73,7 @@ async def _send_ready_drafts(campaign_id: str, user_id: str, wait_first: bool) -
             continue
         update_campaign(campaign_id, {"current_contact": draft["recipient_email"], "next_send_at": None})
         try:
-            await asyncio.to_thread(send_draft, mail_id, user_id)
+            send_draft(mail_id, user_id)
         except HTTPException as exc:
             if exc.status_code == 402:
                 update_campaign(
@@ -82,7 +86,7 @@ async def _send_ready_drafts(campaign_id: str, user_id: str, wait_first: bool) -
     return True
 
 
-async def _run(campaign: dict[str, Any], user: dict[str, Any], catalog: dict[str, str], start_index: int) -> None:
+def _run(campaign: dict[str, Any], user: dict[str, Any], catalog: dict[str, str], start_index: int) -> None:
     campaign_id = campaign["id"]
     contacts = campaign.get("contacts", [])
     user_id = str(user["_id"])
@@ -108,8 +112,7 @@ async def _run(campaign: dict[str, Any], user: dict[str, Any], catalog: dict[str
             update_campaign(campaign_id, {"current_contact": contact["recipient_email"], "next_send_at": None})
             sent_attempted = False
             try:
-                state = await asyncio.to_thread(
-                    run_outreach,
+                state = run_outreach(
                     OutreachInput(
                         user_id=str(user["_id"]),
                         role=campaign.get("role", "student"),
@@ -127,7 +130,7 @@ async def _run(campaign: dict[str, Any], user: dict[str, Any], catalog: dict[str
                     ),
                     automate,
                 )
-                skipped = state.get("outreach_status") in ("DUPLICATE_SUPPRESSED", "SUPPRESSED")
+                skipped = state.get("outreach_status") in SKIP_STATUSES
                 sent_attempted = automate and not skipped and (state.get("deliverability_risk") or {}).get("action") == "SEND"
                 if state.get("quota_blocked"):
                     update_campaign(
@@ -156,10 +159,10 @@ async def _run(campaign: dict[str, Any], user: dict[str, Any], catalog: dict[str
                     wait = max(wait, process_start_delay_seconds() - elapsed)
                 if wait > 0:
                     update_campaign(campaign_id, {"next_send_at": time.time() + wait})
-                    await _sleep_unless_cancelled(campaign_id, wait)
+                    _sleep_unless_cancelled(campaign_id, wait)
 
         if campaign_id not in _cancelled and campaign_mode(campaign_id) == "auto":
-            if not await _send_ready_drafts(campaign_id, user_id, wait_first=sent_attempted):
+            if not _send_ready_drafts(campaign_id, user_id, wait_first=sent_attempted):
                 return
 
         final_status = "cancelled" if campaign_id in _cancelled else "completed"

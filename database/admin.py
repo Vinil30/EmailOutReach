@@ -9,12 +9,13 @@ from pymongo import ReturnDocument
 from pymongo.errors import DuplicateKeyError
 
 from database.fxns import (
+    PAID_PLANS,
     _now,
     _serialize_doc,
     _serialize_many,
+    add_bad_address,
     as_utc,
     emailsSent,
-    PAID_PLANS,
     get_user_by_email,
     leadSends,
     leads,
@@ -99,7 +100,10 @@ def list_users_overview(query: str = "", limit: int = 200) -> list[dict[str, Any
     if query:
         filt["email"] = {"$regex": re.escape(query.lower())}
     start = week_start()
+    listed = list(users.find(filt).sort("created_at", -1).limit(limit))
+    ids = [str(user["_id"]) for user in listed]
     totals = {row["_id"]: row for row in emailsSent.aggregate([
+        {"$match": {"user_id": {"$in": ids}}},
         {"$group": {
             "_id": "$user_id",
             "total": {"$sum": 1},
@@ -107,12 +111,12 @@ def list_users_overview(query: str = "", limit: int = 200) -> list[dict[str, Any
         }},
     ])}
     lead_counts = {row["_id"]: row["n"] for row in leadSends.aggregate([
-        {"$match": {"status": "sent"}},
+        {"$match": {"user_id": {"$in": ids}, "status": "sent"}},
         {"$group": {"_id": "$user_id", "n": {"$sum": 1}}},
     ])}
     prices = pricing()
     rows = []
-    for user in users.find(filt).sort("created_at", -1).limit(limit):
+    for user in listed:
         uid = str(user["_id"])
         stats = totals.get(uid, {})
         plan = plan_of(user)
@@ -185,6 +189,30 @@ def update_lead(lead_id: str, fields: dict[str, Any]) -> dict[str, Any]:
     return _serialize_doc(updated)
 
 
+def report_bounce(user_id: str, email_id: str) -> bool:
+    """The user got "Address not found" for a sent email: never send to that address again, from any account.
+
+    For a recruiter-database send, the recruiter is taken out of the database and the user gets that slot back."""
+    if not ObjectId.is_valid(email_id):
+        return False
+    sent = emailsSent.find_one({"_id": ObjectId(email_id), "user_id": str(user_id), "email_status": True})
+    if not sent:
+        return False
+    emailsSent.update_one({"_id": sent["_id"]}, {"$set": {"bounced": True, "bounced_at": _now()}})
+    add_bad_address(sent["recipient_email"], "Reported bounce: address not found", "user", str(user_id))
+    lead = leads.find_one({"email": sent["recipient_email"].lower()}, {"_id": 1})
+    if lead:
+        deactivate_lead(lead["_id"], "Bounced: address not found")
+        leadSends.update_one({"user_id": str(user_id), "lead_id": str(lead["_id"])}, {"$set": {"status": "bounced"}})
+    return True
+
+
+def deactivate_lead(lead_id: Any, reason: str) -> None:
+    """Undeliverable recruiters leave the active database for everyone; the admin can see why."""
+    if ObjectId.is_valid(str(lead_id)):
+        leads.update_one({"_id": ObjectId(str(lead_id))}, {"$set": {"active": False, "inactive_reason": reason, "deactivated_at": _now()}})
+
+
 def delete_lead(lead_id: str) -> None:
     if ObjectId.is_valid(lead_id):
         leads.delete_one({"_id": ObjectId(lead_id)})
@@ -203,24 +231,76 @@ def list_leads(query: str = "", skip: int = 0, limit: int = 50) -> dict[str, Any
     rows = _serialize_many(docs)
     for row in rows:
         row["times_used"] = usage.get(row["id"], 0)
-    return {"leads": rows, "total": leads.count_documents(filt), "active": leads.count_documents({"active": True})}
+    return {
+        "leads": rows,
+        "total": leads.count_documents(filt),
+        "active": leads.count_documents({"active": True}),
+        "unverified": leads.count_documents({"active": True, "verified_at": {"$exists": False}}),
+    }
+
+
+# ---------- Deliverability checks on the recruiter database ----------
+
+def check_lead_domains(emails: list[str]) -> int:
+    """Deactivate recruiters whose domain can't receive email (free DNS check). Returns how many."""
+    from utils.email_check import dead_domains
+
+    dead = dead_domains(emails)
+    if dead:
+        leads.update_many({"email": {"$in": list(dead)}, "active": True},
+                          {"$set": {"active": False, "inactive_reason": "Domain doesn't accept email", "deactivated_at": _now()}})
+    return len(dead)
+
+
+def verify_leads(limit: int = 1000) -> dict[str, int]:
+    """Mailbox-level check (paid provider) for active recruiters not verified yet; undeliverable ones are
+    deactivated and added to the shared bad-address list."""
+    from utils.email_check import verify_address
+
+    checked = removed = 0
+    for lead in leads.find({"active": True, "verified_at": {"$exists": False}}, {"email": 1}).limit(limit):
+        deliverable, provider_status = verify_address(lead["email"])
+        if provider_status in ("error", "not_configured"):
+            break  # the provider is down or out of credits; try again later
+        checked += 1
+        update: dict[str, Any] = {"verified_at": _now(), "verify_status": provider_status}
+        if deliverable is False:
+            removed += 1
+            update.update(active=False, inactive_reason=f"Mailbox check: {provider_status}", deactivated_at=_now())
+            add_bad_address(lead["email"], f"Mailbox check: {provider_status}", "verification")
+        leads.update_one({"_id": lead["_id"]}, {"$set": update})
+    return {"checked": checked, "removed": removed}
 
 
 # ---------- Per-user lead usage (database automation) ----------
 
-def used_lead_ids(user_id: str) -> list[str]:
-    return [row["lead_id"] for row in leadSends.find({"user_id": str(user_id)}, {"lead_id": 1})]
+def _unused_leads_pipeline(user_id: str) -> list[dict[str, Any]]:
+    """Active leads with no leadSends row for this user, using the (user_id, lead_id) index per lead
+    instead of loading every lead the user has ever emailed."""
+    return [
+        {"$match": {"active": True}},
+        {"$sort": {"created_at": 1, "_id": 1}},
+        {"$addFields": {"_lead_id": {"$toString": "$_id"}}},
+        {"$lookup": {
+            "from": leadSends.name,
+            "localField": "_lead_id",
+            "foreignField": "lead_id",
+            "pipeline": [{"$match": {"user_id": str(user_id)}}, {"$limit": 1}, {"$project": {"_id": 1}}],
+            "as": "_used",
+        }},
+        {"$match": {"_used": {"$size": 0}}},
+    ]
 
 
 def next_lead_for(user_id: str) -> dict[str, Any] | None:
     """The oldest active lead this user hasn't been sent to yet, so stopping and restarting resumes in place."""
-    used = [ObjectId(lead_id) for lead_id in used_lead_ids(user_id) if ObjectId.is_valid(lead_id)]
-    return leads.find_one({"active": True, "_id": {"$nin": used}}, sort=[("created_at", 1), ("_id", 1)])
+    rows = list(leads.aggregate(_unused_leads_pipeline(user_id) + [{"$limit": 1}, {"$project": {"_lead_id": 0, "_used": 0}}]))
+    return rows[0] if rows else None
 
 
 def remaining_leads(user_id: str) -> int:
-    used = [ObjectId(lead_id) for lead_id in used_lead_ids(user_id) if ObjectId.is_valid(lead_id)]
-    return leads.count_documents({"active": True, "_id": {"$nin": used}})
+    rows = list(leads.aggregate(_unused_leads_pipeline(user_id) + [{"$count": "n"}]))
+    return rows[0]["n"] if rows else 0
 
 
 def record_lead_send(user_id: str, lead: dict[str, Any], outcome: str, email_id: str | None = None, reason: str = "") -> None:

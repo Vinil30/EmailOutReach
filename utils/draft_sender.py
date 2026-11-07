@@ -9,7 +9,7 @@ from Graph import EmailDetails
 from utils.EmailerAgent import EmailerAgent
 from utils.GmailAuth import get_valid_gmail_tokens
 from utils.plans import QuotaExceeded, ensure_can_send
-from utils.send_guard import is_suppressed, skip_reason, user_lock
+from utils.send_guard import is_suppressed, note_send_result, skip_reason, user_lock
 from utils.spam_guard import analyze_email_risk
 from utils.templating import with_compliance_footer
 
@@ -83,5 +83,6 @@ def send_draft(mail_id: str, user_id: str, subject: str | None = None, body: str
             gmail_tokens=gmail_tokens,
         )
         send_result = emailer.send_with_retries()
+        note_send_result(user_id, waiting_email["recipient_email"], send_result)
         sent_email = record_generated_send_result(mail_id, user_id, send_result, risk.model_dump())
         return {"email": sent_email, "failed": send_result.get("status") != "SENT"}

@@ -1161,3 +1161,4 @@ body.mz-leaving .main, body.mz-leaving .auth-form-side, body.mz-leaving .legal {
     .main, .auth-card, .legal, .mz-reveal, ::view-transition-old(root), ::view-transition-new(root) { animation: none !important; }
     .btn.is-busy::before { animation-duration: 1.6s; }
 }
+.list-more { display: flex; justify-content: center; padding-top: 12px; padding-bottom: 14px; border-top: 1px solid var(--line); }
