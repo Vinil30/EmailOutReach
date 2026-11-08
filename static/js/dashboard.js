@@ -31,7 +31,6 @@
         const daysLeft = plan.plan_until ? Math.ceil((OutreachApi.parseDate(plan.plan_until) - Date.now()) / 86400000) : 0;
         const upgradeLabel = !paid ? "Upgrade" : daysLeft <= 5 ? "Renew" : plan.plan === "pro" ? "Upgrade" : "";
         const pricing = plan.pricing;
-        const db = plan.database;
         $("planCard").innerHTML = `
             <div class="card-body">
                 <div class="plan-row">
@@ -40,7 +39,7 @@
                         <div class="plan-title">${paid ? `Unlimited emails · ${plan.remaining} left today` : `${plan.remaining} email${plan.remaining === 1 ? "" : "s"} left`}</div>
                         <p class="small muted" style="margin-top:4px;">
                             ${paid
-                                ? `${plan.used} of ${plan.limit} sent today (daily safety cap) · ${db.remaining} of ${db.limit} recruiters left · ${esc(plan.plan_name)} until ${esc(until)}`
+                                ? `${plan.used} of ${plan.limit} sent today (daily safety cap) · ${Number(plan.credits || 0).toLocaleString()} credits · ${esc(plan.plan_name)} until ${esc(until)}`
                                 : `${plan.used} of ${plan.limit} lifetime emails used${plan.plan_expired ? ` · ${esc(plan.expired_plan_name)} ended` : ""}`}
                         </p>
                     </div>
@@ -52,7 +51,7 @@
                 <div class="plan-meter-lg ${plan.remaining ? "" : "full"}"><span style="width:${pct}%"></span></div>
                 ${paid
                     ? `<p class="small muted">${esc(plan.daily_cap_reason)}</p>`
-                    : `<p class="small muted">Pro and Premium give you unlimited sending (up to ${pricing.daily_cap} a day) ${campaigner ? "for your own lists" : `and ${pricing.pro.contacts} or ${pricing.premium.contacts} new recruiters from our database, sent automatically`}. After you buy, we activate it on <b>${esc(user.email)}</b>, within 5 hours.</p>`}
+                    : `<p class="small muted">Pro and Premium give you unlimited sending (up to ${pricing.daily_cap} a day) ${campaigner ? "for your own lists" : "and automation that emails contacts you get in the marketplace"}. After you buy, we activate it on <b>${esc(user.email)}</b>, within 5 hours.</p>`}
             </div>`;
         if (!paid) $("automateGo").textContent = "Pro & Premium →";
     } else {

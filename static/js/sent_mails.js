@@ -27,7 +27,7 @@
     function rowHtml(email, index) {
         return `
             <tr class="clickable" data-index="${index}">
-                <td><div class="cell-main">${esc(email.recipient_name || email.recipient_email)}</div><div class="cell-sub">${esc(email.recipient_email || (email.from_database ? "Mailzen recruiter database" : ""))}${email.company_name ? ` · ${esc(email.company_name)}` : ""}${email.bounced ? ' · <span class="badge bad">Bounced</span>' : ""}</div></td>
+                <td><div class="cell-main">${esc(email.recipient_name || email.recipient_email)}</div><div class="cell-sub">${esc(email.recipient_email || (email.from_database ? "Marketplace contact" : ""))}${email.company_name ? ` · ${esc(email.company_name)}` : ""}${email.bounced ? ' · <span class="badge bad">Bounced</span>' : ""}</div></td>
                 <td style="max-width:320px;"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(email.written_email_details?.email_subject || "")}</div></td>
                 <td class="cell-sub">${esc(email.campaign_name || "—")}</td>
                 <td>${scoreBadge(email.deliverability_risk)}</td>
@@ -114,7 +114,7 @@
         $("mailModal").dataset.id = email.id;
         $("modalTitle").textContent = email.written_email_details?.email_subject || "(no subject)";
         $("modalMeta").innerHTML = `
-            <div><dt>To</dt><dd><b>${esc(email.recipient_name || email.recipient_email)}</b>${email.from_database ? "<span>From our recruiter database (address kept private)</span>" : email.recipient_name ? `<span>${esc(email.recipient_email)}</span>` : ""}</dd></div>
+            <div><dt>To</dt><dd><b>${esc(email.recipient_name || email.recipient_email)}</b>${email.from_database ? "<span>Marketplace contact (address kept private)</span>" : email.recipient_name ? `<span>${esc(email.recipient_email)}</span>` : ""}</dd></div>
             <div><dt>Company</dt><dd>${esc(email.company_name || "—")}</dd></div>
             <div><dt>From</dt><dd>${esc(email.email_from || "—")}</dd></div>
             <div><dt>Sent</dt><dd>${sentAt ? esc(sentAt.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })) : "—"}</dd></div>

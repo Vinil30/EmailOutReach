@@ -13,14 +13,30 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from database.fxns import ensure_indexes
-from routes import admin, auth, automated, automation, campaigns, gmail, human_in_loop, legal, profile, spam
+from routes import admin, auth, automated, automation, campaigns, gmail, human_in_loop, legal, marketplace, profile, spam
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     ensure_indexes()
+    _prepare_marketplace()
     _start_keep_alive()
     yield
+
+
+def _prepare_marketplace() -> None:
+    from database.credits import ensure_credit_indexes, settle_unapplied
+    from database.marketplace import ensure_marketplace_indexes, migrate_allowances, recover_interrupted_jobs
+    from utils.plans import pricing
+
+    try:
+        ensure_credit_indexes()
+        ensure_marketplace_indexes()
+        settle_unapplied()
+        recover_interrupted_jobs()
+        migrate_allowances(pricing()["contact_credits"]["database"])
+    except Exception as exc:  # the site should still start; these all retry on the next start
+        print(f"Marketplace setup skipped: {exc}", flush=True)
 
 
 def _start_keep_alive() -> None:
@@ -68,6 +84,7 @@ app.include_router(spam.router)
 app.include_router(automation.router)
 app.include_router(admin.router)
 app.include_router(legal.router)
+app.include_router(marketplace.router)
 app.add_middleware(GZipMiddleware, minimum_size=800)
 
 
@@ -108,6 +125,9 @@ PAGES = {
     "/terms": "terms.html",
     "/terms/students": "terms_students.html",
     "/terms/campaigners": "terms_campaigners.html",
+    "/marketplace": "marketplace.html",
+    "/refunds": "refunds.html",
+    "/contact": "contact.html",
 }
 
 

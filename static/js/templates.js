@@ -38,7 +38,7 @@
             </div></div>` : `
             <div class="card ai-pane"><div class="card-body">
                 <span class="eyebrow">Premium</span>
-                <p>AI research and writing are part of Premium, along with unlimited sending and the biggest batch of recruiters from our database. Templates are included on every plan.</p>
+                <p>AI research and writing are part of Premium, along with unlimited sending and automation. Templates are included on every plan.</p>
                 <div class="actions">
                     <button class="btn primary" type="button" data-upgrade>Upgrade</button>
                     <button class="btn secondary" type="button" data-writing-switch="template">Use a template</button>

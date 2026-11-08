@@ -233,6 +233,7 @@ def public_user(user: dict[str, Any] | None) -> dict[str, Any]:
     serialized["profile"] = user.get("profile") or {}
     serialized["is_admin"] = is_admin(user)
     serialized.pop("db_base", None)
+    serialized.pop("credit_ops", None)
     serialized["plan"] = plan_of(user)
     serialized["plan_until"] = user.get("plan_until")
     serialized["is_paid"] = serialized["plan"] != "free"

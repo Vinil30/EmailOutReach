@@ -4,7 +4,8 @@ from functools import lru_cache
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
-from database.admin import get_automation, lead_send_counts, lead_send_history, remaining_leads
+from database.admin import get_automation
+from database.marketplace import contact_history, owned_counts
 from database.fxns import get_current_user, get_overview_stats, is_premium, project_catalog, public_user
 from utils import premium_runner
 from utils.job_templates import MERGE_FIELD_HELP, TEMPLATES, get_template, profile_variables
@@ -117,14 +118,15 @@ def automation_status(current_user=Depends(get_current_user)):
     if template.get("ai") and not quota["ai_allowed"]:
         template = get_template(None)
     paid = quota["plan"] != "free"
-    # Free users only see the upgrade card, so skip the database-usage queries for them.
+    counts = owned_counts(user_id) if paid else {}
+    # Free users only see the upgrade card, so skip the contact queries for them.
     return {
         "state": state,
         "quota": quota,
         "problems": premium_runner.preflight(current_user),
-        "remaining_contacts": min(remaining_leads(user_id), quota["database"]["remaining"]) if paid else None,
-        "counts": lead_send_counts(user_id) if paid else {"sent": 0, "failed": 0},
-        "history": lead_send_history(user_id) if paid else [],
+        "remaining_contacts": counts.get("available") if paid else None,
+        "counts": counts if paid else {"sent": 0, "failed": 0},
+        "history": contact_history(user_id) if paid else [],
         "template": template["name"],
         "writing": "ai" if template.get("ai") else "template",
     }
@@ -136,9 +138,9 @@ def automation_start(current_user=Depends(get_current_user)):
     problems = premium_runner.preflight(current_user)
     if problems:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=problems[0])
+    if not owned_counts(str(current_user["_id"]))["available"]:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You have no contacts left to email. Get more in the Marketplace.")
     quota = quota_status(current_user)
-    if quota["database"]["remaining"] <= 0:
-        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=premium_runner.allowance_message(quota))
     if quota["remaining"] <= 0:
         raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=limit_message(quota))
     premium_runner.start(str(current_user["_id"]))

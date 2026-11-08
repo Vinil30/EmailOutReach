@@ -1,10 +1,7 @@
-"""Database automation (Pro and Premium): sends a user's chosen template to the shared lead database from their own Gmail.
+"""Automation (Pro and Premium): emails the contacts a user bought in the marketplace, from their own Gmail.
 
-Each purchase allows a number of new recruiters (see utils.plans.database_allowance); Pro sends templates only,
-Premium may use AI writing.
-
-Progress lives in the database (one leadSends row per user and lead), so Stop then Start
-continues with the next lead the user hasn't emailed, even across server restarts.
+Pro sends templates only; Premium may use AI writing. Each bought contact is emailed once: its status in
+ownedContacts records the outcome, so Stop then Start continues with the next contact, even across restarts.
 """
 import threading
 import time
@@ -12,8 +9,9 @@ from typing import Any
 
 from bson import ObjectId
 
-from database.admin import deactivate_lead, next_lead_for, record_lead_send, set_automation
-from database.fxns import DATABASE_CAMPAIGN_ID, _now, emailsGenerated, get_user_by_id, is_bad_address, is_paid, is_premium, leadSends, project_catalog, users
+from database.admin import deactivate_lead, set_automation
+from database.fxns import DATABASE_CAMPAIGN_ID, _now, emailsGenerated, get_user_by_id, is_bad_address, is_paid, is_premium, project_catalog, users
+from database.marketplace import mark_owned, next_owned_contact, ownedContacts
 from Graph import OutreachInput, run_outreach
 from utils.job_templates import brief_for_profile
 from utils.legal import UNSIGNED_MESSAGE, legal_status
@@ -22,7 +20,7 @@ from utils.plans import DAILY_CAP_REASON, quota_status
 from utils.send_guard import SKIP_STATUSES
 
 CAMPAIGN_ID = DATABASE_CAMPAIGN_ID
-CAMPAIGN_NAME = "Recruiter database"
+CAMPAIGN_NAME = "Marketplace contacts"
 
 # Each user's automation is a daemon thread, so its waits and database calls never block the web server.
 _tasks: dict[str, threading.Thread] = {}
@@ -62,19 +60,12 @@ def start(user_id: str) -> None:
     thread.start()
 
 
-def allowance_message(quota: dict[str, Any]) -> str:
-    database = quota["database"]
-    upgrade = " or upgrade to Premium" if quota["plan"] == "pro" else ""
-    return (f"You've emailed all {database['limit']} recruiters included with {quota['plan_name']} this time. "
-            f"Renew{upgrade} to get a new batch of recruiters you haven't emailed yet.")
-
-
 def preflight(user: dict[str, Any]) -> list[str]:
     """Reasons automation can't start yet, in the order the user should fix them."""
     problems = []
     profile = user.get("profile") or {}
     if not is_paid(user):
-        problems.append("Upgrade to Pro or Premium to use our recruiter database.")
+        problems.append("Automation is part of Pro and Premium. Upgrade to start it.")
     if not legal_status(user)["signed"]:
         problems.append(UNSIGNED_MESSAGE)
     if not (user.get("gmail_tokens") or {}).get("refresh_token") and not (user.get("gmail_tokens") or {}).get("access_token"):
@@ -107,8 +98,6 @@ def _run(user_id: str) -> None:
             if problems:
                 return _finish(user_id, "blocked", problems[0])
             quota = quota_status(user)
-            if quota["database"]["remaining"] <= 0:
-                return _finish(user_id, "allowance", allowance_message(quota))
             if quota["remaining"] <= 0:
                 # Daily safety cap: wait until midnight, then carry on from the next recruiter.
                 wait = max(60.0, quota["resets_at"].timestamp() - time.time())
@@ -118,9 +107,9 @@ def _run(user_id: str) -> None:
                 set_automation(user_id, {"message": ""})
                 continue
 
-            lead = next_lead_for(user_id)
+            lead = next_owned_contact(user_id)
             if not lead:
-                return _finish(user_id, "done", "You've reached every contact in the database. New contacts are added regularly.")
+                return _finish(user_id, "done", "You've emailed every contact you have. Get more in the Marketplace, then press Start.")
 
             set_automation(user_id, {"current": lead.get("company") or "next contact", "next_send_at": None})
             profile = user.get("profile") or {}
@@ -151,17 +140,17 @@ def _run(user_id: str) -> None:
             except Exception as exc:
                 # One unusable contact (or a writer hiccup) shouldn't end the run or leave its address in a draft.
                 emailsGenerated.delete_many({"user_id": user_id, "campaign_id": CAMPAIGN_ID, "recipient_email": lead["email"]})
-                record_lead_send(user_id, lead, "failed", reason=str(exc)[:200])
-                errors_in_a_row.append(str(lead["_id"]))
+                mark_owned(lead["_id"], "failed", str(exc)[:200])
+                errors_in_a_row.append(lead["_id"])
                 if len(errors_in_a_row) >= 3:
                     # Probably not the contacts: give them back so they're retried after the problem is fixed.
-                    leadSends.delete_many({"user_id": user_id, "lead_id": {"$in": errors_in_a_row}})
+                    ownedContacts.update_many({"_id": {"$in": errors_in_a_row}}, {"$set": {"status": "available", "reason": ""}})
                     return _finish(user_id, "error", f"Automation stopped after repeated errors: {str(exc)[:160]}")
                 continue
             errors_in_a_row.clear()
 
             if state.get("final_email_status"):
-                record_lead_send(user_id, lead, "sent", state.get("db_id"))
+                mark_owned(lead["_id"], "sent", email_id=state.get("db_id"))
                 set_automation(user_id, {"last_sent_at": _now()})
                 users.update_one({"_id": ObjectId(user_id)}, {"$inc": {"automation.sent_this_run": 1}})
             else:
@@ -176,23 +165,23 @@ def _run(user_id: str) -> None:
                 if outcome == "QUOTA_REACHED":
                     continue  # the next loop pass waits for the daily cap to reset
                 if outcome in SKIP_STATUSES:
-                    # Already emailed, unsubscribed or undeliverable: skip without using the allowance.
-                    record_lead_send(user_id, lead, "skipped", reason=state.get("skip_reason", ""))
-                    if outcome in ("BAD_ADDRESS", "BAD_DOMAIN"):
-                        deactivate_lead(lead["_id"], state.get("skip_reason", "Undeliverable"))
+                    # Already emailed, unsubscribed or undeliverable: skipped, and nothing is sent.
+                    mark_owned(lead["_id"], "skipped", state.get("skip_reason", ""))
+                    if outcome in ("BAD_ADDRESS", "BAD_DOMAIN") and lead.get("lead_id"):
+                        deactivate_lead(lead["lead_id"], state.get("skip_reason", "Undeliverable"))
                     continue
                 if "Gmail" in reason or "authorization" in reason.lower():
                     return _finish(user_id, "blocked", f"{reason}. Reconnect Gmail, then press Start.")
                 # A bad address shouldn't stall the run: mark it and move on.
-                record_lead_send(user_id, lead, "failed", reason=reason or outcome)
-                if is_bad_address(lead["email"]):
-                    deactivate_lead(lead["_id"], "Gmail rejected the recipient")
+                mark_owned(lead["_id"], "failed", reason or outcome)
+                if is_bad_address(lead["email"]) and lead.get("lead_id"):
+                    deactivate_lead(lead["lead_id"], "Gmail rejected the recipient")
 
             gap = random_send_gap()
             set_automation(user_id, {"current": None, "next_send_at": time.time() + gap})
             _sleep_unless_stopped(user_id, gap)
 
-        _finish(user_id, "stopped", "Stopped. Press Start to continue from the next company.")
+        _finish(user_id, "stopped", "Stopped. Press Start to continue from the next contact.")
     except Exception as exc:  # keep the state truthful if something unexpected breaks
         _finish(user_id, "error", f"Automation stopped: {str(exc)[:200]}")
     finally:

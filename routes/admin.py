@@ -18,7 +18,9 @@ from database.admin import (
     update_lead,
     verify_leads,
 )
-from database.fxns import get_current_user, is_admin
+from database.credits import add_credits, balance, recent_orders, spend_credits
+from database.fxns import get_current_user, get_user_by_email, is_admin
+from database.marketplace import admin_job_summary
 from utils.contacts import EMAIL_PATTERN, read_contacts_frame
 from utils.email_check import verification_enabled
 from utils.plans import PLAN_DAYS, pricing, save_pricing
@@ -49,7 +51,17 @@ class GrantIn(BaseModel):
 
 class TierIn(BaseModel):
     price: float = Field(ge=0)
-    contacts: int = Field(ge=0, le=100000)
+
+
+class ContactCreditsIn(BaseModel):
+    database: int = Field(ge=1, le=10000)
+    web: int = Field(ge=1, le=10000)
+
+
+class PackIn(BaseModel):
+    id: Literal["p1", "p2", "p3"]
+    credits: int = Field(ge=0, le=1_000_000)
+    price: float = Field(ge=0, le=1_000_000)
 
 
 class PricingIn(BaseModel):
@@ -58,6 +70,14 @@ class PricingIn(BaseModel):
     daily_cap: int = Field(ge=1, le=2000)
     pro: TierIn
     premium: TierIn
+    contact_credits: ContactCreditsIn
+    packs: list[PackIn] = Field(min_length=3, max_length=3)
+
+
+class CreditAdjustIn(BaseModel):
+    email: EmailStr
+    amount: int = Field(ge=-1_000_000, le=1_000_000)
+    note: str = Field(min_length=3, max_length=200)
 
 
 class RevokeIn(BaseModel):
@@ -165,3 +185,24 @@ def leads_patch(lead_id: str, payload: LeadPatch, admin=Depends(require_admin)):
 def leads_delete(lead_id: str, admin=Depends(require_admin)):
     delete_lead(lead_id)
     return {"deleted": lead_id}
+
+
+@router.post("/credits")
+def adjust_credits(payload: CreditAdjustIn, admin=Depends(require_admin)):
+    """Add (or remove, with a negative amount) credits by hand, e.g. after checking a reported bounce. Logged in the ledger."""
+    user = get_user_by_email(payload.email)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No account with that email")
+    if payload.amount == 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Enter a non-zero amount")
+    note = f"{payload.note} (by {admin['email']})"
+    if payload.amount > 0:
+        add_credits(str(user["_id"]), payload.amount, "admin", note)
+    elif not spend_credits(str(user["_id"]), -payload.amount, "admin", note):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="That would take the balance below zero")
+    return {"email": user["email"], "credits": balance(str(user["_id"]))}
+
+
+@router.get("/marketplace")
+def marketplace_overview(admin=Depends(require_admin)):
+    return {"orders": recent_orders(), "jobs": admin_job_summary()}

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>try{if(localStorage.getItem("odTheme")!=="dark")document.documentElement.dataset.theme="light"}catch(e){document.documentElement.dataset.theme="light"}</script>
+    <title>Marketplace · Mailzen</title>
+    <link rel="icon" type="image/png" href="/static/img/favicon.png">
+    <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css?v=9">
+</head>
+<body>
+    <div class="shell">
+        <aside class="sidebar" id="sidebar"></aside>
+        <main class="main">
+            <header class="page-head">
+                <div>
+                    <span class="eyebrow">Marketplace</span>
+                    <h1>Get recruiter contacts</h1>
+                    <p>Buy credits, then spend them on recruiters from our database or on fresh contacts found on the web for your role. Contacts stay inside Mailzen and are emailed for you by automation; they can't be downloaded.</p>
+                </div>
+            </header>
+
+            <section class="card mk-wallet">
+                <div class="card-body mk-wallet-body">
+                    <div>
+                        <div class="field-label">Your credits</div>
+                        <div class="mk-balance" id="balance">–</div>
+                        <div class="small muted" id="priceNote"></div>
+                    </div>
+                    <div class="mk-packs" id="packs"><div class="skeleton"></div></div>
+                </div>
+                <div class="card-body mk-notice" id="paymentsNotice" hidden></div>
+            </section>
+
+            <div class="banner warn mk-upgrade" id="upgradeNotice" hidden>
+                <span>Contacts are emailed by automation, which is part of Pro and Premium. You can buy credits now and use them after upgrading.</span>
+                <button type="button" class="btn primary sm" data-upgrade>Upgrade</button>
+            </div>
+
+            <section class="grid grid-2 mk-products">
+                <div class="card">
+                    <div class="card-head"><div><h2>From our recruiter database</h2><p>Recruiters and hiring managers our team adds and checks. You only get ones you haven't emailed or bought before.</p></div></div>
+                    <form class="card-body form" id="dbForm">
+                        <label class="field"><span>Roles or keywords <span class="muted">(optional, comma separated)</span></span><input id="dbKeywords" placeholder="e.g. ML, data science, backend"></label>
+                        <label class="field"><span>How many contacts</span><input id="dbCount" type="number" min="1" value="25" inputmode="numeric"></label>
+                        <div class="mk-quote" id="dbQuote"></div>
+                        <button class="btn primary" type="submit" id="dbBuyBtn">Get contacts</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <div class="card-head"><div><h2>Find new contacts on the web</h2><p>We search live hiring posts and pages for your tags and keep only email addresses the pages publish themselves, each one checked before you get it.</p></div></div>
+                    <form class="card-body form" id="webForm">
+                        <div class="field">
+                            <span>Search tags <span class="muted">(from your profile; edit freely)</span></span>
+                            <div class="mk-tags" id="tagList"></div>
+                            <div class="mk-tag-add"><input id="tagInput" maxlength="60" placeholder="Add a tag, e.g. React intern Bengaluru"><button class="btn secondary sm" type="button" id="tagAddBtn">Add</button></div>
+                        </div>
+                        <label class="field"><span>How many contacts</span><input id="webCount" type="number" min="1" value="20" inputmode="numeric"></label>
+                        <div class="mk-quote" id="webQuote"></div>
+                        <button class="btn primary" type="submit" id="webStartBtn">Start search</button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="card">
+                <div class="card-head"><div><h2>Your purchases</h2><p>You're charged only for contacts delivered; anything unused goes straight back to your credits.</p></div><a class="btn ghost sm" href="/automate" id="ownedLink">–</a></div>
+                <div class="card-body" id="jobs"><div class="skeleton"></div></div>
+            </section>
+
+            <details class="card mk-ledger" id="ledgerBox">
+                <summary class="card-head"><h3>Credit history</h3><span class="small muted">every purchase, charge and refund</span></summary>
+                <div class="card-body" id="ledger"><div class="skeleton"></div></div>
+            </details>
+        </main>
+    </div>
+    <script src="/static/js/api.js?v=9"></script>
+    <script src="/static/js/layout.js?v=9"></script>
+    <script src="/static/js/marketplace.js?v=9"></script>
+</body>
+</html>

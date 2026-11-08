@@ -428,12 +428,16 @@ const OutreachApi = (() => {
         return `${pricing.currency}${Number.isInteger(amount) ? amount : amount.toFixed(2)}`;
     }
 
-    // Fills [data-price="pro"], [data-contacts="premium"], [data-free-emails], [data-daily-cap] and [data-plan-days].
+    // Fills [data-price="pro"], [data-contact-credits="web"], [data-pack-price="p1"], [data-pack-credits="p1"],
+    // [data-free-emails], [data-daily-cap] and [data-plan-days].
     async function applyPricing(root = document) {
-        if (!root.querySelector("[data-price], [data-contacts], [data-free-emails], [data-daily-cap], [data-plan-days]")) return null;
+        if (!root.querySelector("[data-price], [data-contact-credits], [data-pack-price], [data-pack-credits], [data-free-emails], [data-daily-cap], [data-plan-days]")) return null;
         const pricing = await getPricing();
+        const pack = id => pricing.packs.find(item => item.id === id) || { credits: 0, price: 0 };
         root.querySelectorAll("[data-price]").forEach(node => { node.textContent = formatPrice(pricing, pricing[node.dataset.price].price); });
-        root.querySelectorAll("[data-contacts]").forEach(node => { node.textContent = pricing[node.dataset.contacts].contacts; });
+        root.querySelectorAll("[data-contact-credits]").forEach(node => { node.textContent = pricing.contact_credits[node.dataset.contactCredits]; });
+        root.querySelectorAll("[data-pack-price]").forEach(node => { node.textContent = formatPrice(pricing, pack(node.dataset.packPrice).price); });
+        root.querySelectorAll("[data-pack-credits]").forEach(node => { node.textContent = pack(node.dataset.packCredits).credits.toLocaleString(); });
         root.querySelectorAll("[data-free-emails]").forEach(node => { node.textContent = pricing.free_emails; });
         root.querySelectorAll("[data-daily-cap]").forEach(node => { node.textContent = pricing.daily_cap; });
         root.querySelectorAll("[data-plan-days]").forEach(node => { node.textContent = pricing.days; });
@@ -444,8 +448,8 @@ const OutreachApi = (() => {
         const cap = `Unlimited emails, up to ${pricing.daily_cap} a day*`;
         return {
             free: [`${pricing.free_emails} emails in total`, "Send to your own contact lists", "Ready-made templates", "Spam check before every send", "Sends from your own Gmail"],
-            pro: [cap, `${pricing.pro.contacts} new recruiters from our database per purchase`, "One-click automation: press Start, it sends", "Ready-made templates with names filled in", "Every company you reach, tracked"],
-            premium: [cap, `${pricing.premium.contacts} new recruiters from our database per purchase`, "One-click automation: press Start, it sends", "AI researches each company and writes a unique email", "AI picks your best-matching project", "AI fixes risky drafts before they send"]
+            pro: [cap, "One-click automation: press Start, it sends", "Use contacts from the marketplace (bought with credits)", "Ready-made templates with names filled in", "Every company you reach, tracked"],
+            premium: [cap, "Everything in Pro", "AI researches each company and writes a unique email", "AI picks your best-matching project", "AI fixes risky drafts before they send"]
         };
     }
 

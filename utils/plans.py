@@ -1,8 +1,9 @@
 """Plans and limits.
 
 Free: a small lifetime allowance to the user's own lists. Pro and Premium: unlimited sending (capped per day so
-Gmail doesn't suspend the account), plus a number of new recruiters from the shared database per purchase.
-Premium also gets AI writing. Prices and limits are admin-editable and stored in the settings collection."""
+Gmail doesn't suspend the account) and automation; Premium also gets AI writing. Contacts are not part of any
+plan: they're bought with credits in the marketplace. Prices, limits, credit packs and the credit price of a
+contact are admin-editable and stored in the settings collection."""
 import copy
 import os
 import time
@@ -11,7 +12,7 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
-from database.fxns import as_utc, emailsSent, get_user_by_id, is_premium, leadSends, plan_of, settings
+from database.fxns import as_utc, emailsSent, get_user_by_id, is_premium, plan_of, settings
 from utils.legal import UNSIGNED_MESSAGE, legal_status
 
 PRO_URL = os.environ.get("PRO_URL", "https://srotabase.com/@vmarena/mailzen-pro")
@@ -25,9 +26,18 @@ DEFAULT_PRICING = {
     "currency": "₹",
     "free_emails": 20,
     "daily_cap": 100,
-    "pro": {"price": 99, "contacts": 200},
-    "premium": {"price": 249, "contacts": 500},
+    "pro": {"price": 99},
+    "premium": {"price": 249},
+    # Credits a contact costs: from our recruiter database, or freshly found by web search.
+    "contact_credits": {"database": 2, "web": 5},
+    # Credit packs sold through Razorpay; the price is in rupees.
+    "packs": [
+        {"id": "p1", "credits": 100, "price": 99},
+        {"id": "p2", "credits": 500, "price": 449},
+        {"id": "p3", "credits": 1000, "price": 849},
+    ],
 }
+PACK_IDS = ("p1", "p2", "p3")
 PLAN_NAMES = {"free": "Free", "pro": "Pro", "premium": "Premium"}
 
 AI_PREMIUM_MESSAGE = "AI writing is part of Premium. Use a template, or upgrade to Premium."
@@ -63,8 +73,19 @@ def _load_pricing() -> dict[str, Any]:
     }
     for plan, url in (("pro", PRO_URL), ("premium", PREMIUM_URL)):
         tier = {**DEFAULT_PRICING[plan], **(stored.get(plan) or {})}
-        data[plan] = {"price": float(tier["price"]), "contacts": int(tier["contacts"]), "url": url}
+        data[plan] = {"price": float(tier["price"]), "url": url}
+    contact_credits = {**DEFAULT_PRICING["contact_credits"], **(stored.get("contact_credits") or {})}
+    data["contact_credits"] = {source: int(value) for source, value in contact_credits.items()}
+    stored_packs = {pack.get("id"): pack for pack in stored.get("packs") or []}
+    data["packs"] = [
+        {"id": pack["id"], "credits": int(stored_packs.get(pack["id"], pack)["credits"]), "price": float(stored_packs.get(pack["id"], pack)["price"])}
+        for pack in DEFAULT_PRICING["packs"]
+    ]
     return data
+
+
+def pack_by_id(pack_id: str) -> dict[str, Any] | None:
+    return next((pack for pack in pricing()["packs"] if pack["id"] == pack_id and pack["credits"] > 0 and pack["price"] > 0), None)
 
 
 def save_pricing(fields: dict[str, Any]) -> dict[str, Any]:
@@ -76,14 +97,22 @@ def save_pricing(fields: dict[str, Any]) -> dict[str, Any]:
     }
     for plan in ("pro", "premium"):
         given = fields.get(plan) or {}
-        update[plan] = {
-            "price": float(given.get("price", current[plan]["price"])),
-            "contacts": int(given.get("contacts", current[plan]["contacts"])),
-        }
-    if min(update["free_emails"], update["daily_cap"], update["pro"]["contacts"], update["premium"]["contacts"]) < 0 or min(update["pro"]["price"], update["premium"]["price"]) < 0:
+        update[plan] = {"price": float(given.get("price", current[plan]["price"]))}
+    given_credits = fields.get("contact_credits") or {}
+    update["contact_credits"] = {source: int(given_credits.get(source, current["contact_credits"][source])) for source in ("database", "web")}
+    given_packs = {pack.get("id"): pack for pack in fields.get("packs") or []}
+    update["packs"] = [
+        {"id": pack["id"], "credits": int(given_packs.get(pack["id"], pack)["credits"]), "price": float(given_packs.get(pack["id"], pack)["price"])}
+        for pack in current["packs"]
+    ]
+    numbers = [update["free_emails"], update["daily_cap"], update["pro"]["price"], update["premium"]["price"],
+               *update["contact_credits"].values(), *(value for pack in update["packs"] for value in (pack["credits"], pack["price"]))]
+    if min(numbers) < 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Prices and limits can't be negative")
     if update["daily_cap"] < 1:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The daily cap must be at least 1")
+    if min(update["contact_credits"].values()) < 1:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A contact must cost at least 1 credit")
     settings.update_one({"_id": "pricing"}, {"$set": update}, upsert=True)
     _pricing_cache["value"] = None
     return pricing()
@@ -106,24 +135,6 @@ def day_start(now: datetime | None = None) -> datetime:
     """Midnight India time, as a UTC datetime."""
     local = (now or datetime.now(timezone.utc)) + DAY_OFFSET
     return local.replace(hour=0, minute=0, second=0, microsecond=0) - DAY_OFFSET
-
-
-def database_sent(user_id: str) -> int:
-    return leadSends.count_documents({"user_id": str(user_id), "status": "sent"})
-
-
-def database_allowance(user: dict[str, Any], prices: dict[str, Any] | None = None) -> dict[str, int]:
-    """New recruiters left from the shared database for the current purchase.
-
-    Each purchase records how many database emails the account had sent (db_base), so every purchase gives
-    a full allowance, always of recruiters this user hasn't been sent to before."""
-    plan = plan_of(user)
-    if plan == "free":
-        return {"limit": 0, "used": 0, "remaining": 0}
-    prices = prices or pricing()
-    limit = prices[plan]["contacts"]
-    used = max(0, database_sent(str(user["_id"])) - int(user.get("db_base") or 0))
-    return {"limit": limit, "used": used, "remaining": max(0, limit - used)}
 
 
 def quota_status(user: dict[str, Any]) -> dict[str, Any]:
@@ -151,7 +162,7 @@ def quota_status(user: dict[str, Any]) -> dict[str, Any]:
         "expired_plan_name": PLAN_NAMES.get(user.get("plan") or "", "") if plan == "free" and until else "",
         "lifetime_sent": lifetime_sent,
         "ai_allowed": plan == "premium",
-        "database": database_allowance(user, prices),
+        "credits": int(user.get("credits") or 0),
         "daily_cap_reason": DAILY_CAP_REASON,
         "pricing": prices,
     }

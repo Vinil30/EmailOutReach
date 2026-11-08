@@ -6,7 +6,6 @@ from fastapi import HTTPException
 from database.fxns import is_paid, is_premium, plan_of
 from utils.job_templates import TEMPLATES, brief_for_profile, featured_project, get_template, profile_variables
 from utils.pacing import random_send_gap
-from utils import plans
 from utils.legal import signature_records
 from utils.plans import day_start, limit_message, require_ai, week_start
 from utils.premium_runner import preflight
@@ -55,18 +54,6 @@ def test_limit_messages_explain_the_daily_cap():
     assert "Upgrade" in limit_message({"plan": "free", "limit": 20})
     message = limit_message({"plan": "pro", "limit": 100})
     assert "100" in message and "Google" in message
-
-
-def test_each_purchase_gets_a_fresh_database_allowance(monkeypatch):
-    prices = {"pro": {"contacts": 200}, "premium": {"contacts": 500}}
-    until = datetime.now(timezone.utc) + timedelta(days=10)
-    monkeypatch.setattr(plans, "database_sent", lambda user_id: 260)
-    # Bought Pro again after 200 database emails: the earlier sends don't count against this purchase.
-    renewed = {"_id": "u1", "plan": "pro", "plan_until": until, "db_base": 200}
-    assert plans.database_allowance(renewed, prices) == {"limit": 200, "used": 60, "remaining": 140}
-    upgraded = {"_id": "u1", "plan": "premium", "plan_until": until, "db_base": 260}
-    assert plans.database_allowance(upgraded, prices) == {"limit": 500, "used": 0, "remaining": 500}
-    assert plans.database_allowance({"_id": "u1"}, prices)["remaining"] == 0
 
 
 def test_lines_with_empty_fields_are_dropped():
@@ -126,7 +113,7 @@ def test_random_gap_between_one_and_three_minutes():
 
 def test_preflight_lists_missing_setup():
     problems = preflight({"profile": {}, "gmail_tokens": {}})
-    assert problems[0].startswith("Upgrade to Pro or Premium")
+    assert problems[0].startswith("Automation is part of Pro and Premium")
     assert any("Gmail" in problem for problem in problems)
     assert any("resume" in problem for problem in problems)
     ready = {

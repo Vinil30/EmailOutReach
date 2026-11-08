@@ -12,7 +12,8 @@ const Layout = (() => {
         menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
         bolt: '<path d="M13 3 4 14h7l-1 7 9-11h-7z"/>',
         doc: '<path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
-        key: '<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3"/>'
+        key: '<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3"/>',
+        cart: '<path d="M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h8.9a1 1 0 0 0 1-.8L20 8H6"/><circle cx="9.5" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/>'
     };
 
     function icon(name) {
@@ -23,7 +24,10 @@ const Layout = (() => {
         const campaigner = OutreachApi.isCampaigner(user);
         const items = [
             { href: "/dashboard", label: "Home", icon: "home" },
-            ...(campaigner ? [] : [{ href: "/automate", label: "Automate", icon: "bolt", tag: user?.is_paid ? "" : "Upgrade" }]),
+            ...(campaigner ? [] : [
+                { href: "/automate", label: "Automate", icon: "bolt", tag: user?.is_paid ? "" : "Upgrade" },
+                { href: "/marketplace", label: "Marketplace", icon: "cart" }
+            ]),
             { href: "/campaigns/new", label: "Send to my list", icon: "plus" },
             { href: "/campaigns", label: "My lists", icon: "layers" },
             { href: "/waiting-mails", label: "Review", icon: "inbox", badge: "reviewCount" },
@@ -45,13 +49,15 @@ const Layout = (() => {
         const pct = Math.min(100, (plan.used / Math.max(1, plan.limit)) * 100);
         const action = !paid ? "Upgrade" : daysLeft <= 5 ? "Renew" : plan.plan === "pro" ? "Upgrade" : "";
         const sub = paid
-            ? `${daysLeft} day${daysLeft === 1 ? "" : "s"} left · ${plan.database.remaining}/${plan.database.limit} recruiters`
+            ? `${daysLeft} day${daysLeft === 1 ? "" : "s"} left`
             : plan.plan_expired ? `${OutreachApi.escapeHtml(plan.expired_plan_name)} expired` : "Free plan · lifetime limit";
+        const credits = `<a class="plan-chip-credits" href="/marketplace"><span>Credits</span><b>${Number(plan.credits || 0).toLocaleString()}</b></a>`;
         return `
             <div class="plan-chip ${paid ? "premium" : ""}">
                 <div class="plan-chip-top"><strong>${plan.plan_name}</strong><span>${plan.used}/${plan.limit}${paid ? " today" : " used"}</span></div>
                 <div class="plan-meter"><span style="width:${pct}%"></span></div>
                 <div class="plan-chip-sub">${sub}</div>
+                ${credits}
                 ${action ? `<button type="button" class="btn primary sm block" data-upgrade>${action}</button>` : ""}
             </div>`;
     }
@@ -84,7 +90,7 @@ const Layout = (() => {
                 <div class="gmail ${user?.gmail_connected ? "on" : ""}" id="gmailState"><span class="dot"></span>${user?.gmail_connected ? "Gmail connected" : "Gmail not connected"}</div>
                 <button type="button" class="theme-toggle" data-theme-toggle><span data-theme-label></span></button>
                 <button type="button" id="logoutBtn">Sign out</button>
-                <div class="legal-links"><a href="/terms">Terms</a><a href="/privacy">Privacy</a></div>
+                <div class="legal-links"><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/refunds">Refunds</a><a href="/contact">Contact</a></div>
             </div>`;
         OutreachApi.bindLogout();
         OutreachApi.bindThemeToggles(sidebar);

@@ -26,11 +26,9 @@
             : '<span class="badge plain">Free</span>';
     }
 
-    // This purchase's allowance for paid users; all-time database sends otherwise.
-    function recruiterCell(row) {
-        if (row.plan === "free") return row.db_sent || '<span class="muted">—</span>';
-        const allTime = row.db_sent > row.db_allowance.used ? `<div class="cell-sub">${row.db_sent} all-time</div>` : "";
-        return `${row.db_allowance.used} / ${row.db_allowance.limit}${allTime}`;
+    function contactsCell(row) {
+        if (!row.contacts.total) return '<span class="muted">—</span>';
+        return `${row.contacts.total}<div class="cell-sub">${row.contacts.left} not emailed yet</div>`;
     }
 
     // ---- Tabs ----
@@ -41,6 +39,7 @@
         document.querySelectorAll("[data-pane]").forEach(pane => { pane.hidden = pane.dataset.pane !== button.dataset.tab; });
         if (button.dataset.tab === "leads") loadLeads();
         if (button.dataset.tab === "pricing") loadPricing();
+        if (button.dataset.tab === "market") loadMarket();
     });
 
     async function loadStats() {
@@ -66,12 +65,13 @@
                 <td>${planCell(row)}</td>
                 <td class="right">${row.sent_total}</td>
                 <td class="right">${row.sent_week}</td>
-                <td class="right">${recruiterCell(row)}</td>
+                <td class="right">${row.credits.toLocaleString()}</td>
+                <td class="right">${contactsCell(row)}</td>
                 <td>${row.automation === "idle" ? '<span class="muted">—</span>' : `<span class="badge ${row.automation === "running" ? "ok live" : "plain"}">${esc(row.automation)}</span>`}</td>
                 <td class="right nowrap">
                     ${row.plan === "free" ? "" : `<button class="btn secondary sm" data-action="extend" data-plan="${row.plan}">+30 days</button><button class="btn ghost sm" data-action="revoke">Revoke</button>`}
                 </td>
-            </tr>`).join("") : `<tr><td colspan="7"><div class="empty" style="border:0;"><strong>No users found</strong></div></td></tr>`;
+            </tr>`).join("") : `<tr><td colspan="8"><div class="empty" style="border:0;"><strong>No users found</strong></div></td></tr>`;
         $("grantLog").innerHTML = data.grants.length
             ? `<dl class="kv">${data.grants.map(grant => `<dt>${OutreachApi.timeAgo(grant.created_at)}</dt><dd>${grant.revoked ? "Revoked" : `${PLAN_NAMES[grant.plan] || "Premium"} +${grant.days} days`} · <b>${esc(grant.email)}</b>${grant.pending ? " · waiting for signup" : ""}${grant.note ? ` · ${esc(grant.note)}` : ""} <span class="muted">by ${esc(grant.granted_by || "")}</span></dd>`).join("")}</dl>`
             : `<p class="small muted">No changes yet.</p>`;
@@ -211,9 +211,13 @@
         const prices = await OutreachApi.request("/api/admin/pricing");
         const form = $("pricingForm").elements;
         form.pro_price.value = prices.pro.price;
-        form.pro_contacts.value = prices.pro.contacts;
         form.premium_price.value = prices.premium.price;
-        form.premium_contacts.value = prices.premium.contacts;
+        form.credits_database.value = prices.contact_credits.database;
+        form.credits_web.value = prices.contact_credits.web;
+        prices.packs.forEach(pack => {
+            form[`${pack.id}_credits`].value = pack.credits;
+            form[`${pack.id}_price`].value = pack.price;
+        });
         form.free_emails.value = prices.free_emails;
         form.daily_cap.value = prices.daily_cap;
         form.currency.value = prices.currency;
@@ -227,10 +231,13 @@
             currency: form.currency.value.trim(),
             free_emails: number("free_emails"),
             daily_cap: number("daily_cap"),
-            pro: { price: number("pro_price"), contacts: number("pro_contacts") },
-            premium: { price: number("premium_price"), contacts: number("premium_contacts") }
+            pro: { price: number("pro_price") },
+            premium: { price: number("premium_price") },
+            contact_credits: { database: number("credits_database"), web: number("credits_web") },
+            packs: ["p1", "p2", "p3"].map(id => ({ id, credits: number(`${id}_credits`), price: number(`${id}_price`) }))
         };
-        const numbers = [payload.free_emails, payload.daily_cap, payload.pro.price, payload.pro.contacts, payload.premium.price, payload.premium.contacts];
+        const numbers = [payload.free_emails, payload.daily_cap, payload.pro.price, payload.premium.price, payload.contact_credits.database,
+            payload.contact_credits.web, ...payload.packs.flatMap(pack => [pack.credits, pack.price])];
         if (numbers.some(value => !Number.isFinite(value) || value < 0)) {
             return OutreachApi.setStatus($("pricingStatus"), "Use numbers only.", "error");
         }
@@ -243,6 +250,42 @@
             Layout.refreshPlan();
         } catch (error) {
             OutreachApi.setStatus($("pricingStatus"), error.message, "error");
+        }
+    });
+
+    // ---- Credits & marketplace ----
+    async function loadMarket() {
+        const data = await OutreachApi.request("/api/admin/marketplace");
+        const totals = data.jobs.last_30_days;
+        const line = (label, row) => row
+            ? `<div class="stat"><div class="label">${label}</div><div class="value">${row.delivered}</div><div class="hint">${row.jobs} purchases · ${row.spent} credits${row.searches ? ` · ${row.searches} searches, ${row.pages} pages` : ""}</div></div>`
+            : `<div class="stat"><div class="label">${label}</div><div class="value">0</div><div class="hint">no purchases</div></div>`;
+        $("marketTotals").innerHTML = `<section class="stats">${line("Database contacts", totals.database)}${line("Web contacts", totals.web)}</section>`;
+        $("marketJobs").innerHTML = data.jobs.recent.length ? data.jobs.recent.map(job => `
+            <tr><td class="cell-sub nowrap">${OutreachApi.timeAgo(job.created_at)}</td><td class="cell-sub">${esc(job.user_id)}</td><td>${esc(job.type)}</td>
+            <td><span class="badge plain">${esc(job.status)}</span></td><td class="right">${job.delivered} / ${job.target}</td>
+            <td class="right">${job.spent}${job.refunded ? `<div class="cell-sub">${job.refunded} refunded</div>` : ""}</td>
+            <td class="right">${job.stats?.searches ?? 0} / ${job.stats?.pages ?? 0}</td></tr>`).join("")
+            : `<tr><td colspan="7"><div class="empty" style="border:0;"><strong>No purchases yet</strong></div></td></tr>`;
+        $("marketOrders").innerHTML = data.orders.length ? data.orders.map(order => `
+            <tr><td class="cell-sub nowrap">${OutreachApi.timeAgo(order.created_at)}</td><td class="cell-sub">${esc(order.user_id)}</td>
+            <td>${order.credits} credits</td><td class="right">₹${(order.amount / 100).toFixed(2)}</td>
+            <td><span class="badge ${order.status === "paid" ? "ok" : order.status === "created" ? "plain" : "bad"}">${esc(order.status)}</span></td></tr>`).join("")
+            : `<tr><td colspan="5"><div class="empty" style="border:0;"><strong>No payments yet</strong></div></td></tr>`;
+    }
+
+    $("creditForm").addEventListener("submit", async event => {
+        event.preventDefault();
+        const form = event.target.elements;
+        const amount = parseInt(form.amount.value, 10);
+        if (!Number.isFinite(amount) || !amount) return OutreachApi.toast("Enter a whole number of credits, e.g. 10 or -5.", "error");
+        try {
+            const result = await OutreachApi.request("/api/admin/credits", { method: "POST", json: { email: form.email.value.trim(), amount, note: form.note.value.trim() } });
+            OutreachApi.toast(`${result.email} now has ${result.credits} credits.`, "ok");
+            event.target.reset();
+            loadUsers();
+        } catch (error) {
+            OutreachApi.toast(error.message, "error");
         }
     });
 

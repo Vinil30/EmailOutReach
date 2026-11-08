@@ -27,10 +27,10 @@
             <div class="card locked-card">
                 <div class="card-body">
                     <span class="eyebrow">${plan.plan_expired ? `Your ${esc(plan.expired_plan_name)} has ended` : "Pro & Premium"}</span>
-                    <h2 class="locked-title">Let us find the companies and send for you.</h2>
+                    <h2 class="locked-title">Press Start and let Mailzen send for you.</h2>
                     <ul class="locked-list">
                         <li><b>Unlimited emails</b>, sent automatically from your Gmail (up to ${pricing.daily_cap} a day to keep your account safe)</li>
-                        <li><b>${pricing.pro.contacts}</b> (Pro) or <b>${pricing.premium.contacts}</b> (Premium) new recruiters from our database with every purchase</li>
+                        <li>Emails the recruiter contacts you get in the <a href="/marketplace">marketplace</a> with credits</li>
                         <li>Templates on Pro; AI-written emails for every company on Premium</li>
                         <li>See every company you've reached; stop and resume any time</li>
                     </ul>
@@ -44,10 +44,9 @@
     }
 
     // Why Start is unavailable right now, beyond setup problems.
-    function limitNotice(quota) {
-        if (!quota.database.remaining) {
-            const more = quota.plan === "pro" ? " or upgrade to Premium" : "";
-            return `You've emailed all ${quota.database.limit} recruiters included with ${esc(quota.plan_name)} this time. Renew${more} for a new batch of recruiters you haven't emailed. <button type="button" class="btn ghost sm" data-upgrade>${quota.plan === "pro" ? "Upgrade" : "Renew"}</button>`;
+    function limitNotice(quota, remaining) {
+        if (!remaining) {
+            return `You have no contacts left to email. Get recruiters from our database or find new ones on the web with credits. <a class="btn ghost sm" href="/marketplace">Open marketplace</a>`;
         }
         if (!quota.remaining) {
             return `You've sent today's ${quota.limit} emails. ${esc(quota.daily_cap_reason)} Start again after midnight.`;
@@ -71,7 +70,7 @@
         const running = ["running", "stopping"].includes(state.status);
         const pct = Math.min(100, (quota.used / Math.max(1, quota.limit)) * 100);
         // While running, the runner's own message explains pauses (e.g. the daily safety cap).
-        const notice = running ? esc(state.message || "") : limitNotice(quota);
+        const notice = running ? esc(state.message || "") : limitNotice(quota, remaining_contacts);
         content.innerHTML = `
             <div class="card auto-hero">
                 <div class="card-body">
@@ -93,8 +92,8 @@
 
             <section class="stats">
                 <div class="stat"><div class="label">Today</div><div class="value">${quota.used}<small class="muted" style="font-size:16px;"> / ${quota.limit}</small></div><div class="plan-meter-lg" style="margin-top:10px;"><span style="width:${pct}%"></span></div><div class="hint" title="${esc(quota.daily_cap_reason)}">daily safety cap for your Gmail</div></div>
-                <div class="stat"><div class="label">Companies reached</div><div class="value">${counts.sent || 0}</div><div class="hint">from the database</div></div>
-                <div class="stat"><div class="label">Recruiters left for you</div><div class="value">${remaining_contacts ?? "–"}<small class="muted" style="font-size:16px;"> / ${quota.database.limit}</small></div><div class="hint">new to you, with ${esc(quota.plan_name)}</div></div>
+                <div class="stat"><div class="label">Companies reached</div><div class="value">${counts.sent || 0}</div><div class="hint">from your marketplace contacts</div></div>
+                <div class="stat"><div class="label">Contacts ready</div><div class="value">${remaining_contacts ?? "–"}</div><div class="hint"><a href="/marketplace">Get more contacts</a></div></div>
                 <div class="stat"><div class="label">Template</div><div class="value" style="font-size:20px;margin-top:12px;">${esc(template)}</div><div class="hint"><a href="/templates">Change template</a></div></div>
             </section>
 

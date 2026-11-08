@@ -20,12 +20,13 @@
                 <div>
                     <span class="eyebrow">Admin</span>
                     <h1>Admin panel</h1>
-                    <p>Grant Pro or Premium after a purchase, manage the recruiter database paid users send to, set prices and limits, and see how much everyone has sent.</p>
+                    <p>Grant Pro or Premium after a purchase, manage the recruiter database the marketplace sells from, set prices, packs and limits, adjust credits, and see what everyone has sent and bought.</p>
                 </div>
                 <div class="segmented" id="tabs">
                     <button type="button" class="active" data-tab="users">Users &amp; plans</button>
                     <button type="button" data-tab="leads">Contact database</button>
                     <button type="button" data-tab="pricing">Pricing &amp; limits</button>
+                    <button type="button" data-tab="market">Credits &amp; marketplace</button>
                 </div>
             </header>
 
@@ -34,7 +35,7 @@
             <!-- Users & plans -->
             <div data-pane="users" class="stack">
                 <div class="card">
-                    <div class="card-head"><div><h2>Grant a plan</h2><p>Use the email they bought with. It works even if they haven't signed up yet. Renewing the same plan adds days on top of any time left; every grant gives a fresh batch of recruiters they haven't emailed.</p></div></div>
+                    <div class="card-head"><div><h2>Grant a plan</h2><p>Use the email they bought with. It works even if they haven't signed up yet. Renewing the same plan adds days on top of any time left. Plans don't include contacts; those are bought with credits.</p></div></div>
                     <form class="card-body admin-grant" id="grantForm">
                         <label class="field"><span>Email</span><input type="email" name="email" required placeholder="buyer@example.com"></label>
                         <label class="field"><span>Plan</span><select name="plan"><option value="pro">Pro</option><option value="premium">Premium</option></select></label>
@@ -51,8 +52,8 @@
                     </div>
                     <div class="table-wrap">
                         <table>
-                            <thead><tr><th>User</th><th>Plan</th><th class="right">Sent total</th><th class="right">This week</th><th class="right">Recruiters used</th><th>Automation</th><th class="right">Actions</th></tr></thead>
-                            <tbody id="userRows"><tr><td colspan="7"><div class="skeleton"></div></td></tr></tbody>
+                            <thead><tr><th>User</th><th>Plan</th><th class="right">Sent total</th><th class="right">This week</th><th class="right">Credits</th><th class="right">Contacts</th><th>Automation</th><th class="right">Actions</th></tr></thead>
+                            <tbody id="userRows"><tr><td colspan="8"><div class="skeleton"></div></td></tr></tbody>
                         </table>
                     </div>
                 </div>
@@ -67,7 +68,7 @@
             <div data-pane="leads" class="stack" hidden>
                 <div class="grid grid-2">
                     <div class="card">
-                        <div class="card-head"><div><h2>Add a contact</h2><p>Pro and Premium users never see this list, only the companies they reach. Each user is tracked separately, so nobody is emailed twice by the same person.</p></div></div>
+                        <div class="card-head"><div><h2>Add a contact</h2><p>The marketplace sells from this list. Buyers never see addresses, only names and companies, and nobody is sold a contact they already have or have emailed. Contacts found by web searches are added here automatically.</p></div></div>
                         <form class="card-body form" id="leadForm">
                             <div class="grid grid-2">
                                 <label class="field"><span>Email</span><input type="email" name="email" required></label>
@@ -119,18 +120,18 @@
             <!-- Pricing & limits -->
             <div data-pane="pricing" class="stack" hidden>
                 <div class="card">
-                    <div class="card-head"><div><h2>Pricing &amp; limits</h2><p>Changes show across the website straight away: landing page, upgrade card, dashboard and automation. Update the prices on Srotabase yourself to match.</p></div></div>
+                    <div class="card-head"><div><h2>Pricing &amp; limits</h2><p>Changes show across the website straight away. Plan prices are shown on the site (keep Srotabase in step yourself); credit pack prices are what Razorpay charges.</p></div></div>
                     <form class="card-body form" id="pricingForm">
                         <div class="admin-pricing">
                             <fieldset>
-                                <legend>Pro</legend>
-                                <label class="field"><span>Price</span><input name="pro_price" inputmode="decimal" required></label>
-                                <label class="field"><span>Recruiters per purchase</span><input name="pro_contacts" inputmode="numeric" required></label>
+                                <legend>Plans (30 days)</legend>
+                                <label class="field"><span>Pro price</span><input name="pro_price" inputmode="decimal" required></label>
+                                <label class="field"><span>Premium price</span><input name="premium_price" inputmode="decimal" required></label>
                             </fieldset>
                             <fieldset>
-                                <legend>Premium</legend>
-                                <label class="field"><span>Price</span><input name="premium_price" inputmode="decimal" required></label>
-                                <label class="field"><span>Recruiters per purchase</span><input name="premium_contacts" inputmode="numeric" required></label>
+                                <legend>Credits per contact</legend>
+                                <label class="field"><span>From our database</span><input name="credits_database" inputmode="numeric" required></label>
+                                <label class="field"><span>Found on the web</span><input name="credits_web" inputmode="numeric" required></label>
                             </fieldset>
                             <fieldset>
                                 <legend>Everyone</legend>
@@ -139,8 +140,39 @@
                                 <label class="field"><span>Currency symbol</span><input name="currency" maxlength="4" required></label>
                             </fieldset>
                         </div>
+                        <div class="field-label">Credit packs <span class="muted">(set credits or price to 0 to hide a pack)</span></div>
+                        <div class="admin-pricing">
+                            <fieldset><legend>Pack 1</legend><label class="field"><span>Credits</span><input name="p1_credits" inputmode="numeric" required></label><label class="field"><span>Price</span><input name="p1_price" inputmode="decimal" required></label></fieldset>
+                            <fieldset><legend>Pack 2</legend><label class="field"><span>Credits</span><input name="p2_credits" inputmode="numeric" required></label><label class="field"><span>Price</span><input name="p2_price" inputmode="decimal" required></label></fieldset>
+                            <fieldset><legend>Pack 3</legend><label class="field"><span>Credits</span><input name="p3_credits" inputmode="numeric" required></label><label class="field"><span>Price</span><input name="p3_price" inputmode="decimal" required></label></fieldset>
+                        </div>
                         <div class="actions"><button class="btn primary" type="submit">Save prices &amp; limits</button><span class="status small" id="pricingStatus"></span></div>
                     </form>
+                </div>
+            </div>
+
+            <!-- Credits & marketplace -->
+            <div data-pane="market" class="stack" hidden>
+                <div class="card">
+                    <div class="card-head"><div><h2>Adjust credits</h2><p>Add credits (e.g. after checking a reported bounce) or remove them. Every change is logged with your note.</p></div></div>
+                    <form class="card-body admin-grant admin-credit" id="creditForm">
+                        <label class="field"><span>Email</span><input type="email" name="email" required placeholder="user@example.com"></label>
+                        <label class="field"><span>Credits (+/−)</span><input name="amount" inputmode="numeric" required placeholder="e.g. 10 or -5"></label>
+                        <label class="field"><span>Note</span><input name="note" required minlength="3" placeholder="Why, e.g. refund for 2 bounced contacts"></label>
+                        <button class="btn primary" type="submit">Save</button>
+                    </form>
+                </div>
+                <div class="card">
+                    <div class="card-head"><div><h2>Last 30 days</h2><p>What purchases delivered and what web searches cost to run.</p></div></div>
+                    <div class="card-body" id="marketTotals"><div class="skeleton"></div></div>
+                </div>
+                <div class="card">
+                    <div class="card-head"><h3>Recent purchases</h3></div>
+                    <div class="table-wrap"><table><thead><tr><th>When</th><th>User</th><th>Type</th><th>Status</th><th class="right">Delivered</th><th class="right">Credits</th><th class="right">Searches / pages</th></tr></thead><tbody id="marketJobs"></tbody></table></div>
+                </div>
+                <div class="card">
+                    <div class="card-head"><h3>Recent payments</h3></div>
+                    <div class="table-wrap"><table><thead><tr><th>When</th><th>User</th><th>Pack</th><th class="right">Amount</th><th>Status</th></tr></thead><tbody id="marketOrders"></tbody></table></div>
                 </div>
             </div>
         </main>
