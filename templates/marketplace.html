@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css?v=9">
+    <link rel="stylesheet" href="/static/css/style.css?v=10">
 </head>
 <body>
     <div class="shell">
@@ -19,67 +19,94 @@
             <header class="page-head">
                 <div>
                     <span class="eyebrow">Marketplace</span>
-                    <h1>Get recruiter contacts</h1>
-                    <p>Buy credits, then spend them on recruiters from our database or on fresh contacts found on the web for your role. Contacts stay inside Mailzen and are emailed for you by automation; they can't be downloaded.</p>
+                    <h1>Recruiter contacts, on credits</h1>
+                    <p>Top up credits, pick recruiters from our database or have Mailzen find fresh ones on the web. They stay inside Mailzen and automation emails them for you.</p>
                 </div>
             </header>
 
-            <section class="card mk-wallet">
-                <div class="card-body mk-wallet-body">
-                    <div>
-                        <div class="field-label">Your credits</div>
-                        <div class="mk-balance" id="balance">–</div>
-                        <div class="small muted" id="priceNote"></div>
-                    </div>
-                    <div class="mk-packs" id="packs"><div class="skeleton"></div></div>
+            <section class="card mk-hero">
+                <div class="mk-wallet">
+                    <span class="mk-label">Your credits</span>
+                    <div class="mk-balance" id="balance">–</div>
+                    <div class="mk-worth" id="balanceWorth"></div>
+                    <a class="mk-owned" href="/automate" id="ownedLink">–</a>
                 </div>
-                <div class="card-body mk-notice" id="paymentsNotice" hidden></div>
+                <div class="mk-shop">
+                    <div class="mk-shop-head">
+                        <span class="mk-label">Top up</span>
+                        <span class="badge warn" id="paymentsNotice" hidden>Opening soon</span>
+                    </div>
+                    <div class="mk-packs" id="packs"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+                    <p class="mk-fine" id="priceNote"></p>
+                </div>
             </section>
+
+            <ol class="mk-steps" aria-label="How it works">
+                <li><span>1</span><div><b>Top up credits</b><small>Pay once with UPI or card. Credits don't expire.</small></div></li>
+                <li><span>2</span><div><b>Pick your contacts</b><small>Only pay for contacts actually delivered.</small></div></li>
+                <li><span>3</span><div><b>Automation emails them</b><small>From your Gmail, one every 1–3 minutes.</small></div></li>
+            </ol>
 
             <div class="banner warn mk-upgrade" id="upgradeNotice" hidden>
                 <span>Contacts are emailed by automation, which is part of Pro and Premium. You can buy credits now and use them after upgrading.</span>
                 <button type="button" class="btn primary sm" data-upgrade>Upgrade</button>
             </div>
 
-            <section class="grid grid-2 mk-products">
-                <div class="card">
-                    <div class="card-head"><div><h2>From our recruiter database</h2><p>Recruiters and hiring managers our team adds and checks. You only get ones you haven't emailed or bought before.</p></div></div>
-                    <form class="card-body form" id="dbForm">
-                        <label class="field"><span>Roles or keywords <span class="muted">(optional, comma separated)</span></span><input id="dbKeywords" placeholder="e.g. ML, data science, backend"></label>
-                        <label class="field"><span>How many contacts</span><input id="dbCount" type="number" min="1" value="25" inputmode="numeric"></label>
+            <section class="mk-products">
+                <div class="card mk-product">
+                    <div class="mk-product-head">
+                        <span class="mk-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="7.5" ry="2.8"/><path d="M4.5 5.5v6.5c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8V5.5"/><path d="M4.5 12v6.5c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8V12"/></svg></span>
+                        <div class="mk-product-title"><h2>Our recruiter database</h2><p>Recruiters and hiring managers our team adds and checks. Never one you've emailed or bought before.</p></div>
+                        <span class="mk-rate" id="dbRate"></span>
+                    </div>
+                    <form class="mk-product-body" id="dbForm">
+                        <label class="field"><span>Roles or keywords <span class="muted">(optional)</span></span><input id="dbKeywords" placeholder="e.g. ML, data science, backend"></label>
+                        <div class="field">
+                            <label for="dbCount">How many contacts</label>
+                            <div class="mk-count"><input id="dbCount" type="number" min="1" value="25" inputmode="numeric"><div class="mk-chips" data-for="dbCount"><button type="button" data-n="10">10</button><button type="button" data-n="25">25</button><button type="button" data-n="50">50</button><button type="button" data-n="100">100</button></div></div>
+                        </div>
                         <div class="mk-quote" id="dbQuote"></div>
-                        <button class="btn primary" type="submit" id="dbBuyBtn">Get contacts</button>
+                        <button class="btn primary block" type="submit" id="dbBuyBtn">Get contacts</button>
                     </form>
                 </div>
 
-                <div class="card">
-                    <div class="card-head"><div><h2>Find new contacts on the web</h2><p>We search live hiring posts and pages for your tags and keep only email addresses the pages publish themselves, each one checked before you get it.</p></div></div>
-                    <form class="card-body form" id="webForm">
+                <div class="card mk-product">
+                    <div class="mk-product-head">
+                        <span class="mk-icon accent" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M4 11h14M11 4c2 2.2 2.8 4.6 2.8 7s-.8 4.8-2.8 7c-2-2.2-2.8-4.6-2.8-7S9 6.2 11 4z"/><path d="m20.5 20.5-4-4"/></svg></span>
+                        <div class="mk-product-title"><h2>Fresh from the web</h2><p>We search live hiring posts for your tags and keep only addresses the pages publish themselves, each checked first.</p></div>
+                        <span class="mk-rate" id="webRate"></span>
+                    </div>
+                    <form class="mk-product-body" id="webForm">
                         <div class="field">
                             <span>Search tags <span class="muted">(from your profile; edit freely)</span></span>
-                            <div class="mk-tags" id="tagList"></div>
-                            <div class="mk-tag-add"><input id="tagInput" maxlength="60" placeholder="Add a tag, e.g. React intern Bengaluru"><button class="btn secondary sm" type="button" id="tagAddBtn">Add</button></div>
+                            <div class="mk-tagbox">
+                                <div class="mk-tags" id="tagList"></div>
+                                <div class="mk-tag-add"><input id="tagInput" maxlength="60" placeholder="Add a tag, e.g. React intern Bengaluru"><button class="btn secondary sm" type="button" id="tagAddBtn">Add</button></div>
+                            </div>
                         </div>
-                        <label class="field"><span>How many contacts</span><input id="webCount" type="number" min="1" value="20" inputmode="numeric"></label>
+                        <div class="field">
+                            <label for="webCount">How many contacts</label>
+                            <div class="mk-count"><input id="webCount" type="number" min="1" value="20" inputmode="numeric"><div class="mk-chips" data-for="webCount"><button type="button" data-n="10">10</button><button type="button" data-n="20">20</button><button type="button" data-n="50">50</button></div></div>
+                        </div>
                         <div class="mk-quote" id="webQuote"></div>
-                        <button class="btn primary" type="submit" id="webStartBtn">Start search</button>
+                        <button class="btn primary block" type="submit" id="webStartBtn">Start search</button>
                     </form>
                 </div>
             </section>
 
             <section class="card">
-                <div class="card-head"><div><h2>Your purchases</h2><p>You're charged only for contacts delivered; anything unused goes straight back to your credits.</p></div><a class="btn ghost sm" href="/automate" id="ownedLink">–</a></div>
-                <div class="card-body" id="jobs"><div class="skeleton"></div></div>
+                <div class="card-head"><div><h2>Your purchases</h2><p>Charged only for contacts delivered; anything unused goes straight back to your credits.</p></div></div>
+                <div id="jobs"><div class="card-body"><div class="skeleton"></div></div></div>
             </section>
 
             <details class="card mk-ledger" id="ledgerBox">
-                <summary class="card-head"><h3>Credit history</h3><span class="small muted">every purchase, charge and refund</span></summary>
-                <div class="card-body" id="ledger"><div class="skeleton"></div></div>
+                <summary class="card-head"><div><h3>Credit history</h3><p>Every top-up, charge and refund</p></div><span class="mk-chevron" aria-hidden="true"></span></summary>
+                <div id="ledger"><div class="card-body"><div class="skeleton"></div></div></div>
             </details>
         </main>
     </div>
     <script src="/static/js/api.js?v=9"></script>
     <script src="/static/js/layout.js?v=9"></script>
-    <script src="/static/js/marketplace.js?v=9"></script>
+    <script src="/static/js/marketplace.js?v=10"></script>
 </body>
 </html>
