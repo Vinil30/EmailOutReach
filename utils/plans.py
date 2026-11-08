@@ -15,8 +15,6 @@ from fastapi import HTTPException, status
 from database.fxns import as_utc, emailsSent, get_user_by_id, is_premium, plan_of, settings
 from utils.legal import UNSIGNED_MESSAGE, legal_status
 
-PRO_URL = os.environ.get("PRO_URL", "https://srotabase.com/@vmarena/mailzen-pro")
-PREMIUM_URL = os.environ.get("PREMIUM_URL", "https://srotabase.com/@vmarena/email-automation-premium")
 PLAN_DAYS = int(os.environ.get("PLAN_DAYS", "30"))
 
 # Sending days roll over at midnight India time, where most users are.
@@ -71,9 +69,9 @@ def _load_pricing() -> dict[str, Any]:
         "daily_cap": int(stored.get("daily_cap", DEFAULT_PRICING["daily_cap"])),
         "days": PLAN_DAYS,
     }
-    for plan, url in (("pro", PRO_URL), ("premium", PREMIUM_URL)):
+    for plan in ("pro", "premium"):
         tier = {**DEFAULT_PRICING[plan], **(stored.get(plan) or {})}
-        data[plan] = {"price": float(tier["price"]), "url": url}
+        data[plan] = {"price": float(tier["price"])}
     contact_credits = {**DEFAULT_PRICING["contact_credits"], **(stored.get("contact_credits") or {})}
     data["contact_credits"] = {source: int(value) for source, value in contact_credits.items()}
     stored_packs = {pack.get("id"): pack for pack in stored.get("packs") or []}

@@ -66,7 +66,8 @@ def session(current_user=Depends(get_current_user)):
 @router.get("/pricing")
 def public_pricing():
     """Prices and limits for the landing page and upgrade card; no sign-in needed."""
-    return pricing()
+    from utils import razorpay_client
+    return {**pricing(), "payments_enabled": razorpay_client.enabled()}
 
 
 @router.get("/templates")

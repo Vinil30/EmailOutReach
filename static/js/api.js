@@ -453,6 +453,65 @@ const OutreachApi = (() => {
         };
     }
 
+    // Razorpay Checkout loads only when someone actually pays.
+    function loadRazorpay() {
+        if (window.Razorpay) return Promise.resolve();
+        return new Promise((resolve, reject) => {
+            const script = Object.assign(document.createElement("script"), {
+                src: "https://checkout.razorpay.com/v1/checkout.js",
+                onload: resolve,
+                onerror: () => reject(new Error("Couldn't load the payment window. Check your connection."))
+            });
+            document.head.appendChild(script);
+        });
+    }
+
+    // Creates the order on our server (which sets the price), opens Razorpay, then verifies the payment.
+    // Resolves with the verify result, or null if the buyer closed the window without paying.
+    async function startCheckout(orderPath, body) {
+        const [order] = await Promise.all([request(orderPath, { method: "POST", json: body }), loadRazorpay()]);
+        return new Promise((resolve, reject) => {
+            const checkout = new window.Razorpay({
+                key: order.key_id,
+                order_id: order.order_id,
+                amount: order.amount,
+                currency: order.currency,
+                name: "Mailzen",
+                description: order.plan ? `${PLAN_NAMES[order.plan]} · ${order.days} days` : `${order.credits} credits`,
+                prefill: { email: order.email, name: order.name },
+                theme: { color: "#141414" },
+                handler: async response => {
+                    try {
+                        resolve(await request("/api/credits/verify", { method: "POST", json: response }));
+                    } catch (error) {
+                        // The webhook still applies the purchase if this check couldn't finish.
+                        reject(new Error(`${error.message} If you were charged, it will show up in a few minutes.`));
+                    }
+                },
+                modal: { ondismiss: () => resolve(null) }
+            });
+            // A failed attempt keeps the window open so the buyer can try another method.
+            checkout.on("payment.failed", response => toast(response.error?.description || "Payment failed. You weren't charged.", "error"));
+            checkout.open();
+        });
+    }
+
+    async function buyPlan(plan, button) {
+        if (button) button.disabled = true;
+        try {
+            const result = await startCheckout("/api/plans/orders", { plan });
+            if (!result) return;
+            const until = parseDate(result.plan_until);
+            toast(`You're on ${PLAN_NAMES[result.plan] || "your new plan"}${until ? ` until ${until.toLocaleDateString(undefined, { dateStyle: "medium" })}` : ""}. Enjoy!`, "ok");
+            closeUpgrade();
+            setTimeout(() => window.location.reload(), 1400);
+        } catch (error) {
+            toast(error.message, "error");
+        } finally {
+            if (button) button.disabled = false;
+        }
+    }
+
     function closeUpgrade() {
         document.getElementById("upgradeCard")?.remove();
         document.removeEventListener("keydown", upgradeEscape);
@@ -478,9 +537,13 @@ const OutreachApi = (() => {
         const tier = id => {
             const paid = id !== "free";
             const isCurrent = current === id;
-            const action = !paid
-                ? (user ? "" : `<a class="btn secondary block" href="/login?mode=signup">Start free</a>`)
-                : `<a class="btn ${id === "premium" ? "primary" : "secondary"} block" href="${escapeAttr(pricing[id].url)}" target="_blank" rel="noopener">${isCurrent ? `Renew ${PLAN_NAMES[id]}` : `Get ${PLAN_NAMES[id]}`}</a>`;
+            const style = `btn ${id === "premium" ? "primary" : "secondary"} block`;
+            let action = "";
+            if (!paid) action = user ? "" : `<a class="btn secondary block" href="/login?mode=signup">Start free</a>`;
+            else if (!user) action = `<a class="${style}" href="/login?mode=signup">Get ${PLAN_NAMES[id]}</a>`;
+            else if (id === "pro" && current === "premium") action = `<button type="button" class="btn secondary block" disabled>Included in Premium</button>`;
+            else if (!pricing.payments_enabled) action = `<button type="button" class="${style}" disabled>Opening soon</button>`;
+            else action = `<button type="button" class="${style}" data-buy-plan="${id}">${isCurrent ? `Renew ${PLAN_NAMES[id]}` : current === "pro" ? "Upgrade to Premium" : `Get ${PLAN_NAMES[id]}`}</button>`;
             return `
                 <div class="upgrade-tier ${id === "premium" ? "featured" : ""} ${isCurrent ? "current" : ""}">
                     <div class="upgrade-tier-head">
@@ -498,16 +561,20 @@ const OutreachApi = (() => {
         backdrop.innerHTML = `
             <div class="modal card upgrade-card" role="dialog" aria-modal="true" aria-labelledby="upgradeTitle">
                 <div class="card-head">
-                    <div><span class="eyebrow">Upgrade</span><h3 id="upgradeTitle">Pick the plan that fits your job hunt</h3><p>Any paid plan gives unlimited sending. Plans differ in how many recruiters we provide and whether AI writes your emails.</p></div>
+                    <div><span class="eyebrow">Upgrade</span><h3 id="upgradeTitle">Pick the plan that fits your job hunt</h3><p>Any paid plan gives unlimited sending and one-click automation. Premium adds AI that researches each company and writes the email.</p></div>
                     <button type="button" class="btn ghost sm" data-upgrade-close aria-label="Close">Close</button>
                 </div>
                 <div class="card-body">
                     <div class="upgrade-tiers">${tier("free")}${tier("pro")}${tier("premium")}</div>
-                    <p class="small muted upgrade-note">*Sending is capped at ${pricing.daily_cap} emails a day because Google may suspend Gmail accounts that send too many emails in a day. It's for your account's safety. Every purchase gives a fresh batch of recruiters you haven't emailed before.</p>
-                    <p class="small muted upgrade-note">${user ? `Buy with <b>${escapeHtml(user.email)}</b>, the email on your Mailzen account.` : "Buy with the same email you use for your Mailzen account."} We activate it on that account, within 5 hours.</p>
+                    <p class="small muted upgrade-note">*Sending is capped at ${pricing.daily_cap} emails a day because Google may suspend Gmail accounts that send too many emails in a day. It's for your account's safety. Recruiter contacts are bought separately with credits in the Marketplace.</p>
+                    <p class="small muted upgrade-note">${user
+                        ? `Pay securely with UPI, card or netbanking (Razorpay). Your plan starts the moment payment goes through. Renewing adds ${pricing.days} days on top of what's left, and moving from Pro to Premium turns your remaining Pro days into Premium days, so nothing you paid for is lost.`
+                        : "Create a free account first, then upgrade from inside the app. Your plan starts the moment payment goes through."}${pricing.payments_enabled ? "" : " Online payments are being set up and will open soon."}</p>
                 </div>
             </div>`;
         backdrop.addEventListener("click", event => {
+            const buy = event.target.closest("[data-buy-plan]");
+            if (buy) return buyPlan(buy.dataset.buyPlan, buy);
             if (event.target === backdrop || event.target.closest("[data-upgrade-close]")) closeUpgrade();
         });
         document.addEventListener("keydown", upgradeEscape);
@@ -540,6 +607,7 @@ const OutreachApi = (() => {
         logout,
         notePress,
         openUpgrade,
+        startCheckout,
         parseDate,
         redirectIfLoggedIn,
         renderEmailPreview,

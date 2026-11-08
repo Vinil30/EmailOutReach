@@ -26,7 +26,7 @@ Every account picks a mode at signup and can switch any time from **Profile**.
 
 Every sent email counts toward the limit: automated sends, campaign sends and manual sends from the review queue. When the limit is hit, campaigns stop with status `quota` and unsent drafts wait as `QUOTA_REACHED`. A user whose Premium has expired falls back to the General lifetime limit.
 
-**Buying Premium:** the "Buy Premium" buttons link to `PREMIUM_URL` (srotabase). The store emails the owner, who grants Premium from the admin panel. Grants made before the buyer signs up are applied when they create their account with that email.
+**Buying Pro or Premium:** signed-in users pay inside the app through Razorpay (UPI, cards, netbanking) and the plan starts as soon as the payment is verified, either by the browser or by the Razorpay webhook (`/api/razorpay/webhook`), whichever arrives first; each order is applied once. Renewing adds days on top of the time left; moving from Pro to Premium converts the Pro days left into Premium days at their value. The admin can still grant plans by hand, including before someone signs up.
 
 ## Admin panel (`/admin`)
 
@@ -209,7 +209,10 @@ GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 GOOGLE_REDIRECT_URI=https://your-render-service.onrender.com/gmail/callback
 ADMIN_EMAILS=you@example.com
-PREMIUM_URL=https://srotabase.com/@vmarena/email-automation-premium
+RAZORPAY_KEY_ID=...
+RAZORPAY_KEY_SECRET=...
+RAZORPAY_WEBHOOK_SECRET=...
+SERPER_API_KEY=...
 SEND_GAP_MIN_SECONDS=60
 SEND_GAP_MAX_SECONDS=180
 ```

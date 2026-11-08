@@ -9,13 +9,14 @@ Rules that hold on the server no matter what the browser sends:
 """
 import json
 import uuid
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 
-from database.credits import balance, create_order_record, fulfill_order, get_order, ledger
-from database.fxns import get_current_user, is_paid
+from database.credits import balance, create_order_record, create_plan_order_record, fulfill_order, get_order, ledger
+from database.fxns import as_utc, get_current_user, get_user_by_id, is_paid, plan_of
 from database.marketplace import (
     MAX_DATABASE_PACK,
     MarketplaceError,
@@ -31,7 +32,7 @@ from database.marketplace import (
 )
 from utils import contact_finder, razorpay_client
 from utils.legal import require_signed
-from utils.plans import pack_by_id, pricing
+from utils.plans import PLAN_DAYS, pack_by_id, pricing
 
 router = APIRouter(prefix="/api", tags=["marketplace"])
 
@@ -40,6 +41,10 @@ UPGRADE_FOR_CONTACTS = "Contacts are emailed by automation, which is part of Pro
 
 class OrderIn(BaseModel):
     pack_id: str
+
+
+class PlanOrderIn(BaseModel):
+    plan: Literal["pro", "premium"]
 
 
 class VerifyIn(BaseModel):
@@ -173,16 +178,40 @@ def create_credit_order(payload: OrderIn, current_user=Depends(get_current_user)
     if not pack:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="That credit pack isn't available")
     amount = int(round(pack["price"] * 100))
+    order = _razorpay_order(amount, {"user_id": str(current_user["_id"]), "pack_id": pack["id"], "credits": str(pack["credits"])})
+    create_order_record(str(current_user["_id"]), order["id"], pack, amount)
+    return {"order_id": order["id"], "amount": amount, "currency": "INR", "key_id": razorpay_client.key_id(),
+            "credits": pack["credits"], "email": current_user["email"], "name": (current_user.get("profile") or {}).get("full_name", "")}
+
+
+def _razorpay_order(amount: int, notes: dict[str, str]) -> dict:
     try:
-        order = razorpay_client.create_order(amount, f"mz-{uuid.uuid4().hex[:20]}",
-                                             {"user_id": str(current_user["_id"]), "pack_id": pack["id"], "credits": str(pack["credits"])})
+        return razorpay_client.create_order(amount, f"mz-{uuid.uuid4().hex[:20]}", notes)
     except razorpay_client.PaymentsNotConfigured as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
     except razorpay_client.PaymentError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
-    create_order_record(str(current_user["_id"]), order["id"], pack, amount)
+
+
+@router.post("/plans/orders")
+def create_plan_order(payload: PlanOrderIn, current_user=Depends(get_current_user)):
+    """Start buying Pro or Premium. The price comes from the server's pricing settings."""
+    require_signed(current_user)
+    prices = pricing()
+    price = prices[payload.plan]["price"]
+    if price <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This plan can't be bought right now.")
+    if payload.plan == "pro" and plan_of(current_user) == "premium":
+        until = as_utc(current_user.get("plan_until"))
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                            detail=f"You're on Premium until {until:%d %b %Y}, which already includes everything in Pro. Renew Premium to add more days.")
+    amount = int(round(price * 100))
+    order = _razorpay_order(amount, {"user_id": str(current_user["_id"]), "plan": payload.plan, "days": str(PLAN_DAYS)})
+    create_plan_order_record(str(current_user["_id"]), order["id"], payload.plan, PLAN_DAYS, amount,
+                             {"pro": prices["pro"]["price"], "premium": prices["premium"]["price"]})
     return {"order_id": order["id"], "amount": amount, "currency": "INR", "key_id": razorpay_client.key_id(),
-            "credits": pack["credits"], "email": current_user["email"], "name": (current_user.get("profile") or {}).get("full_name", "")}
+            "plan": payload.plan, "days": PLAN_DAYS, "email": current_user["email"],
+            "name": (current_user.get("profile") or {}).get("full_name", "")}
 
 
 @router.post("/credits/verify")
@@ -206,7 +235,9 @@ def verify_credit_payment(payload: VerifyIn, current_user=Depends(get_current_us
     result = fulfill_order(order["order_id"], payment["id"], int(payment.get("amount") or 0))
     if result not in ("credited", "already"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This payment couldn't be matched to your order. Contact support.")
-    return {"result": result, "credits": balance(str(current_user["_id"]))}
+    user = get_user_by_id(str(current_user["_id"])) or current_user
+    return {"result": result, "credits": balance(str(current_user["_id"])), "kind": order.get("kind") or "credits",
+            "plan": plan_of(user), "plan_until": user.get("plan_until")}
 
 
 @router.post("/razorpay/webhook", include_in_schema=False)

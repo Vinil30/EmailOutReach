@@ -30,8 +30,14 @@ services:
         value: 180
       - key: ADMIN_EMAILS
         sync: false
-      - key: PREMIUM_URL
-        value: https://srotabase.com/@vmarena/email-automation-premium
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+      - key: SERPER_API_KEY
+        sync: false
       - key: BATCH_PROCESS_START_DELAY_SECONDS
         value: 30
       - key: REJECTED_EMAILS_DIR

@@ -9,7 +9,7 @@ import requests
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from database.fxns import ensure_indexes
@@ -176,21 +176,11 @@ def favicon():
     return FileResponse("static/img/favicon.png", media_type="image/png")
 
 
-def _activation_page(plan: str) -> str:
-    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{plan}</title></head>
-<body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#fafaf8;color:#141414;font-family:system-ui,sans-serif;padding:24px;text-align:center;">
-<p style="font-size:20px;">You will be added as {plan} within 5 hours.</p>
-</body></html>"""
-
-
-@app.get("/premium-activation", response_class=HTMLResponse, include_in_schema=False)
-def premium_activation():
-    return _activation_page("Premium")
-
-
-@app.get("/pro-activation", response_class=HTMLResponse, include_in_schema=False)
-def pro_activation():
-    return _activation_page("Pro")
+# Old links from the external checkout: plans are bought inside the app now.
+@app.get("/premium-activation", include_in_schema=False)
+@app.get("/pro-activation", include_in_schema=False)
+def old_activation_links():
+    return RedirectResponse("/dashboard", status_code=302)
 
 
 # Google Search Console ownership files must be served from the site root.

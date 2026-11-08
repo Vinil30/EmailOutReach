@@ -241,47 +241,18 @@
         }
     });
 
-    // Razorpay Checkout loads only when someone actually buys.
-    function loadCheckout() {
-        if (window.Razorpay) return Promise.resolve();
-        return new Promise((resolve, reject) => {
-            const script = Object.assign(document.createElement("script"), { src: "https://checkout.razorpay.com/v1/checkout.js", onload: resolve, onerror: () => reject(new Error("Couldn't load the payment window. Check your connection.")) });
-            document.head.appendChild(script);
-        });
-    }
-
     $("packs").addEventListener("click", async event => {
         const button = event.target.closest("[data-pack]");
         if (!button || button.disabled) return;
+        button.disabled = true;
         try {
-            const [order] = await Promise.all([
-                OutreachApi.request("/api/credits/orders", { method: "POST", json: { pack_id: button.dataset.pack } }),
-                loadCheckout()
-            ]);
-            const checkout = new window.Razorpay({
-                key: order.key_id,
-                order_id: order.order_id,
-                amount: order.amount,
-                currency: order.currency,
-                name: "Mailzen",
-                description: `${order.credits} credits`,
-                prefill: { email: order.email, name: order.name },
-                theme: { color: "#141414" },
-                handler: async response => {
-                    try {
-                        const result = await OutreachApi.request("/api/credits/verify", { method: "POST", json: response });
-                        OutreachApi.toast(`Payment received. You now have ${result.credits} credits.`, "ok");
-                    } catch (error) {
-                        // The webhook still adds the credits if this check couldn't finish.
-                        OutreachApi.toast(`${error.message} If you were charged, your credits will appear shortly.`, "error");
-                    }
-                    load();
-                }
-            });
-            checkout.on("payment.failed", response => OutreachApi.toast(response.error?.description || "Payment failed. You weren't charged.", "error"));
-            checkout.open();
+            const result = await OutreachApi.startCheckout("/api/credits/orders", { pack_id: button.dataset.pack });
+            if (result) OutreachApi.toast(`Payment received. You now have ${result.credits.toLocaleString()} credits.`, "ok");
         } catch (error) {
             OutreachApi.toast(error.message, "error");
+        } finally {
+            button.disabled = false;
+            load();
         }
     });
 

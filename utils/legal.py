@@ -8,9 +8,9 @@ from typing import Any
 from fastapi import HTTPException, status
 
 DOCUMENTS = {
-    "privacy": {"title": "Privacy Policy", "url": "/privacy", "template": "privacy.html", "version": "2026-11-08"},
-    "terms-student": {"title": "Terms for Students & Job Seekers", "url": "/terms/students", "template": "terms_students.html", "version": "2026-11-08"},
-    "terms-campaigner": {"title": "Terms for Campaigns & Businesses", "url": "/terms/campaigners", "template": "terms_campaigners.html", "version": "2026-11-08"},
+    "privacy": {"title": "Privacy Policy", "url": "/privacy", "template": "privacy.html", "version": "2026-11-08.2"},
+    "terms-student": {"title": "Terms for Students & Job Seekers", "url": "/terms/students", "template": "terms_students.html", "version": "2026-11-08.2"},
+    "terms-campaigner": {"title": "Terms for Campaigns & Businesses", "url": "/terms/campaigners", "template": "terms_campaigners.html", "version": "2026-11-08.2"},
 }
 
 UNSIGNED_MESSAGE = "Sign the Terms and Privacy Policy before sending. Reload the app to see them."

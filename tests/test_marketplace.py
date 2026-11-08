@@ -80,3 +80,34 @@ def test_page_fetch_only_http(monkeypatch):
     monkeypatch.setattr(contact_finder.requests, "get", lambda *a, **k: (_ for _ in ()).throw(AssertionError()))
     assert contact_finder.fetch_page_text("file:///etc/passwd") == ""
     assert contact_finder.fetch_page_text("ftp://example.org/x") == ""
+
+
+# ---------- Buying plans ----------
+from datetime import datetime, timedelta, timezone  # noqa: E402
+
+from database.credits import plan_after_purchase  # noqa: E402
+
+NOW = datetime(2026, 11, 8, tzinfo=timezone.utc)
+PRICES = {"pro": 100.0, "premium": 250.0}
+
+
+def test_new_plan_starts_now():
+    assert plan_after_purchase(None, None, "pro", 30, PRICES, NOW) == ("pro", NOW + timedelta(days=30))
+
+
+def test_expired_plan_starts_now():
+    assert plan_after_purchase("premium", NOW - timedelta(days=2), "pro", 30, PRICES, NOW) == ("pro", NOW + timedelta(days=30))
+
+
+def test_renewal_adds_on_top():
+    assert plan_after_purchase("pro", NOW + timedelta(days=10), "pro", 30, PRICES, NOW) == ("pro", NOW + timedelta(days=40))
+
+
+def test_pro_to_premium_keeps_value_of_days_left():
+    # 10 Pro days are worth 4 Premium days at these prices.
+    assert plan_after_purchase("pro", NOW + timedelta(days=10), "premium", 30, PRICES, NOW) == ("premium", NOW + timedelta(days=34))
+
+
+def test_buying_pro_on_premium_extends_premium_by_its_value():
+    plan, until = plan_after_purchase("premium", NOW + timedelta(days=5), "pro", 30, PRICES, NOW)
+    assert plan == "premium" and until == NOW + timedelta(days=5 + 12)
